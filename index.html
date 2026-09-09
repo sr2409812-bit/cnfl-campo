@@ -1,0 +1,140 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CNFL — Ruta & Órdenes de Campo</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <meta name="theme-color" content="#0a0d14" />
+</head>
+<body>
+
+  <!-- HEADER FIJO -->
+  <header class="app-header">
+    <div class="brand-badge">
+      <div class="brand-icon">
+        <i class="fa-solid fa-bolt"></i>
+      </div>
+      <div class="brand-text">
+        <h1>Ruta CNFL Campo</h1>
+        <p id="headerZoneSubtitle">Cuadrilla de Cortes & Reconexión</p>
+      </div>
+    </div>
+    <button style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:#fff;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer" onclick="toggleOptimizer()">
+      <i class="fa-solid fa-route" style="color:var(--accent-amber)"></i> Optimizar
+    </button>
+  </header>
+
+  <main class="main-container">
+
+    <!-- =========================================================
+         TAB 1: RUTA ACTIVA DE HOY
+         ========================================================= -->
+    <section id="tab-ruta" class="tab-view active">
+      
+      <!-- Quick Stats -->
+      <div class="quick-stats-bar">
+        <div class="stat-pill">
+          <span class="stat-val" id="statTotal" style="color:#fff">0</span>
+          <span class="stat-lbl">Total</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-val" id="statDone" style="color:#34d399">0</span>
+          <span class="stat-lbl">Listas</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-val" id="statFailed" style="color:#f87171">0</span>
+          <span class="stat-lbl">No Acceso</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-val" id="statPending" style="color:#fbbf24">0</span>
+          <span class="stat-lbl">Pendiente</span>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros Rápidos -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px">
+        <button class="filter-btn active" style="padding:6px 12px;border-radius:99px;background:var(--accent-amber);color:#000;border:none;font-size:12px;font-weight:700" onclick="filterOrders('all', this)">Todas</button>
+        <button class="filter-btn" style="padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.08);color:#fff;border:1px solid var(--border);font-size:12px;font-weight:600" onclick="filterOrders('pending', this)">Pendientes</button>
+        <button class="filter-btn" style="padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.08);color:#fff;border:1px solid var(--border);font-size:12px;font-weight:600" onclick="filterOrders('corta', this)">Cortes</button>
+        <button class="filter-btn" style="padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.08);color:#fff;border:1px solid var(--border);font-size:12px;font-weight:600" onclick="filterOrders('reconex', this)">Reconexiones</button>
+      </div>
+
+      <!-- Lista de Órdenes Dinámica -->
+      <div id="ordersListContainer">
+        <!-- Renderizado por JS -->
+      </div>
+    </section>
+
+    <!-- =========================================================
+         TAB 2: CARGAR NUEVAS ÓRDENES
+         ========================================================= -->
+    <section id="tab-cargar" class="tab-view">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:16px">
+        <h3 style="font-size:15px;color:#fff;font-weight:700;margin-bottom:6px">
+          <i class="fa-solid fa-file-import" style="color:var(--accent-amber)"></i> Pegar Órdenes de la Jornada
+        </h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+          Pega el texto de WhatsApp, PDF o lista de la cuadrilla. El sistema extraerá automáticamente el NIS, Medidor, Abonado y Dirección.
+        </p>
+
+        <textarea class="input-box" id="rawOrdersText" rows="7" placeholder="Pega aquí las órdenes... (ej. NIS: 123456 Medidor: 88721 Juan Pérez Desamparados...)"></textarea>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <button class="btn-primary" onclick="processRawOrders()">
+            <i class="fa-solid fa-bolt"></i> Cargar Órdenes
+          </button>
+          <button style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:#fff;padding:12px;border-radius:var(--radius-md);font-size:13px;font-weight:600;cursor:pointer" onclick="loadDemoOrders()">
+            <i class="fa-solid fa-vial"></i> Cargar Demo
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         TAB 3: LIQUIDACIÓN & REPORTE DEL DÍA
+         ========================================================= -->
+    <section id="tab-resumen" class="tab-view">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px">
+        <h3 style="font-size:15px;color:#fff;font-weight:700;margin-bottom:6px">
+          <i class="fa-solid fa-clipboard-check" style="color:var(--accent-green)"></i> Liquidación de Cuadrilla
+        </h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+          Resumen automático listo para copiar y enviar a jefatura por WhatsApp.
+        </p>
+
+        <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;font-family:monospace;font-size:12.5px;color:#e2e8f0;white-space:pre-wrap;line-height:1.5;margin-bottom:14px" id="liquidationSummaryText">
+          Cargando resumen...
+        </div>
+
+        <button class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff" onclick="copyLiquidation()">
+          <i class="fa-solid fa-copy"></i> Copiar Liquidación para WhatsApp
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- NAVEGACIÓN INFERIOR MÓVIL -->
+  <nav class="bottom-nav">
+    <button class="nav-tab-btn active" onclick="switchTab('ruta', this)">
+      <i class="fa-solid fa-map-location-dot"></i>
+      <span>Ruta</span>
+    </button>
+    <button class="nav-tab-btn" onclick="switchTab('cargar', this)">
+      <i class="fa-solid fa-plus-circle"></i>
+      <span>Cargar</span>
+    </button>
+    <button class="nav-tab-btn" onclick="switchTab('resumen', this)">
+      <i class="fa-solid fa-square-poll-vertical"></i>
+      <span>Liquidación</span>
+    </button>
+  </nav>
+
+  <!-- TOAST FLOTANTE -->
+  <div class="toast-msg" id="mobileToast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
