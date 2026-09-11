@@ -11,11 +11,22 @@ const expandedFields = {};
 
 // 1. Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
+  registerServiceWorker();
   await loadGeoCache();
   await initOrders();
   renderOrders();
   updateLiquidation();
 });
+
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('Service Worker registrado (Modo Offline Activo):', reg.scope);
+    }).catch(err => {
+      console.warn('Service Worker registro omitido:', err.message);
+    });
+  }
+}
 
 // Cargar caché de geolocalizaciones
 async function loadGeoCache() {
