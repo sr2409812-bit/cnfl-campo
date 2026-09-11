@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>CNFL — Ruta & Órdenes de Campo</title>
+  <title>CNFL — Terminal de Operaciones en Campo</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <meta name="theme-color" content="#0a0d14" />
+  <meta name="theme-color" content="#001D40" />
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,15 +16,15 @@
 </head>
 <body>
 
-  <!-- HEADER FIJO -->
+  <!-- HEADER INSTITUCIONAL CNFL -->
   <header class="app-header">
     <div class="brand-badge">
       <div class="brand-icon">
         <i class="fa-solid fa-bolt"></i>
       </div>
       <div class="brand-text">
-        <h1>Ruta CNFL Campo</h1>
-        <p id="headerZoneSubtitle">Téc. Ramírez Artavia Sebastián • Zona 50</p>
+        <h1>CNFL CAMPO</h1>
+        <p id="headerZoneSubtitle">TÉC. RAMÍREZ S. • ZONA 50 CENTRAL</p>
       </div>
     </div>
     <button class="btn-optimize" onclick="optimizeCurrentRoute()">
@@ -39,128 +39,130 @@
          ========================================================= -->
     <section id="tab-ruta" class="tab-view active">
       
-      <!-- Quick Stats -->
+      <!-- Métricas de Cuadrilla -->
       <div class="quick-stats-bar">
         <div class="stat-pill">
-          <span class="stat-val" id="statTotal" style="color:#fff">0</span>
-          <span class="stat-lbl">Total</span>
+          <span class="stat-val" id="statPending" style="color:var(--cnfl-cyan)">0</span>
+          <span class="stat-lbl">Pendientes</span>
         </div>
         <div class="stat-pill">
-          <span class="stat-val" id="statDone" style="color:#34d399">0</span>
+          <span class="stat-val" id="statDone" style="color:#86EFAC">0</span>
           <span class="stat-lbl">Listas</span>
         </div>
         <div class="stat-pill">
-          <span class="stat-val" id="statFailed" style="color:#f87171">0</span>
+          <span class="stat-val" id="statFailed" style="color:#94A3B8">0</span>
           <span class="stat-lbl">No Acceso</span>
         </div>
         <div class="stat-pill">
-          <span class="stat-val" id="statPending" style="color:#fbbf24">0</span>
-          <span class="stat-lbl">Pendiente</span>
+          <span class="stat-val" id="statTotal" style="color:#fff">0</span>
+          <span class="stat-lbl">Asignadas</span>
         </div>
       </div>
 
       <!-- Resumen de Ruta y Distancia -->
       <div class="route-summary-banner" id="routeSummaryBanner">
-        <div style="display:flex;align-items:center;gap:10px">
-          <i class="fa-solid fa-location-crosshairs" style="color:var(--accent-amber);font-size:18px"></i>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:#fff" id="routeStatusTitle">Ruta Optimizada Activa</div>
-            <div style="font-size:11.5px;color:var(--text-muted)" id="routeDistanceSubtitle">Distancia total aprox: calculando...</div>
-          </div>
+        <div>
+          <div class="route-info-title" id="routeStatusTitle">RUTA ACTIVA DE OPERACIÓN</div>
+          <div class="route-info-sub" id="routeDistanceSubtitle">Calculando recorrido...</div>
         </div>
         <button class="btn-reorder" onclick="optimizeCurrentRoute()" title="Recalcular ruta más corta">
           <i class="fa-solid fa-arrows-rotate"></i> Recalcular
         </button>
       </div>
 
-      <!-- Barra de Filtros Rápidos -->
-      <div class="filters-row">
-        <button class="filter-btn active" onclick="filterOrders('all', this)">Todas (<span id="countAll">0</span>)</button>
-        <button class="filter-btn" onclick="filterOrders('pending', this)">Pendientes (<span id="countPending">0</span>)</button>
-        <button class="filter-btn" onclick="filterOrders('corta', this)">Cortes</button>
-        <button class="filter-btn" onclick="filterOrders('recon', this)">Reconexiones</button>
+      <!-- Segmented Control: Pendientes (Default) vs Gestionadas vs Todas -->
+      <div class="segmented-control">
+        <button class="seg-btn active" id="btnFilterPending" onclick="setRouteFilter('pending', this)">
+          Pendientes (<span id="segCountPending">0</span>)
+        </button>
+        <button class="seg-btn" id="btnFilterDone" onclick="setRouteFilter('done', this)">
+          Gestionadas (<span id="segCountDone">0</span>)
+        </button>
+        <button class="seg-btn" id="btnFilterAll" onclick="setRouteFilter('all', this)">
+          Todas (<span id="segCountAll">0</span>)
+        </button>
       </div>
 
       <!-- Buscador Rápido -->
       <div class="search-box-container">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="orderSearchInput" placeholder="Buscar por NIS, Medidor, Cliente o Calle..." oninput="handleSearch(this.value)" />
+        <input type="text" id="orderSearchInput" placeholder="Filtrar por NIS, Medidor, Localización o Cliente..." oninput="handleSearch(this.value)" />
       </div>
 
-      <!-- Lista de Órdenes Dinámica -->
+      <!-- Lista Dinámica de Órdenes -->
       <div id="ordersListContainer">
         <!-- Renderizado por JS -->
       </div>
     </section>
 
     <!-- =========================================================
-         TAB 2: CARGAR NUEVAS ÓRDENES (PDF O TEXTO)
+         TAB 2: CARGAR NUEVAS ÓRDENES (PDF OFICIAL O TEXTO)
          ========================================================= -->
     <section id="tab-cargar" class="tab-view">
       <div class="card-panel">
         <h3 class="panel-title">
-          <i class="fa-solid fa-file-pdf" style="color:#ef4444"></i> Cargar PDF de Desconexiones
+          <i class="fa-solid fa-file-pdf" style="color:var(--cnfl-cyan)"></i> Importar PDF de Desconexiones
         </h3>
         <p class="panel-desc">
-          Sube directamente el archivo PDF de la cuadrilla (<em>"LISTADO DE DESCONEXIONES EN MÓVILES"</em>). El sistema extraerá las órdenes y asignará coordenadas GPS de inmediato.
+          Carga el archivo PDF oficial de CNFL (<em>"LISTADO DE DESCONEXIONES EN MÓVILES"</em>). El motor extraerá las órdenes y asociará coordenadas GPS y circuito automáticamente.
         </p>
 
         <!-- Dropzone de PDF -->
         <div class="upload-dropzone" onclick="document.getElementById('pdfFileInput').click()">
           <input type="file" id="pdfFileInput" accept=".pdf" style="display:none" onchange="handlePdfUpload(event)" />
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size:38px;color:var(--accent-amber);margin-bottom:8px;display:block"></i>
-          <p style="color:#fff;font-weight:700;font-size:14px">Toca para seleccionar el PDF</p>
-          <p style="color:var(--text-muted);font-size:11.5px;margin-top:4px">Compatible con los reportes oficiales de CNFL</p>
+          <i class="fa-solid fa-file-arrow-up" style="font-size:32px;color:var(--cnfl-cyan);margin-bottom:8px;display:block"></i>
+          <p style="color:#fff;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.3px">Seleccionar archivo PDF</p>
+          <p style="color:var(--text-muted);font-size:11px;margin-top:4px">Compatible con reportes oficiales CNFL Zona 50</p>
         </div>
 
-        <div id="pdfLoadingStatus" style="display:none;margin-bottom:14px;padding:10px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:var(--radius-sm);font-size:12.5px;color:#93c5fd;text-align:center">
-          <i class="fa-solid fa-spinner fa-spin"></i> Procesando páginas del PDF...
+        <div id="pdfLoadingStatus" style="display:none;margin-bottom:12px;padding:9px;background:rgba(0,163,224,0.1);border:1px solid var(--cnfl-cyan);border-radius:var(--radius-xs);font-size:12px;color:#7DD3FC;text-align:center">
+          <i class="fa-solid fa-spinner fa-spin"></i> Extrayendo órdenes y asociando coordenadas...
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
           <button class="btn-primary" onclick="loadTodayPreloadedOrders()">
-            <i class="fa-solid fa-database"></i> Cargar Hoy (41 Órdenes)
+            <i class="fa-solid fa-cloud-arrow-down"></i> Cargar Hoy (41 Órdenes)
           </button>
           <button class="btn-ghost" onclick="loadDemoOrders()">
-            <i class="fa-solid fa-vial"></i> Modo Demo
+            <i class="fa-solid fa-vial"></i> Modo Demostración
           </button>
         </div>
       </div>
 
       <!-- Pegado de Texto Alternativo -->
-      <div class="card-panel" style="margin-top:16px">
+      <div class="card-panel" style="margin-top:12px">
         <h3 class="panel-title">
-          <i class="fa-solid fa-paste" style="color:var(--accent-blue)"></i> O Pegar Texto Manual
+          <i class="fa-solid fa-keyboard" style="color:var(--text-muted)"></i> Ingreso Manual por Texto
         </h3>
-        <p class="panel-desc">Si recibes el listado en formato texto de WhatsApp o notas:</p>
-        <textarea class="input-box" id="rawOrdersText" rows="5" placeholder="Pega aquí el texto..."></textarea>
+        <p class="panel-desc">Pega texto recibido por mensaje o correo:</p>
+        <textarea class="input-box" id="rawOrdersText" rows="4" placeholder="NIS, Medidor, Localización..."></textarea>
         <button class="btn-primary" style="margin-top:8px" onclick="processRawOrders()">
-          <i class="fa-solid fa-bolt"></i> Procesar Texto
+          <i class="fa-solid fa-arrow-right"></i> Procesar Texto
         </button>
       </div>
     </section>
 
     <!-- =========================================================
-         TAB 3: LIQUIDACIÓN & REPORTE DEL DÍA
+         TAB 3: LIQUIDACIÓN & REPORTE FORMAL DE OPERACIÓN
          ========================================================= -->
     <section id="tab-resumen" class="tab-view">
       <div class="card-panel">
         <h3 class="panel-title">
-          <i class="fa-solid fa-clipboard-check" style="color:var(--accent-green)"></i> Liquidación de Cuadrilla
+          <i class="fa-solid fa-clipboard-list" style="color:#86EFAC"></i> Reporte Oficial de Liquidación
         </h3>
         <p class="panel-desc">
-          Resumen generado automáticamente en formato oficial para remitir a jefatura por WhatsApp.
+          Documento estructurado con lecturas, sellos instalados/retirados y observaciones para remisión formal a jefatura.
         </p>
 
         <div class="liquidation-box" id="liquidationSummaryText">
-          Cargando resumen...
+          Generando reporte de cuadrilla...
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
-          <button class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff" onclick="copyLiquidation()">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <button class="btn-primary" onclick="copyLiquidation()">
             <i class="fa-solid fa-copy"></i> Copiar Texto
           </button>
-          <button class="btn-primary" style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff" onclick="shareWhatsAppLiquidation()">
+          <button class="btn-primary" style="background:#006AA6" onclick="shareWhatsAppLiquidation()">
             <i class="fa-brands fa-whatsapp"></i> Enviar a WhatsApp
           </button>
         </div>
@@ -169,18 +171,18 @@
 
   </main>
 
-  <!-- NAVEGACIÓN INFERIOR MÓVIL -->
+  <!-- NAVEGACIÓN INFERIOR MÓVIL (ESTILO TERMINAL) -->
   <nav class="bottom-nav">
     <button class="nav-tab-btn active" onclick="switchTab('ruta', this)">
-      <i class="fa-solid fa-map-location-dot"></i>
+      <i class="fa-solid fa-route"></i>
       <span>Ruta</span>
     </button>
     <button class="nav-tab-btn" onclick="switchTab('cargar', this)">
-      <i class="fa-solid fa-cloud-arrow-up"></i>
+      <i class="fa-solid fa-upload"></i>
       <span>Cargar</span>
     </button>
     <button class="nav-tab-btn" onclick="switchTab('resumen', this)">
-      <i class="fa-solid fa-square-poll-vertical"></i>
+      <i class="fa-solid fa-file-lines"></i>
       <span>Liquidación</span>
     </button>
   </nav>
