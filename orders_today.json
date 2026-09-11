@@ -15,7 +15,11 @@
     "circuito": "Circuito 1903 SUB_URUCA_3A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93361117400002,-84.0759451&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93361117400002,-84.0759451",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438947",
@@ -33,7 +37,11 @@
     "circuito": "Circuito 1903 SUB_URUCA_3A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93361119799999,-84.075946869&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93361119799999,-84.075946869",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438948",
@@ -51,7 +59,11 @@
     "circuito": "Circuito 1903 SUB_URUCA_3A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93284759699998,-84.075907963&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93284759699998,-84.075907963",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438949",
@@ -69,7 +81,11 @@
     "circuito": "Circuito 1903 SUB_URUCA_3A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93284616400001,-84.07590169&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93284616400001,-84.07590169",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438950",
@@ -87,7 +103,11 @@
     "circuito": "Circuito 2103 SUB_ANGELES_3A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93273019499998,-84.069913319&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93273019499998,-84.069913319",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438951",
@@ -105,7 +125,11 @@
     "circuito": "Circuito 502 CENTRAL",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93167327700002,-84.066240371&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93167327700002,-84.066240371",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438952",
@@ -123,7 +147,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93238003099998,-84.074074161&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93238003099998,-84.074074161",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438953",
@@ -141,7 +169,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93238366200001,-84.07435961&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93238366200001,-84.07435961",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438954",
@@ -159,7 +191,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93238407600001,-84.074372248&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93238407600001,-84.074372248",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438955",
@@ -177,7 +213,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93123058200001,-84.073617217&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93123058200001,-84.073617217",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438956",
@@ -195,7 +235,11 @@
     "circuito": "Circuito 2108 SUB_ANGELES_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.932258757,-84.079081867&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.932258757,-84.079081867",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438957",
@@ -213,7 +257,11 @@
     "circuito": "Circuito 2108 SUB_ANGELES_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93171000900003,-84.079200682&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93171000900003,-84.079200682",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438958",
@@ -231,7 +279,11 @@
     "circuito": "Circuito 2108 SUB_ANGELES_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.931156692,-84.078493551&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.931156692,-84.078493551",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438959",
@@ -249,7 +301,11 @@
     "circuito": "Circuito 2108 SUB_ANGELES_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93078473499997,-84.079232652&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93078473499997,-84.079232652",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438960",
@@ -267,7 +323,11 @@
     "circuito": "Circuito 2108 SUB_ANGELES_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93077350900001,-84.079232123&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93077350900001,-84.079232123",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438961",
@@ -285,7 +345,11 @@
     "circuito": "Circuito 2108 SUB_ANGELES_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93079090700002,-84.079238019&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93079090700002,-84.079238019",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438962",
@@ -303,7 +367,11 @@
     "circuito": "Circuito 2103 SUB_ANGELES_3A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93127168000001,-84.077005116&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93127168000001,-84.077005116",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438963",
@@ -321,7 +389,11 @@
     "circuito": "Circuito 2103 SUB_ANGELES_3A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93069951899997,-84.077620585&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93069951899997,-84.077620585",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438964",
@@ -339,7 +411,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93076502399998,-84.075972219&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93076502399998,-84.075972219",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438965",
@@ -357,7 +433,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93045033300001,-84.075969801&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93045033300001,-84.075969801",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438966",
@@ -375,7 +455,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93108594300003,-84.073811572&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93108594300003,-84.073811572",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438967",
@@ -393,7 +477,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93108084300002,-84.07381167&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93108084300002,-84.07381167",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438968",
@@ -411,7 +499,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93106982299997,-84.073826972&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93106982299997,-84.073826972",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438969",
@@ -429,7 +521,11 @@
     "circuito": "Circuito 1908 SUB_URUCA_3B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93107406399997,-84.073827226&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93107406399997,-84.073827226",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438970",
@@ -447,7 +543,11 @@
     "circuito": "Circuito 2104 SUB_ANGELES_4A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.92981624999999,-84.079257976&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92981624999999,-84.079257976",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438971",
@@ -465,7 +565,11 @@
     "circuito": "Circuito 2104 SUB_ANGELES_4A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.92975347300001,-84.078058757&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92975347300001,-84.078058757",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438972",
@@ -483,7 +587,11 @@
     "circuito": "Circuito 2104 SUB_ANGELES_4A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.92978808800001,-84.078001973&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92978808800001,-84.078001973",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438973",
@@ -501,7 +609,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.929748464,-84.07713681&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.929748464,-84.07713681",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438974",
@@ -519,7 +631,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93019090199999,-84.077661354&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93019090199999,-84.077661354",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438975",
@@ -537,7 +653,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.930190977,-84.077674323&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930190977,-84.077674323",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438976",
@@ -555,7 +675,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.92971337300003,-84.077414188&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92971337300003,-84.077414188",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438977",
@@ -573,7 +697,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.930078143,-84.076189414&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930078143,-84.076189414",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438978",
@@ -591,7 +719,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.930078315,-84.076207699&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930078315,-84.076207699",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438979",
@@ -609,7 +741,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93011016000003,-84.076207711&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93011016000003,-84.076207711",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438980",
@@ -627,7 +763,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93010981399999,-84.076199452&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93010981399999,-84.076199452",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438981",
@@ -645,7 +785,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.930109883,-84.076190636&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930109883,-84.076190636",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438982",
@@ -663,7 +807,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.930109792,-84.076182234&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930109792,-84.076182234",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438983",
@@ -681,7 +829,11 @@
     "circuito": "Circuito 2109 SUB_ANGELES_4B",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93030555199999,-84.076228928&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93030555199999,-84.076228928",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438984",
@@ -699,7 +851,11 @@
     "circuito": "",
     "wazeUrl": "https://www.waze.com/ul?q=P.EST.Y%20OCT.AV.EDIF.CRISOL%20ALAEST.%2C%20San%20Jose%20Costa%20Rica",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=P.EST.Y%20OCT.AV.EDIF.CRISOL%20ALAEST.%2C%20San%20Jose%20Costa%20Rica",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438985",
@@ -717,7 +873,11 @@
     "circuito": "Circuito 2104 SUB_ANGELES_4A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.92959772099999,-84.075511549&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92959772099999,-84.075511549",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   },
   {
     "id": "ord-74438986",
@@ -735,6 +895,10 @@
     "circuito": "Circuito 2104 SUB_ANGELES_4A",
     "wazeUrl": "https://www.waze.com/ul?ll=9.93017239800002,-84.074267095&navigate=yes",
     "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93017239800002,-84.074267095",
-    "status": "pending"
+    "status": "pending",
+    "lectura": "",
+    "sello_instalado": "",
+    "sello_retirado": "",
+    "observaciones": ""
   }
 ]

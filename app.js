@@ -7,6 +7,7 @@ let workOrders = [];
 let activeFilter = 'all';
 let searchQuery = '';
 let geoCache = {};
+const expandedFields = {};
 
 // 1. Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
@@ -105,7 +106,6 @@ function optimizeCurrentRoute() {
 
   showToast('Calculando ruta más corta con IA...');
 
-  // Separar órdenes con coordenadas de las que no tienen
   const withCoords = workOrders.filter(o => o.lat && o.lon);
   const withoutCoords = workOrders.filter(o => !o.lat || !o.lon);
 
@@ -114,8 +114,6 @@ function optimizeCurrentRoute() {
     return;
   }
 
-  // 1. Algoritmo de Vecino Más Cercano (Nearest Neighbor)
-  // Iniciamos desde el punto más al noroeste (ej. La Uruca / Sabana) o la primera orden
   let unvisited = [...withCoords];
   const tour = [];
 
@@ -140,10 +138,9 @@ function optimizeCurrentRoute() {
     tour.push(current);
   }
 
-  // 2. Optimización 2-Opt para desanudar cruces de ruta
+  // 2-Opt para desanudar cruces de ruta
   let optimizedTour = twoOptImprovement(tour);
 
-  // Concatenar las que no tenían coordenadas al final
   workOrders = [...optimizedTour, ...withoutCoords];
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
 
@@ -226,6 +223,7 @@ function renderOrders() {
   }
 
   container.innerHTML = list.map((ord, idx) => {
+    const cardId = ord.id || ord.orden;
     const isDone = ord.status === 'cortado' || ord.status === 'reconectado' || ord.status === 'pago';
     const isFailed = ord.status === 'no_acceso';
     
@@ -248,6 +246,9 @@ function renderOrders() {
         nextDistText = `➡️ Siguiente parada a <strong>${dKm.toFixed(1)} km</strong>`;
       }
     }
+
+    const isExpanded = !!expandedFields[cardId];
+    const hasFieldData = !!(ord.lectura || ord.sello_instalado || ord.sello_retirado || ord.observaciones);
 
     return `
       <div class="order-card ${isDone ? 'done' : ''} ${isFailed ? 'failed' : ''}">
@@ -272,8 +273,18 @@ function renderOrders() {
           ${ord.circuito ? `<div class="circuit-badge"><i class="fa-solid fa-bolt"></i> ${ord.circuito}</div>` : ''}
         </div>
 
+        <!-- Resumen de Datos de Campo Ingresados (si existen) -->
+        ${hasFieldData ? `
+          <div class="data-summary-pills">
+            ${ord.lectura ? `<span class="field-pill pill-lectura"><i class="fa-solid fa-gauge"></i> ${ord.lectura} kWh</span>` : ''}
+            ${ord.sello_instalado ? `<span class="field-pill pill-sello"><i class="fa-solid fa-shield-halved"></i> Inst: ${ord.sello_instalado}</span>` : ''}
+            ${ord.sello_retirado ? `<span class="field-pill pill-sello"><i class="fa-solid fa-scissors"></i> Ret: ${ord.sello_retirado}</span>` : ''}
+            ${ord.observaciones ? `<span class="field-pill pill-obs"><i class="fa-solid fa-comment"></i> ${ord.observaciones}</span>` : ''}
+          </div>
+        ` : ''}
+
         <!-- Botones de Navegación 1-Touch -->
-        <div class="nav-gps-row">
+        <div class="nav-gps-row" style="margin-top:8px">
           <a href="${wazeUrl}" target="_blank" class="btn-waze">
             <i class="fa-brands fa-waze"></i> Waze GPS
           </a>
@@ -284,18 +295,59 @@ function renderOrders() {
 
         <!-- Botones de Estado Táctiles -->
         <div class="action-buttons-grid">
-          <button class="btn-act btn-act-cortado" onclick="setOrderStatus('${ord.id || ord.orden}', 'cortado')">
+          <button class="btn-act btn-act-cortado" onclick="setOrderStatus('${cardId}', 'cortado')">
             <i class="fa-solid fa-bolt"></i> Cortado
           </button>
-          <button class="btn-act btn-act-recon" onclick="setOrderStatus('${ord.id || ord.orden}', 'reconectado')">
+          <button class="btn-act btn-act-recon" onclick="setOrderStatus('${cardId}', 'reconectado')">
             <i class="fa-solid fa-plug"></i> Reconectado
           </button>
-          <button class="btn-act btn-act-failed" onclick="setOrderStatus('${ord.id || ord.orden}', 'no_acceso')">
+          <button class="btn-act btn-act-failed" onclick="setOrderStatus('${cardId}', 'no_acceso')">
             <i class="fa-solid fa-lock"></i> No Acceso
           </button>
-          <button class="btn-act btn-act-paid" onclick="setOrderStatus('${ord.id || ord.orden}', 'pago')">
+          <button class="btn-act btn-act-paid" onclick="setOrderStatus('${cardId}', 'pago')">
             <i class="fa-solid fa-receipt"></i> Pagó Recibo
           </button>
+        </div>
+
+        <!-- Registro Técnico: Lecturas, Sellos & Observaciones -->
+        <div class="field-data-box">
+          <div class="field-data-header" onclick="toggleFieldData('${cardId}')">
+            <span>
+              <i class="fa-solid fa-pen-to-square" style="color:var(--accent-amber)"></i> 
+              Registro Técnico (Lectura, Sellos, Obs)
+            </span>
+            <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}" style="font-size:11px"></i>
+          </div>
+          <div class="field-data-body" style="display:${isExpanded ? 'block' : 'none'}">
+            <div class="field-row-inputs">
+              <div class="field-group">
+                <label>Lectura (kWh)</label>
+                <input type="number" inputmode="numeric" placeholder="kWh..." value="${ord.lectura || ''}" onchange="updateFieldRecord('${cardId}', 'lectura', this.value)" />
+              </div>
+              <div class="field-group">
+                <label>Sello Instalado</label>
+                <input type="text" placeholder="Ej: S-9921" value="${ord.sello_instalado || ''}" onchange="updateFieldRecord('${cardId}', 'sello_instalado', this.value)" />
+              </div>
+              <div class="field-group">
+                <label>Sello Retirado</label>
+                <input type="text" placeholder="Ej: S-4120" value="${ord.sello_retirado || ''}" onchange="updateFieldRecord('${cardId}', 'sello_retirado', this.value)" />
+              </div>
+            </div>
+            <div class="field-group" style="margin-top:8px">
+              <label>Observaciones de Cuadrilla</label>
+              <input type="text" id="obs-input-${cardId}" placeholder="Detalles de la visita..." value="${ord.observaciones || ''}" onchange="updateFieldRecord('${cardId}', 'observaciones', this.value)" />
+            </div>
+            <!-- Chips de Observaciones Rápidas -->
+            <div class="quick-obs-tags">
+              <button type="button" class="obs-tag" onclick="appendQuickObs('${cardId}', '🐕 Perro bravo')">🐕 Perro bravo</button>
+              <button type="button" class="obs-tag" onclick="appendQuickObs('${cardId}', '🔒 Portón cerrado')">🔒 Portón cerrado</button>
+              <button type="button" class="obs-tag" onclick="appendQuickObs('${cardId}', '⚡ Medidor intervenido')">⚡ Intervenido</button>
+              <button type="button" class="obs-tag" onclick="appendQuickObs('${cardId}', '🧾 Sinpe comprobado')">🧾 Sinpe verificado</button>
+              <button type="button" class="obs-tag" onclick="appendQuickObs('${cardId}', '🛑 No permite acceso')">🛑 No permite acceso</button>
+              <button type="button" class="obs-tag" onclick="appendQuickObs('${cardId}', '👁️ Display dañado')">👁️ Display apagado</button>
+              <button type="button" class="obs-tag" onclick="appendQuickObs('${cardId}', '🏠 Deshabitado')">🏠 Deshabitado</button>
+            </div>
+          </div>
         </div>
 
         ${nextDistText ? `<div class="next-distance-banner">${nextDistText}</div>` : ''}
@@ -303,12 +355,46 @@ function renderOrders() {
         ${ord.status !== 'pending' ? `
           <div style="margin-top:10px;padding:6px 10px;background:rgba(255,255,255,0.06);border-radius:6px;font-size:11.5px;display:flex;justify-content:space-between;align-items:center">
             <span style="color:#fff;font-weight:600">Estado: ${ord.status.toUpperCase()}</span>
-            <button style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer" onclick="setOrderStatus('${ord.id || ord.orden}', 'pending')">Reabrir</button>
+            <button style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer" onclick="setOrderStatus('${cardId}', 'pending')">Reabrir</button>
           </div>
         ` : ''}
       </div>
     `;
   }).join('');
+}
+
+// =========================================================
+// GESTIÓN DE REGISTRO TÉCNICO (LECTURAS, SELLOS, OBS)
+// =========================================================
+
+function toggleFieldData(cardId) {
+  expandedFields[cardId] = !expandedFields[cardId];
+  renderOrders();
+}
+
+function updateFieldRecord(cardId, field, value) {
+  const ord = workOrders.find(o => (o.id === cardId || o.orden === cardId || String(o.orden) === String(cardId)));
+  if (ord) {
+    ord[field] = value.trim();
+    localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+    updateLiquidation();
+  }
+}
+
+function appendQuickObs(cardId, tag) {
+  const ord = workOrders.find(o => (o.id === cardId || o.orden === cardId || String(o.orden) === String(cardId)));
+  if (ord) {
+    const current = (ord.observaciones || '').trim();
+    if (!current) {
+      ord.observaciones = tag;
+    } else if (!current.includes(tag)) {
+      ord.observaciones = `${current}, ${tag}`;
+    }
+    localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+    renderOrders();
+    updateLiquidation();
+    showToast(`Nota agregada: ${tag}`);
+  }
 }
 
 function calculateRouteDistance() {
@@ -333,6 +419,8 @@ function setOrderStatus(id, newStatus) {
   const ord = workOrders.find(o => (o.id === id || o.orden === id || String(o.orden) === String(id)));
   if (ord) {
     ord.status = newStatus;
+    // Abrir automáticamente el panel de registro de datos para conveniencia del técnico
+    expandedFields[id] = true;
     localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
     renderOrders();
     showToast(`NIS ${ord.nis}: ${newStatus.toUpperCase()}`);
@@ -430,7 +518,6 @@ async function handlePdfUpload(event) {
 
 function parseCnflPdfText(rawText) {
   const orders = [];
-  // Regex para filas CNFL: NIS (6-8 dig), Plan, Orden (8 dig), Localización (10 dig), Medidor, Monto
   const regex = /(\d{6,8})\s+(TG - COMERCIAL|TR - RESIDENCIAL)\s+(\d{8})\s+(\d{10})\s+([A-Z0-9]+)\s+([\d,.]+)\s+([^0-9\n]+(?:\d+[^0-9\n]*)*?)\s+([A-Z\s]{4,})/g;
   
   let match;
@@ -455,11 +542,14 @@ function parseCnflPdfText(rawText) {
       direccion,
       cliente,
       tipo: plan.includes('COMERCIAL') ? 'corta_comercial' : 'corta_residencial',
-      status: 'pending'
+      status: 'pending',
+      lectura: '',
+      sello_instalado: '',
+      sello_retirado: '',
+      observaciones: ''
     });
   }
 
-  // Fallback si el PDF no matchea exactamente la regex completa: extraer por NIS y Orden
   if (orders.length === 0) {
     const lines = rawText.split('\n');
     for (const line of lines) {
@@ -476,7 +566,11 @@ function parseCnflPdfText(rawText) {
           direccion: line.substring(0, 40),
           cliente: 'Cliente CNFL',
           tipo: 'corta',
-          status: 'pending'
+          status: 'pending',
+          lectura: '',
+          sello_instalado: '',
+          sello_retirado: '',
+          observaciones: ''
         });
       }
     }
@@ -497,7 +591,6 @@ function processRawOrders() {
   if (parsed.length > 0) {
     workOrders = parsed;
   } else {
-    // Parser simple línea a línea
     const lines = raw.split('\n').filter(l => l.trim().length > 0);
     workOrders = lines.map((line, idx) => ({
       id: `ord-manual-${idx + 1}`,
@@ -507,7 +600,11 @@ function processRawOrders() {
       tipo: 'corta',
       cliente: line.split('-')[0].trim() || `Abonado #${idx + 1}`,
       direccion: line,
-      status: 'pending'
+      status: 'pending',
+      lectura: '',
+      sello_instalado: '',
+      sello_retirado: '',
+      observaciones: ''
     }));
   }
 
@@ -521,10 +618,10 @@ function processRawOrders() {
 
 function loadDemoOrders() {
   workOrders = [
-    { id: 'demo-1', nis: '356663', orden: '74438946', localizacion: '0100402700', medidor: '848228', monto: '6500.00', plan: 'TG - COMERCIAL', cliente: 'ZENG ZENG XIAOHUAN', direccion: 'C.5-7 AV.CENTRAL, SOTANO GALERIAS RAMIREZ VALIDO', circuito: 'Circuito 1903 SUB_URUCA_3A', lat: 9.933611, lon: -84.075945, status: 'pending' },
-    { id: 'demo-2', nis: '283989', orden: '74438947', localizacion: '0100402744', medidor: '847386', monto: '3420.00', plan: 'TG - COMERCIAL', cliente: 'GOMEZ GOMEZ HELDA MARGARITA', direccion: 'SN JOSE, C-5 -7, AV CTRAL, RAMIREZ VALIDO, LOCAL 132-A', circuito: 'Circuito 1903 SUB_URUCA_3A', lat: 9.933611, lon: -84.075946, status: 'pending' },
-    { id: 'demo-3', nis: '27588884', orden: '74438948', localizacion: '0100404216', medidor: '1191823', monto: '4520.00', plan: 'TR - RESIDENCIAL', cliente: 'WU WU FUYUAN', direccion: 'C 5 Y 7 AVE 2', circuito: 'Circuito 1903 SUB_URUCA_3A', lat: 9.932847, lon: -84.075907, status: 'pending' },
-    { id: 'demo-4', nis: '28141293', orden: '74438950', localizacion: '0101200560', medidor: '1208479', monto: '3580.00', plan: 'TR - RESIDENCIAL', cliente: 'CASA CHIQUITA S.A.', direccion: 'DE LA BOMBA LA PRIMAVERA 100 E Y 75 S', circuito: 'Circuito 2103 SUB_ANGELES_3A', lat: 9.932730, lon: -84.069913, status: 'pending' }
+    { id: 'demo-1', nis: '356663', orden: '74438946', localizacion: '0100402700', medidor: '848228', monto: '6500.00', plan: 'TG - COMERCIAL', cliente: 'ZENG ZENG XIAOHUAN', direccion: 'C.5-7 AV.CENTRAL, SOTANO GALERIAS RAMIREZ VALIDO', circuito: 'Circuito 1903 SUB_URUCA_3A', lat: 9.933611, lon: -84.075945, status: 'pending', lectura: '', sello_instalado: '', sello_retirado: '', observaciones: '' },
+    { id: 'demo-2', nis: '283989', orden: '74438947', localizacion: '0100402744', medidor: '847386', monto: '3420.00', plan: 'TG - COMERCIAL', cliente: 'GOMEZ GOMEZ HELDA MARGARITA', direccion: 'SN JOSE, C-5 -7, AV CTRAL, RAMIREZ VALIDO, LOCAL 132-A', circuito: 'Circuito 1903 SUB_URUCA_3A', lat: 9.933611, lon: -84.075946, status: 'pending', lectura: '', sello_instalado: '', sello_retirado: '', observaciones: '' },
+    { id: 'demo-3', nis: '27588884', orden: '74438948', localizacion: '0100404216', medidor: '1191823', monto: '4520.00', plan: 'TR - RESIDENCIAL', cliente: 'WU WU FUYUAN', direccion: 'C 5 Y 7 AVE 2', circuito: 'Circuito 1903 SUB_URUCA_3A', lat: 9.932847, lon: -84.075907, status: 'pending', lectura: '', sello_instalado: '', sello_retirado: '', observaciones: '' },
+    { id: 'demo-4', nis: '28141293', orden: '74438950', localizacion: '0101200560', medidor: '1208479', monto: '3580.00', plan: 'TR - RESIDENCIAL', cliente: 'CASA CHIQUITA S.A.', direccion: 'DE LA BOMBA LA PRIMAVERA 100 E Y 75 S', circuito: 'Circuito 2103 SUB_ANGELES_3A', lat: 9.932730, lon: -84.069913, status: 'pending', lectura: '', sello_instalado: '', sello_retirado: '', observaciones: '' }
   ];
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
   switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
@@ -557,8 +654,17 @@ TOTAL ÓRDENES ASIGNADAS: ${total}
 🚫 No Ejecutadas (Sin Acceso/Perro): ${noAcceso}
 ⏳ Pendientes restantes: ${pendientes}
 ---------------------------------
-DETALLE:
-${workOrders.map((o, i) => `${i + 1}. NIS ${o.nis} | Med: ${o.medidor || o.meter} | ${o.status.toUpperCase()} | ${o.cliente || o.client}`).join('\n')}`;
+DETALLE DE ÓRDENES:
+${workOrders.map((o, i) => {
+  const lines = [`${i + 1}. NIS ${o.nis} | Med: ${o.medidor || o.meter} | ${o.status.toUpperCase()} | ${o.cliente || o.client}`];
+  const technical = [];
+  if (o.lectura) technical.push(`Lectura: ${o.lectura} kWh`);
+  if (o.sello_instalado) technical.push(`Sello Inst: ${o.sello_instalado}`);
+  if (o.sello_retirado) technical.push(`Sello Ret: ${o.sello_retirado}`);
+  if (technical.length > 0) lines.push(`   ⚡ ${technical.join(' | ')}`);
+  if (o.observaciones) lines.push(`   📝 Obs: ${o.observaciones}`);
+  return lines.join('\n');
+}).join('\n\n')}`;
 }
 
 function updateLiquidation() {
