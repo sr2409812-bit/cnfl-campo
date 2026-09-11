@@ -202,6 +202,20 @@ function twoOptImprovement(route) {
 // RENDERIZADO DE ÓRDENES EN PANTALLA
 // =========================================================
 
+function getStatusLabel(status) {
+  switch (status) {
+    case 'cortado': return '[CORTADO]';
+    case 'avisado': return '[AVISADO]';
+    case 'reconectado': return '[RECONECTADO]';
+    case 'pago': return '[PAGO EN SITIO]';
+    case 'ya_cortado': return '[YA CORTADO]';
+    case 'no_acceso': return '[SIN ACCESO]';
+    case 'directo': return '[DIRECTO / ANOMALÍA]';
+    case 'pending': return '[PENDIENTE]';
+    default: return `[${(status || 'PENDIENTE').toUpperCase()}]`;
+  }
+}
+
 function renderOrders() {
   const container = document.getElementById('ordersListContainer');
   if (!container) return;
@@ -246,8 +260,8 @@ function renderOrders() {
 
   container.innerHTML = list.map((ord, idx) => {
     const cardId = ord.id || ord.orden;
-    const isDone = ord.status === 'cortado' || ord.status === 'reconectado' || ord.status === 'pago';
-    const isFailed = ord.status === 'no_acceso';
+    const isDone = ord.status === 'cortado' || ord.status === 'avisado' || ord.status === 'reconectado' || ord.status === 'pago' || ord.status === 'ya_cortado';
+    const isFailed = ord.status === 'no_acceso' || ord.status === 'directo';
     
     const isRecon = (ord.tipo || '').includes('recon');
     const typeClass = isRecon ? 'pill-recon' : 'pill-corta';
@@ -336,19 +350,32 @@ function renderOrders() {
           </a>
         </div>
 
-        <!-- Botones de Acción de Campo -->
+        <!-- Botones de Acción de Campo (Fila 1: Operaciones Principales) -->
         <div class="execution-actions-grid">
           <button class="btn-status-act btn-act-corte" onclick="setOrderStatus('${cardId}', 'cortado')">
             <i class="fa-solid fa-bolt"></i> Cortado
           </button>
+          <button class="btn-status-act btn-act-avisado" onclick="setOrderStatus('${cardId}', 'avisado')">
+            <i class="fa-solid fa-file-invoice"></i> Avisado
+          </button>
           <button class="btn-status-act btn-act-recon" onclick="setOrderStatus('${cardId}', 'reconectado')">
             <i class="fa-solid fa-plug"></i> Reconectado
           </button>
+          <button class="btn-status-act btn-act-pago" onclick="setOrderStatus('${cardId}', 'pago')">
+            <i class="fa-solid fa-receipt"></i> Pagó Sitio
+          </button>
+        </div>
+
+        <!-- Fila 2: Casos Especiales / Anormalidades -->
+        <div class="execution-actions-secondary-grid">
           <button class="btn-status-act btn-act-noacc" onclick="setOrderStatus('${cardId}', 'no_acceso')">
             <i class="fa-solid fa-ban"></i> Sin Acceso
           </button>
-          <button class="btn-status-act btn-act-pago" onclick="setOrderStatus('${cardId}', 'pago')">
-            <i class="fa-solid fa-receipt"></i> Pagó Sitio
+          <button class="btn-status-act btn-act-yacortado" onclick="setOrderStatus('${cardId}', 'ya_cortado')">
+            <i class="fa-solid fa-check-double"></i> Ya Cortado
+          </button>
+          <button class="btn-status-act btn-act-directo" onclick="setOrderStatus('${cardId}', 'directo')">
+            <i class="fa-solid fa-triangle-exclamation"></i> Directo
           </button>
         </div>
 
@@ -379,10 +406,13 @@ function renderOrders() {
             </div>
             <!-- Tags Técnicos (Sin emojis) -->
             <div class="technical-tag-list">
+              <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Aviso entregado en mano')">Aviso entregado</button>
+              <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Aviso bajo puerta')">Aviso bajo puerta</button>
+              <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Comprobante Sinpe verificado')">Sinpe verificado</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Portón con candado')">Portón con candado</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Perro peligroso')">Perro peligroso</button>
+              <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Ya cortado previamente')">Ya cortado</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Medidor directo')">Medidor directo</button>
-              <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Comprobante Sinpe verificado')">Sinpe verificado</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Abonado no permite corte')">No permite corte</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Display ilegible/apagado')">Display dañado</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Inmueble deshabitado')">Deshabitado</button>
@@ -396,7 +426,7 @@ function renderOrders() {
         <!-- Opción para reabrir si se consulta desde la pestaña Gestionadas -->
         ${ord.status !== 'pending' ? `
           <div class="done-reopen-row">
-            <span style="color:#86EFAC;font-weight:700;font-family:var(--font-mono)">ESTADO: ${ord.status.toUpperCase()}</span>
+            <span style="color:#86EFAC;font-weight:700;font-family:var(--font-mono)">ESTADO: ${getStatusLabel(ord.status)}</span>
             <button class="btn-reopen" onclick="setOrderStatus('${cardId}', 'pending')">Devolver a Pendiente</button>
           </div>
         ` : ''}
@@ -467,7 +497,7 @@ function setOrderStatus(id, newStatus) {
     
     // Al finalizar una orden, si estamos en la vista de pendientes, se quita automáticamente
     renderOrders();
-    showToast(`NIS ${ord.nis}: ${newStatus.toUpperCase()}`);
+    showToast(`NIS ${ord.nis}: ${getStatusLabel(newStatus)}`);
     updateLiquidation();
   }
 }
@@ -481,10 +511,15 @@ function setRouteFilter(filterType, btn) {
 
 function updateStats() {
   const total = workOrders.length;
-  const done = workOrders.filter(o => o.status === 'cortado' || o.status === 'reconectado' || o.status === 'pago').length;
-  const failed = workOrders.filter(o => o.status === 'no_acceso').length;
+  const cortados = workOrders.filter(o => o.status === 'cortado').length;
+  const avisados = workOrders.filter(o => o.status === 'avisado').length;
+  const reconectados = workOrders.filter(o => o.status === 'reconectado').length;
+  const pagos = workOrders.filter(o => o.status === 'pago').length;
+  const yaCortados = workOrders.filter(o => o.status === 'ya_cortado').length;
+  const noAcceso = workOrders.filter(o => o.status === 'no_acceso').length;
+  const directos = workOrders.filter(o => o.status === 'directo').length;
   const pending = workOrders.filter(o => o.status === 'pending').length;
-  const completedTotal = done + failed;
+  const completedTotal = total - pending;
 
   const elTotal = document.getElementById('statTotal');
   const elDone = document.getElementById('statDone');
@@ -496,8 +531,8 @@ function updateStats() {
   const elSegAll = document.getElementById('segCountAll');
 
   if (elTotal) elTotal.innerText = total;
-  if (elDone) elDone.innerText = done;
-  if (elFailed) elFailed.innerText = failed;
+  if (elDone) elDone.innerText = completedTotal;
+  if (elFailed) elFailed.innerText = noAcceso + directos;
   if (elPending) elPending.innerText = pending;
 
   if (elSegPending) elSegPending.innerText = pending;
@@ -682,11 +717,14 @@ function loadDemoOrders() {
 function generateLiquidationText() {
   const total = workOrders.length;
   const cortados = workOrders.filter(o => o.status === 'cortado').length;
+  const avisados = workOrders.filter(o => o.status === 'avisado').length;
   const reconectados = workOrders.filter(o => o.status === 'reconectado').length;
-  const noAcceso = workOrders.filter(o => o.status === 'no_acceso').length;
   const pagos = workOrders.filter(o => o.status === 'pago').length;
+  const yaCortados = workOrders.filter(o => o.status === 'ya_cortado').length;
+  const noAcceso = workOrders.filter(o => o.status === 'no_acceso').length;
+  const directos = workOrders.filter(o => o.status === 'directo').length;
   const pendientes = workOrders.filter(o => o.status === 'pending').length;
-  const ejecutadas = cortados + reconectados + pagos;
+  const gestionadas = total - pendientes;
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('es-CR');
@@ -694,29 +732,29 @@ function generateLiquidationText() {
 
   return `==================================================
 COMPAÑÍA NACIONAL DE FUERZA Y LUZ
-REPORTE DE EJECUCIÓN EN CAMPO — ZONA 50
+REPORTE OFICIAL DE LIQUIDACIÓN — ZONA 50
 Técnico: Ramírez Artavia Sebastián
 Fecha: ${dateStr} | Hora: ${timeStr}
 ==================================================
-RESUMEN DE GESTIÓN:
+RESUMEN DE GESTIÓN EN CAMPO:
 • Total Asignadas: ${total}
-• Total Ejecutadas: ${ejecutadas}
-  - Cortes Realizados: ${cortados}
-  - Reconexiones: ${reconectados}
-  - Pagos en Sitio / Verificados: ${pagos}
-• No Ejecutadas (Sin Acceso): ${noAcceso}
+• Total Gestionadas: ${gestionadas}
+  - Cortes Ejecutados: ${cortados}
+  - Avisados (Notificados sin corte): ${avisados}
+  - Reconexiones Realizadas: ${reconectados}
+  - Pagos Verificados en Sitio: ${pagos}
+  - Ya Cortados Previamente: ${yaCortados}
+  - Sin Acceso (Portón/Candado): ${noAcceso}
+  - Directos / Anomalías Detectadas: ${directos}
 • Pendientes Restantes: ${pendientes}
 ==================================================
-DETALLE COMPLETO DE ÓRDENES:
+DETALLE DE ÓRDENES:
 
 ${workOrders.map((o, i) => {
-  const stateLabel = o.status === 'cortado' ? '[CORTADO]'
-    : (o.status === 'reconectado' ? '[RECONECTADO]'
-    : (o.status === 'pago' ? '[PAGO VERIFICADO]'
-    : (o.status === 'no_acceso' ? '[SIN ACCESO]' : '[PENDIENTE]')));
+  const stateLabel = getStatusLabel(o.status);
 
   const lines = [
-    `${i + 1}. ${stateLabel} NIS: ${o.nis} | Medidor: ${o.medidor || o.meter}`,
+    `${i + 1}. ${stateLabel} NIS: ${o.nis} | Medidor: ${o.medidor || o.meter || 'N/D'}`,
     `   Localización: ${o.localizacion || 'N/D'} | Orden: ${o.orden || 'N/D'}`,
     `   Lectura: ${o.lectura ? `${o.lectura} kWh` : 'N/R'} | Sello Inst: ${o.sello_instalado || 'N/R'} | Sello Ret: ${o.sello_retirado || 'N/R'}`,
     `   Obs: ${o.observaciones || 'Sin observaciones'}`,
@@ -727,7 +765,7 @@ ${workOrders.map((o, i) => {
   return lines.join('\n');
 }).join('\n\n')}
 ==================================================
-Fin de Reporte de Cuadrilla`;
+Fin de Reporte Oficial de Cuadrilla CNFL`;
 }
 
 function updateLiquidation() {

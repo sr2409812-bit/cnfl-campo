@@ -530,14 +530,30 @@ body {
 .btn-act-corte { color: #FCA5A5; border-color: rgba(220, 38, 38, 0.5); }
 .btn-act-corte:active { background: var(--color-danger); color: #fff; }
 
+.btn-act-avisado { color: #7DD3FC; border-color: rgba(0, 163, 224, 0.5); }
+.btn-act-avisado:active { background: #0085CA; color: #fff; }
+
 .btn-act-recon { color: #86EFAC; border-color: rgba(16, 185, 129, 0.5); }
 .btn-act-recon:active { background: var(--color-success); color: #fff; }
+
+.btn-act-pago  { color: #FDE047; border-color: rgba(245, 158, 11, 0.5); }
+.btn-act-pago:active  { background: var(--color-warning); color: #000; }
+
+.execution-actions-secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-top: 5px;
+}
 
 .btn-act-noacc { color: #CBD5E1; border-color: rgba(100, 116, 139, 0.5); }
 .btn-act-noacc:active { background: #475569; color: #fff; }
 
-.btn-act-pago  { color: #FDE047; border-color: rgba(245, 158, 11, 0.5); }
-.btn-act-pago:active  { background: var(--color-warning); color: #000; }
+.btn-act-yacortado { color: #94A3B8; border-color: rgba(148, 163, 184, 0.4); }
+.btn-act-yacortado:active { background: #334155; color: #fff; }
+
+.btn-act-directo { color: #FDBA74; border-color: rgba(249, 115, 22, 0.5); }
+.btn-act-directo:active { background: #C2410C; color: #fff; }
 
 /* Formulario Técnico de Datos de Campo (Lectura, Sellos, Obs) */
 .field-form-panel {

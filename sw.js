@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v3';
+const CACHE_NAME = 'cnfl-campo-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
