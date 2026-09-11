@@ -1,0 +1,451 @@
+{
+  "0101200560": {
+    "localizacion": "0101200560",
+    "lat": 9.93273019499998,
+    "lon": -84.069913319,
+    "circuito": "Circuito 2103 SUB_ANGELES_3A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93273019499998,-84.069913319&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93273019499998,-84.069913319"
+  },
+  "0100404218": {
+    "localizacion": "0100404218",
+    "lat": 9.93284616400001,
+    "lon": -84.07590169,
+    "circuito": "Circuito 1903 SUB_URUCA_3A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93284616400001,-84.07590169&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93284616400001,-84.07590169"
+  },
+  "0100404216": {
+    "localizacion": "0100404216",
+    "lat": 9.93284759699998,
+    "lon": -84.075907963,
+    "circuito": "Circuito 1903 SUB_URUCA_3A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93284759699998,-84.075907963&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93284759699998,-84.075907963"
+  },
+  "0100402744": {
+    "localizacion": "0100402744",
+    "lat": 9.93361119799999,
+    "lon": -84.075946869,
+    "circuito": "Circuito 1903 SUB_URUCA_3A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93361119799999,-84.075946869&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93361119799999,-84.075946869"
+  },
+  "0100402700": {
+    "localizacion": "0100402700",
+    "lat": 9.93361117400002,
+    "lon": -84.0759451,
+    "circuito": "Circuito 1903 SUB_URUCA_3A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93361117400002,-84.0759451&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93361117400002,-84.0759451"
+  },
+  "0600800626": {
+    "localizacion": "0600800626",
+    "lat": 9.93355934800002,
+    "lon": -84.115126349,
+    "circuito": "Circuito 201 SABANA_NORTE",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93355934800002,-84.115126349&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93355934800002,-84.115126349"
+  },
+  "0600700880": {
+    "localizacion": "0600700880",
+    "lat": 9.93446798100001,
+    "lon": -84.114743865,
+    "circuito": "Circuito 201 SABANA_NORTE",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93446798100001,-84.114743865&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93446798100001,-84.114743865"
+  },
+  "0600900006": {
+    "localizacion": "0600900006",
+    "lat": 9.934056172,
+    "lon": -84.116058489,
+    "circuito": "Circuito 208 MATA REDONDA",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.934056172,-84.116058489&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.934056172,-84.116058489"
+  },
+  "0603000070": {
+    "localizacion": "0603000070",
+    "lat": 9.93410636999999,
+    "lon": -84.11029028,
+    "circuito": "Circuito 208 MATA REDONDA",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93410636999999,-84.11029028&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93410636999999,-84.11029028"
+  },
+  "0603700549": {
+    "localizacion": "0603700549",
+    "lat": 9.93513699900001,
+    "lon": -84.112188047,
+    "circuito": "Circuito 201 SABANA_NORTE",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93513699900001,-84.112188047&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93513699900001,-84.112188047"
+  },
+  "0613300320": {
+    "localizacion": "0613300320",
+    "lat": 9.93897699000001,
+    "lon": -84.113798983,
+    "circuito": "Circuito 902 VIRILLA",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93897699000001,-84.113798983&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93897699000001,-84.113798983"
+  },
+  "0613400222": {
+    "localizacion": "0613400222",
+    "lat": 9.93938250999997,
+    "lon": -84.112425064,
+    "circuito": "Circuito 1002 ROHRMOSER",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93938250999997,-84.112425064&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93938250999997,-84.112425064"
+  },
+  "0614700002": {
+    "localizacion": "0614700002",
+    "lat": 9.93988088700002,
+    "lon": -84.113559897,
+    "circuito": "",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93988088700002,-84.113559897&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93988088700002,-84.113559897"
+  },
+  "0615000100": {
+    "localizacion": "0615000100",
+    "lat": 9.94065352600001,
+    "lon": -84.113988997,
+    "circuito": "Circuito 902 VIRILLA",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.94065352600001,-84.113988997&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.94065352600001,-84.113988997"
+  },
+  "0615300790": {
+    "localizacion": "0615300790",
+    "lat": 9.94217109200002,
+    "lon": -84.113225522,
+    "circuito": "Circuito 902 VIRILLA",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.94217109200002,-84.113225522&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.94217109200002,-84.113225522"
+  },
+  "0616100420": {
+    "localizacion": "0616100420",
+    "lat": 9.94338262700001,
+    "lon": -84.115968861,
+    "circuito": "Circuito 205 AYALA",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.94338262700001,-84.115968861&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.94338262700001,-84.115968861"
+  },
+  "0101700518": {
+    "localizacion": "0101700518",
+    "lat": 9.93167327700002,
+    "lon": -84.066240371,
+    "circuito": "Circuito 502 CENTRAL",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93167327700002,-84.066240371&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93167327700002,-84.066240371"
+  },
+  "0102500212": {
+    "localizacion": "0102500212",
+    "lat": 9.93238003099998,
+    "lon": -84.074074161,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93238003099998,-84.074074161&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93238003099998,-84.074074161",
+    "resolvedAt": "2026-09-11T04:15:40.820Z"
+  },
+  "0102500235": {
+    "localizacion": "0102500235",
+    "lat": 9.93238366200001,
+    "lon": -84.07435961,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93238366200001,-84.07435961&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93238366200001,-84.07435961",
+    "resolvedAt": "2026-09-11T04:15:45.523Z"
+  },
+  "0102500240": {
+    "localizacion": "0102500240",
+    "lat": 9.93238407600001,
+    "lon": -84.074372248,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93238407600001,-84.074372248&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93238407600001,-84.074372248",
+    "resolvedAt": "2026-09-11T04:15:50.221Z"
+  },
+  "0102602360": {
+    "localizacion": "0102602360",
+    "lat": 9.93123058200001,
+    "lon": -84.073617217,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93123058200001,-84.073617217&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93123058200001,-84.073617217",
+    "resolvedAt": "2026-09-11T04:15:54.912Z"
+  },
+  "0102900515": {
+    "localizacion": "0102900515",
+    "lat": 9.932258757,
+    "lon": -84.079081867,
+    "circuito": "Circuito 2108 SUB_ANGELES_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.932258757,-84.079081867&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.932258757,-84.079081867",
+    "resolvedAt": "2026-09-11T04:15:59.584Z"
+  },
+  "0102900715": {
+    "localizacion": "0102900715",
+    "lat": 9.93171000900003,
+    "lon": -84.079200682,
+    "circuito": "Circuito 2108 SUB_ANGELES_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93171000900003,-84.079200682&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93171000900003,-84.079200682",
+    "resolvedAt": "2026-09-11T04:16:04.267Z"
+  },
+  "0103500056": {
+    "localizacion": "0103500056",
+    "lat": 9.931156692,
+    "lon": -84.078493551,
+    "circuito": "Circuito 2108 SUB_ANGELES_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.931156692,-84.078493551&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.931156692,-84.078493551",
+    "resolvedAt": "2026-09-11T04:16:08.954Z"
+  },
+  "0103500400": {
+    "localizacion": "0103500400",
+    "lat": 9.93078473499997,
+    "lon": -84.079232652,
+    "circuito": "Circuito 2108 SUB_ANGELES_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93078473499997,-84.079232652&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93078473499997,-84.079232652",
+    "resolvedAt": "2026-09-11T04:16:13.648Z"
+  },
+  "0103500410": {
+    "localizacion": "0103500410",
+    "lat": 9.93077350900001,
+    "lon": -84.079232123,
+    "circuito": "Circuito 2108 SUB_ANGELES_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93077350900001,-84.079232123&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93077350900001,-84.079232123",
+    "resolvedAt": "2026-09-11T04:16:18.373Z"
+  },
+  "0103500470": {
+    "localizacion": "0103500470",
+    "lat": 9.93079090700002,
+    "lon": -84.079238019,
+    "circuito": "Circuito 2108 SUB_ANGELES_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93079090700002,-84.079238019&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93079090700002,-84.079238019",
+    "resolvedAt": "2026-09-11T04:16:23.057Z"
+  },
+  "0103700175": {
+    "localizacion": "0103700175",
+    "lat": 9.93127168000001,
+    "lon": -84.077005116,
+    "circuito": "Circuito 2103 SUB_ANGELES_3A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93127168000001,-84.077005116&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93127168000001,-84.077005116",
+    "resolvedAt": "2026-09-11T04:16:27.744Z"
+  },
+  "0103700390": {
+    "localizacion": "0103700390",
+    "lat": 9.93069951899997,
+    "lon": -84.077620585,
+    "circuito": "Circuito 2103 SUB_ANGELES_3A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93069951899997,-84.077620585&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93069951899997,-84.077620585",
+    "resolvedAt": "2026-09-11T04:16:32.413Z"
+  },
+  "0103900368": {
+    "localizacion": "0103900368",
+    "lat": 9.93076502399998,
+    "lon": -84.075972219,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93076502399998,-84.075972219&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93076502399998,-84.075972219",
+    "resolvedAt": "2026-09-11T04:16:37.217Z"
+  },
+  "0103900430": {
+    "localizacion": "0103900430",
+    "lat": 9.93045033300001,
+    "lon": -84.075969801,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93045033300001,-84.075969801&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93045033300001,-84.075969801",
+    "resolvedAt": "2026-09-11T04:16:41.890Z"
+  },
+  "0104100234": {
+    "localizacion": "0104100234",
+    "lat": 9.93108594300003,
+    "lon": -84.073811572,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93108594300003,-84.073811572&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93108594300003,-84.073811572",
+    "resolvedAt": "2026-09-11T04:16:46.596Z"
+  },
+  "0104100236": {
+    "localizacion": "0104100236",
+    "lat": 9.93108084300002,
+    "lon": -84.07381167,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93108084300002,-84.07381167&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93108084300002,-84.07381167",
+    "resolvedAt": "2026-09-11T04:16:51.288Z"
+  },
+  "0104100241": {
+    "localizacion": "0104100241",
+    "lat": 9.93106982299997,
+    "lon": -84.073826972,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93106982299997,-84.073826972&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93106982299997,-84.073826972",
+    "resolvedAt": "2026-09-11T04:16:55.978Z"
+  },
+  "0104100242": {
+    "localizacion": "0104100242",
+    "lat": 9.93107406399997,
+    "lon": -84.073827226,
+    "circuito": "Circuito 1908 SUB_URUCA_3B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93107406399997,-84.073827226&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93107406399997,-84.073827226",
+    "resolvedAt": "2026-09-11T04:17:00.735Z"
+  },
+  "0104200302": {
+    "localizacion": "0104200302",
+    "lat": 9.92981624999999,
+    "lon": -84.079257976,
+    "circuito": "Circuito 2104 SUB_ANGELES_4A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.92981624999999,-84.079257976&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92981624999999,-84.079257976",
+    "resolvedAt": "2026-09-11T04:17:05.517Z"
+  },
+  "0104300430": {
+    "localizacion": "0104300430",
+    "lat": 9.92975347300001,
+    "lon": -84.078058757,
+    "circuito": "Circuito 2104 SUB_ANGELES_4A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.92975347300001,-84.078058757&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92975347300001,-84.078058757",
+    "resolvedAt": "2026-09-11T04:17:10.255Z"
+  },
+  "0104300440": {
+    "localizacion": "0104300440",
+    "lat": 9.92978808800001,
+    "lon": -84.078001973,
+    "circuito": "Circuito 2104 SUB_ANGELES_4A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.92978808800001,-84.078001973&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92978808800001,-84.078001973",
+    "resolvedAt": "2026-09-11T04:17:14.974Z"
+  },
+  "0104400020": {
+    "localizacion": "0104400020",
+    "lat": 9.929748464,
+    "lon": -84.07713681,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.929748464,-84.07713681&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.929748464,-84.07713681",
+    "resolvedAt": "2026-09-11T04:17:19.691Z"
+  },
+  "0104401040": {
+    "localizacion": "0104401040",
+    "lat": 9.93019090199999,
+    "lon": -84.077661354,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93019090199999,-84.077661354&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93019090199999,-84.077661354",
+    "resolvedAt": "2026-09-11T04:17:24.360Z"
+  },
+  "0104401080": {
+    "localizacion": "0104401080",
+    "lat": 9.930190977,
+    "lon": -84.077674323,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.930190977,-84.077674323&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930190977,-84.077674323",
+    "resolvedAt": "2026-09-11T04:17:29.038Z"
+  },
+  "0104401620": {
+    "localizacion": "0104401620",
+    "lat": 9.92971337300003,
+    "lon": -84.077414188,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.92971337300003,-84.077414188&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92971337300003,-84.077414188",
+    "resolvedAt": "2026-09-11T04:17:33.729Z"
+  },
+  "0104500090": {
+    "localizacion": "0104500090",
+    "lat": 9.930078143,
+    "lon": -84.076189414,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.930078143,-84.076189414&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930078143,-84.076189414",
+    "resolvedAt": "2026-09-11T04:17:38.422Z"
+  },
+  "0104500120": {
+    "localizacion": "0104500120",
+    "lat": 9.930078315,
+    "lon": -84.076207699,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.930078315,-84.076207699&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930078315,-84.076207699",
+    "resolvedAt": "2026-09-11T04:17:43.093Z"
+  },
+  "0104500130": {
+    "localizacion": "0104500130",
+    "lat": 9.93011016000003,
+    "lon": -84.076207711,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93011016000003,-84.076207711&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93011016000003,-84.076207711",
+    "resolvedAt": "2026-09-11T04:17:47.952Z"
+  },
+  "0104500140": {
+    "localizacion": "0104500140",
+    "lat": 9.93010981399999,
+    "lon": -84.076199452,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93010981399999,-84.076199452&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93010981399999,-84.076199452",
+    "resolvedAt": "2026-09-11T04:17:52.641Z"
+  },
+  "0104500150": {
+    "localizacion": "0104500150",
+    "lat": 9.930109883,
+    "lon": -84.076190636,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.930109883,-84.076190636&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930109883,-84.076190636",
+    "resolvedAt": "2026-09-11T04:17:57.329Z"
+  },
+  "0104500160": {
+    "localizacion": "0104500160",
+    "lat": 9.930109792,
+    "lon": -84.076182234,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.930109792,-84.076182234&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.930109792,-84.076182234",
+    "resolvedAt": "2026-09-11T04:18:02.083Z"
+  },
+  "0104500265": {
+    "localizacion": "0104500265",
+    "lat": 9.93030555199999,
+    "lon": -84.076228928,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93030555199999,-84.076228928&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93030555199999,-84.076228928",
+    "resolvedAt": "2026-09-11T04:18:06.764Z"
+  },
+  "0104600195": {
+    "localizacion": "0104600195",
+    "lat": null,
+    "lon": null,
+    "circuito": "",
+    "error": "No response"
+  },
+  "0104600596": {
+    "localizacion": "0104600596",
+    "lat": 9.92959772099999,
+    "lon": -84.075511549,
+    "circuito": "Circuito 2104 SUB_ANGELES_4A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.92959772099999,-84.075511549&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.92959772099999,-84.075511549",
+    "resolvedAt": "2026-09-11T04:18:21.079Z"
+  },
+  "0104700115": {
+    "localizacion": "0104700115",
+    "lat": 9.93017239800002,
+    "lon": -84.074267095,
+    "circuito": "Circuito 2104 SUB_ANGELES_4A",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93017239800002,-84.074267095&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93017239800002,-84.074267095",
+    "resolvedAt": "2026-09-11T04:18:25.768Z"
+  }
+}

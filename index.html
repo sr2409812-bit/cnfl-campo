@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <meta name="theme-color" content="#0a0d14" />
+  <!-- PDF.js para procesar PDFs de CNFL en el propio teléfono -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -18,11 +20,11 @@
       </div>
       <div class="brand-text">
         <h1>Ruta CNFL Campo</h1>
-        <p id="headerZoneSubtitle">Cuadrilla de Cortes & Reconexión</p>
+        <p id="headerZoneSubtitle">Téc. Ramírez Artavia Sebastián • Zona 50</p>
       </div>
     </div>
-    <button style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:#fff;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer" onclick="toggleOptimizer()">
-      <i class="fa-solid fa-route" style="color:var(--accent-amber)"></i> Optimizar
+    <button class="btn-optimize" onclick="optimizeCurrentRoute()">
+      <i class="fa-solid fa-route"></i> Optimizar
     </button>
   </header>
 
@@ -53,12 +55,32 @@
         </div>
       </div>
 
+      <!-- Resumen de Ruta y Distancia -->
+      <div class="route-summary-banner" id="routeSummaryBanner">
+        <div style="display:flex;align-items:center;gap:10px">
+          <i class="fa-solid fa-location-crosshairs" style="color:var(--accent-amber);font-size:18px"></i>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff" id="routeStatusTitle">Ruta Optimizada Activa</div>
+            <div style="font-size:11.5px;color:var(--text-muted)" id="routeDistanceSubtitle">Distancia total aprox: calculando...</div>
+          </div>
+        </div>
+        <button class="btn-reorder" onclick="optimizeCurrentRoute()" title="Recalcular ruta más corta">
+          <i class="fa-solid fa-arrows-rotate"></i> Recalcular
+        </button>
+      </div>
+
       <!-- Barra de Filtros Rápidos -->
-      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px">
-        <button class="filter-btn active" style="padding:6px 12px;border-radius:99px;background:var(--accent-amber);color:#000;border:none;font-size:12px;font-weight:700" onclick="filterOrders('all', this)">Todas</button>
-        <button class="filter-btn" style="padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.08);color:#fff;border:1px solid var(--border);font-size:12px;font-weight:600" onclick="filterOrders('pending', this)">Pendientes</button>
-        <button class="filter-btn" style="padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.08);color:#fff;border:1px solid var(--border);font-size:12px;font-weight:600" onclick="filterOrders('corta', this)">Cortes</button>
-        <button class="filter-btn" style="padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.08);color:#fff;border:1px solid var(--border);font-size:12px;font-weight:600" onclick="filterOrders('reconex', this)">Reconexiones</button>
+      <div class="filters-row">
+        <button class="filter-btn active" onclick="filterOrders('all', this)">Todas (<span id="countAll">0</span>)</button>
+        <button class="filter-btn" onclick="filterOrders('pending', this)">Pendientes (<span id="countPending">0</span>)</button>
+        <button class="filter-btn" onclick="filterOrders('corta', this)">Cortes</button>
+        <button class="filter-btn" onclick="filterOrders('recon', this)">Reconexiones</button>
+      </div>
+
+      <!-- Buscador Rápido -->
+      <div class="search-box-container">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="orderSearchInput" placeholder="Buscar por NIS, Medidor, Cliente o Calle..." oninput="handleSearch(this.value)" />
       </div>
 
       <!-- Lista de Órdenes Dinámica -->
@@ -68,27 +90,49 @@
     </section>
 
     <!-- =========================================================
-         TAB 2: CARGAR NUEVAS ÓRDENES
+         TAB 2: CARGAR NUEVAS ÓRDENES (PDF O TEXTO)
          ========================================================= -->
     <section id="tab-cargar" class="tab-view">
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:16px">
-        <h3 style="font-size:15px;color:#fff;font-weight:700;margin-bottom:6px">
-          <i class="fa-solid fa-file-import" style="color:var(--accent-amber)"></i> Pegar Órdenes de la Jornada
+      <div class="card-panel">
+        <h3 class="panel-title">
+          <i class="fa-solid fa-file-pdf" style="color:#ef4444"></i> Cargar PDF de Desconexiones
         </h3>
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
-          Pega el texto de WhatsApp, PDF o lista de la cuadrilla. El sistema extraerá automáticamente el NIS, Medidor, Abonado y Dirección.
+        <p class="panel-desc">
+          Sube directamente el archivo PDF de la cuadrilla (<em>"LISTADO DE DESCONEXIONES EN MÓVILES"</em>). El sistema extraerá las órdenes y asignará coordenadas GPS de inmediato.
         </p>
 
-        <textarea class="input-box" id="rawOrdersText" rows="7" placeholder="Pega aquí las órdenes... (ej. NIS: 123456 Medidor: 88721 Juan Pérez Desamparados...)"></textarea>
+        <!-- Dropzone de PDF -->
+        <div class="upload-dropzone" onclick="document.getElementById('pdfFileInput').click()">
+          <input type="file" id="pdfFileInput" accept=".pdf" style="display:none" onchange="handlePdfUpload(event)" />
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:38px;color:var(--accent-amber);margin-bottom:8px;display:block"></i>
+          <p style="color:#fff;font-weight:700;font-size:14px">Toca para seleccionar el PDF</p>
+          <p style="color:var(--text-muted);font-size:11.5px;margin-top:4px">Compatible con los reportes oficiales de CNFL</p>
+        </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <button class="btn-primary" onclick="processRawOrders()">
-            <i class="fa-solid fa-bolt"></i> Cargar Órdenes
+        <div id="pdfLoadingStatus" style="display:none;margin-bottom:14px;padding:10px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:var(--radius-sm);font-size:12.5px;color:#93c5fd;text-align:center">
+          <i class="fa-solid fa-spinner fa-spin"></i> Procesando páginas del PDF...
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <button class="btn-primary" onclick="loadTodayPreloadedOrders()">
+            <i class="fa-solid fa-database"></i> Cargar Hoy (41 Órdenes)
           </button>
-          <button style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:#fff;padding:12px;border-radius:var(--radius-md);font-size:13px;font-weight:600;cursor:pointer" onclick="loadDemoOrders()">
-            <i class="fa-solid fa-vial"></i> Cargar Demo
+          <button class="btn-ghost" onclick="loadDemoOrders()">
+            <i class="fa-solid fa-vial"></i> Modo Demo
           </button>
         </div>
+      </div>
+
+      <!-- Pegado de Texto Alternativo -->
+      <div class="card-panel" style="margin-top:16px">
+        <h3 class="panel-title">
+          <i class="fa-solid fa-paste" style="color:var(--accent-blue)"></i> O Pegar Texto Manual
+        </h3>
+        <p class="panel-desc">Si recibes el listado en formato texto de WhatsApp o notas:</p>
+        <textarea class="input-box" id="rawOrdersText" rows="5" placeholder="Pega aquí el texto..."></textarea>
+        <button class="btn-primary" style="margin-top:8px" onclick="processRawOrders()">
+          <i class="fa-solid fa-bolt"></i> Procesar Texto
+        </button>
       </div>
     </section>
 
@@ -96,21 +140,26 @@
          TAB 3: LIQUIDACIÓN & REPORTE DEL DÍA
          ========================================================= -->
     <section id="tab-resumen" class="tab-view">
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px">
-        <h3 style="font-size:15px;color:#fff;font-weight:700;margin-bottom:6px">
+      <div class="card-panel">
+        <h3 class="panel-title">
           <i class="fa-solid fa-clipboard-check" style="color:var(--accent-green)"></i> Liquidación de Cuadrilla
         </h3>
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
-          Resumen automático listo para copiar y enviar a jefatura por WhatsApp.
+        <p class="panel-desc">
+          Resumen generado automáticamente en formato oficial para remitir a jefatura por WhatsApp.
         </p>
 
-        <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;font-family:monospace;font-size:12.5px;color:#e2e8f0;white-space:pre-wrap;line-height:1.5;margin-bottom:14px" id="liquidationSummaryText">
+        <div class="liquidation-box" id="liquidationSummaryText">
           Cargando resumen...
         </div>
 
-        <button class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff" onclick="copyLiquidation()">
-          <i class="fa-solid fa-copy"></i> Copiar Liquidación para WhatsApp
-        </button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+          <button class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff" onclick="copyLiquidation()">
+            <i class="fa-solid fa-copy"></i> Copiar Texto
+          </button>
+          <button class="btn-primary" style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff" onclick="shareWhatsAppLiquidation()">
+            <i class="fa-brands fa-whatsapp"></i> Enviar a WhatsApp
+          </button>
+        </div>
       </div>
     </section>
 
@@ -123,7 +172,7 @@
       <span>Ruta</span>
     </button>
     <button class="nav-tab-btn" onclick="switchTab('cargar', this)">
-      <i class="fa-solid fa-plus-circle"></i>
+      <i class="fa-solid fa-cloud-arrow-up"></i>
       <span>Cargar</span>
     </button>
     <button class="nav-tab-btn" onclick="switchTab('resumen', this)">
