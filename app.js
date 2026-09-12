@@ -57,10 +57,9 @@ async function initOrders() {
   if (savedOrders !== null) {
     try {
       const parsed = JSON.parse(savedOrders);
-      // Validar que no sea la demo vieja (las demos viejas tenían cliente 'Carlos Murillo' o 'María Elena Solís' o id 'ord-101')
+      // Validar que no sea la demo vieja (Carlos Murillo, ord-101, etc.)
       const isOldDemo = parsed.length > 0 && parsed.some(o => (o.cliente && o.cliente.includes('Murillo')) || (o.client && o.client.includes('Murillo')) || o.id === 'ord-101');
       if (!isOldDemo) {
-        // Respeta el estado de la bandeja del usuario (incluso si está vacía [])
         workOrders = parsed;
         enrichOrdersWithCache();
         updateTgCommandsCount();
@@ -70,7 +69,10 @@ async function initOrders() {
       }
     } catch (e) {}
   }
-  await loadTodayPreloadedOrders();
+  // Por defecto, bandeja 100% limpia para nueva jornada
+  workOrders = [];
+  renderOrders();
+  updateLiquidation();
 }
 
 // Vaciar bandeja de órdenes para iniciar nueva jornada o cargar archivo nuevo
@@ -297,6 +299,19 @@ function renderOrders() {
 
   updateStats();
   calculateRouteDistance();
+
+  if (workOrders.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:36px 18px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">
+        <i class="fa-solid fa-inbox" style="font-size:36px;color:var(--cnfl-cyan);margin-bottom:12px;display:block"></i>
+        <p style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px">Bandeja de trabajo vacía</p>
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px">No hay órdenes cargadas. Carga un archivo PDF o ingresa tus órdenes en la pestaña "Cargar".</p>
+        <button class="btn-primary" style="display:inline-block;width:auto;padding:8px 18px;font-size:12px" onclick="switchTab('cargar', document.querySelectorAll('.nav-tab-btn')[1])">
+          <i class="fa-solid fa-file-arrow-up"></i> Cargar órdenes nuevas
+        </button>
+      </div>`;
+    return;
+  }
 
   if (list.length === 0) {
     const emptyMsg = activeFilter === 'pending'
