@@ -425,10 +425,11 @@
   },
   "0104600195": {
     "localizacion": "0104600195",
-    "lat": null,
-    "lon": null,
-    "circuito": "",
-    "error": "No response"
+    "lat": 9.93024703200001,
+    "lon": -84.075319106,
+    "circuito": "Circuito 2109 SUB_ANGELES_4B",
+    "wazeUrl": "https://www.waze.com/ul?ll=9.93024703200001,-84.075319106&navigate=yes",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=9.93024703200001,-84.075319106"
   },
   "0104600596": {
     "localizacion": "0104600596",
