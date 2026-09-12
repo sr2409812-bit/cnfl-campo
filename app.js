@@ -54,15 +54,18 @@ if (typeof window !== 'undefined' && window.pdfjsLib) {
 // Inicializar órdenes de trabajo
 async function initOrders() {
   const savedOrders = localStorage.getItem('cnfl_work_orders');
-  if (savedOrders) {
+  if (savedOrders !== null) {
     try {
       const parsed = JSON.parse(savedOrders);
-      // Validar que no sea la demo vieja (las demos viejas tenían cliente 'Carlos Murillo' o 'María Elena Solís' o menos de 5 órdenes)
+      // Validar que no sea la demo vieja (las demos viejas tenían cliente 'Carlos Murillo' o 'María Elena Solís' o id 'ord-101')
       const isOldDemo = parsed.length > 0 && parsed.some(o => (o.cliente && o.cliente.includes('Murillo')) || (o.client && o.client.includes('Murillo')) || o.id === 'ord-101');
-      if (!isOldDemo && parsed.length > 0) {
+      if (!isOldDemo) {
+        // Respeta el estado de la bandeja del usuario (incluso si está vacía [])
         workOrders = parsed;
         enrichOrdersWithCache();
         updateTgCommandsCount();
+        renderOrders();
+        updateLiquidation();
         return;
       }
     } catch (e) {}
@@ -70,21 +73,17 @@ async function initOrders() {
   await loadTodayPreloadedOrders();
 }
 
-// Vaciar bandeja de órdenes para iniciar nueva jornada
+// Vaciar bandeja de órdenes para iniciar nueva jornada o cargar archivo nuevo
 function clearWorkOrders() {
-  if (workOrders.length === 0) {
-    showToast('La bandeja ya está vacía.');
-    return;
-  }
-  const conf = confirm('¿Deseas vaciar la bandeja de órdenes actual para iniciar una nueva jornada?');
+  const conf = confirm('¿Deseas vaciar la bandeja de órdenes actual para cargar un archivo nuevo o iniciar de cero?');
   if (!conf) return;
 
   workOrders = [];
-  localStorage.removeItem('cnfl_work_orders');
+  localStorage.setItem('cnfl_work_orders', JSON.stringify([]));
   renderOrders();
   updateLiquidation();
   updateTgCommandsCount();
-  showToast('Bandeja vaciada. Lista para nuevas órdenes.');
+  showToast('Bandeja vaciada. Puedes cargar un nuevo PDF o pegar órdenes.');
   switchTab('cargar', document.querySelectorAll('.nav-tab-btn')[1]);
 }
 
@@ -643,8 +642,13 @@ async function handlePdfUpload(event) {
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
-      const pageStrings = textContent.items.map(item => item.str);
-      fullText += pageStrings.join(' ') + '\n';
+      const pageLines = [];
+      for (const item of textContent.items) {
+        if (item.str && item.str.trim()) {
+          pageLines.push(item.str.trim());
+        }
+      }
+      fullText += pageLines.join('\n') + '\n---PAGE_BREAK---\n';
     }
 
     const parsed = parseCnflPdfText(fullText);
@@ -675,40 +679,94 @@ function parseCnflPdfText(rawText) {
   const orders = [];
   const clean = rawText.replace(/\r/g, '\n');
 
-  // Patrón tabular estándar de CNFL Zona 50
-  const regex = /(\d{6,8})\s+(TG\s*-\s*COMERCIAL|TR\s*-\s*RESIDENCIAL)\s+(\d{8})\s+(\d{10})\s+([A-Z0-9]+)\s+([\d,.]+)\s+([^0-9\n]+(?:\d+[^0-9\n]*)*?)\s+([A-ZÁÉÍÓÚÑ\s]{4,})/gi;
-  
-  let match;
-  while ((match = regex.exec(clean)) !== null) {
-    const nis = match[1];
-    const plan = match[2];
-    const orden = match[3];
-    const localizacion = match[4];
-    const medidor = match[5];
-    const monto = match[6];
-    const direccion = match[7].trim();
-    const cliente = match[8].trim();
+  // Método 1: Parseo columnar oficial CNFL (Desconexiones en Móviles)
+  const pages = clean.split(/(?:-- \d+ of \d+ --|---PAGE_BREAK---)/);
+  for (const page of pages) {
+    const lines = page.split('\n').map(l => l.trim()).filter(Boolean);
+    const ordIdx = lines.findIndex(l => l === 'Orden' || l.startsWith('Orden '));
+    const locIdx = lines.findIndex(l => l === 'Localización' || l === 'Localizacion' || l.startsWith('Localiza'));
+    const medIdx = lines.findIndex(l => l === 'Medidor' || l.startsWith('Medidor'));
+    const pendIdx = lines.findIndex(l => l === 'Pendientes' || l.startsWith('Pendiente'));
+    const totIdx = lines.findIndex(l => l === 'Monto Total' || l.startsWith('Monto Total'));
+    const dirIdx = lines.findIndex(l => l === 'Dirección' || l === 'Direccion');
+    const nomIdx = lines.findIndex(l => l === 'Nombre');
+    const niseIdx = lines.findIndex(l => l.replace(/\s+/g, '').toUpperCase().includes('NISE'));
+    const planIdx = lines.findIndex(l => l === 'Plan' || l.startsWith('Plan'));
 
-    orders.push({
-      id: `ord-${orden}`,
-      orden,
-      nis,
-      plan,
-      localizacion,
-      medidor,
-      monto,
-      direccion,
-      cliente,
-      tipo: plan.toUpperCase().includes('COMERCIAL') ? 'corta_comercial' : 'corta_residencial',
-      status: 'pending',
-      lectura: '',
-      sello_instalado: '',
-      sello_retirado: '',
-      observaciones: ''
-    });
+    if (ordIdx !== -1 && locIdx !== -1) {
+      let k = ordIdx - 1;
+      const pageOrders = [];
+      while (k >= 0 && /^\d{8}$/.test(lines[k])) {
+        pageOrders.unshift(lines[k]);
+        k--;
+      }
+      const count = pageOrders.length;
+      if (count > 0) {
+        const pageLocs = lines.slice(ordIdx + 1, locIdx);
+        const pageMeds = (medIdx !== -1) ? lines.slice(locIdx + 1, medIdx) : [];
+        const pageMontos = (totIdx !== -1 && pendIdx !== -1) ? lines.slice(pendIdx + 1, totIdx) : [];
+
+        let pageNis = [];
+        let pagePlans = [];
+        if (niseIdx !== -1) {
+          pageNis = lines.slice(niseIdx + 1, niseIdx + 1 + count);
+          pagePlans = lines.slice(niseIdx + 1 + count, niseIdx + 1 + 2 * count);
+        }
+
+        const dirLines = (totIdx !== -1 && dirIdx !== -1) ? lines.slice(totIdx + 1, dirIdx) : [];
+        const nomLines = (dirIdx !== -1 && nomIdx !== -1) ? lines.slice(dirIdx + 1, nomIdx) : [];
+
+        for (let i = 0; i < count; i++) {
+          const ordNum = pageOrders[i];
+          const plan = (pagePlans[i] || 'TR - RESIDENCIAL').trim();
+          orders.push({
+            id: `ord-${ordNum}`,
+            orden: ordNum,
+            localizacion: (pageLocs[i] || '').trim(),
+            medidor: (pageMeds[i] || 'N/D').trim(),
+            monto: (pageMontos[i] || '0.00').trim(),
+            nis: (pageNis[i] || '').trim(),
+            plan,
+            direccion: dirLines[i] || 'San José Central',
+            cliente: nomLines[i] || 'Abonado CNFL',
+            tipo: plan.toUpperCase().includes('COMERCIAL') ? 'corta_comercial' : 'corta_residencial',
+            status: 'pending',
+            lectura: '',
+            sello_instalado: '',
+            sello_retirado: '',
+            observaciones: ''
+          });
+        }
+      }
+    }
   }
 
-  // Fallback por líneas si no cuadró en bloque
+  // Método 2: Fallback por regex tabular
+  if (orders.length === 0) {
+    const regex = /(\d{6,8})\s+(TG\s*-\s*COMERCIAL|TR\s*-\s*RESIDENCIAL)\s+(\d{8})\s+(\d{10})\s+([A-Z0-9]+)\s+([\d,.]+)\s+([^0-9\n]+(?:\d+[^0-9\n]*)*?)\s+([A-ZÁÉÍÓÚÑ\s]{4,})/gi;
+    let match;
+    while ((match = regex.exec(clean)) !== null) {
+      orders.push({
+        id: `ord-${match[3]}`,
+        orden: match[3],
+        nis: match[1],
+        plan: match[2],
+        localizacion: match[4],
+        medidor: match[5],
+        monto: match[6],
+        direccion: match[7].trim(),
+        cliente: match[8].trim(),
+        tipo: match[2].toUpperCase().includes('COMERCIAL') ? 'corta_comercial' : 'corta_residencial',
+        status: 'pending',
+        lectura: '',
+        sello_instalado: '',
+        sello_retirado: '',
+        observaciones: ''
+      });
+    }
+  }
+
+  // Método 3: Fallback por líneas si no cuadró en bloque
   if (orders.length === 0) {
     const lines = clean.split('\n');
     for (const line of lines) {
@@ -722,6 +780,7 @@ function parseCnflPdfText(rawText) {
           nis: nisM[0],
           localizacion: locM[0],
           medidor: (line.match(/[M-]?\d{6,8}/) || ['N/D'])[0],
+          monto: '0.00',
           direccion: line.substring(0, 45).trim(),
           cliente: 'Abonado CNFL',
           tipo: 'corta',

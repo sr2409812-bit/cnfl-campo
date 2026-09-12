@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v5';
+const CACHE_NAME = 'cnfl-campo-v6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -14,7 +14,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching assets offline...');
+      console.log('[SW v6] Pre-caching assets offline...');
       return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('[SW] Cache addAll warning:', err));
     }).then(() => self.skipWaiting())
   );
@@ -31,7 +31,33 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Manejar requests en modo offline
+  // Estrategia Network-First para archivos locales de la app (para actualizar sin demora cuando hay señal)
+  if (event.request.method === 'GET' && event.request.url.startsWith(self.location.origin)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // Si está offline o sin señal, responder desde el caché
+          return caches.match(event.request).then((cached) => {
+            if (cached) return cached;
+            if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+              return caches.match('./index.html');
+            }
+          });
+        })
+    );
+    return;
+  }
+
+  // Cache-First para librerías externas de CDN (FontAwesome, pdf.js)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -45,11 +71,6 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Si no hay red y solicita HTML, devolver index.html del caché
-        if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
-          return caches.match('./index.html');
-        }
       });
     })
   );
