@@ -27,9 +27,14 @@
         <p id="headerZoneSubtitle">TÉC. RAMÍREZ S. • ZONA 50 CENTRAL</p>
       </div>
     </div>
-    <button class="btn-optimize" onclick="optimizeCurrentRoute()">
-      <i class="fa-solid fa-route"></i> Optimizar
-    </button>
+    <div class="header-actions">
+      <button class="btn-clean-header" onclick="clearWorkOrders()" title="Vaciar bandeja de órdenes">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+      <button class="btn-optimize" onclick="optimizeCurrentRoute()">
+        <i class="fa-solid fa-route"></i> Optimizar
+      </button>
+    </div>
   </header>
 
   <main class="main-container">
@@ -96,15 +101,36 @@
     </section>
 
     <!-- =========================================================
-         TAB 2: CARGAR NUEVAS ÓRDENES (PDF OFICIAL O TEXTO)
+         TAB 2: GESTIÓN DE BANDEJA, CARGAR PDF Y TELEGRAM
          ========================================================= -->
     <section id="tab-cargar" class="tab-view">
+
+      <!-- 1. Estado de la Bandeja y Limpieza -->
       <div class="card-panel">
+        <h3 class="panel-title">
+          <i class="fa-solid fa-inbox" style="color:var(--cnfl-cyan)"></i> Estado de Bandeja de Trabajo
+        </h3>
+        <div class="tray-status-badge">
+          <span>Órdenes cargadas actualmente:</span>
+          <strong id="trayCountDisplay">0 órdenes</strong>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn-danger" onclick="clearWorkOrders()">
+            <i class="fa-solid fa-trash-can"></i> Vaciar Bandeja
+          </button>
+          <button class="btn-primary" onclick="forceReloadTodayOrders()">
+            <i class="fa-solid fa-arrows-rotate"></i> Recargar Oficial
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Importar PDF Oficial de CNFL -->
+      <div class="card-panel" style="margin-top:12px">
         <h3 class="panel-title">
           <i class="fa-solid fa-file-pdf" style="color:var(--cnfl-cyan)"></i> Importar PDF de Desconexiones
         </h3>
         <p class="panel-desc">
-          Carga el archivo PDF oficial de CNFL (<em>"LISTADO DE DESCONEXIONES EN MÓVILES"</em>). El motor extraerá las órdenes y asociará coordenadas GPS y circuito automáticamente.
+          Carga el PDF oficial de CNFL (<em>"LISTADO DE DESCONEXIONES EN MÓVILES"</em>). El motor extraerá las órdenes automáticamente.
         </p>
 
         <!-- Dropzone de PDF -->
@@ -118,23 +144,39 @@
         <div id="pdfLoadingStatus" style="display:none;margin-bottom:12px;padding:9px;background:rgba(0,163,224,0.1);border:1px solid var(--cnfl-cyan);border-radius:var(--radius-xs);font-size:12px;color:#7DD3FC;text-align:center">
           <i class="fa-solid fa-spinner fa-spin"></i> Extrayendo órdenes y asociando coordenadas...
         </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
-          <button class="btn-primary" onclick="loadTodayPreloadedOrders()">
-            <i class="fa-solid fa-cloud-arrow-down"></i> Cargar Hoy (41 Órdenes)
-          </button>
-          <button class="btn-ghost" onclick="loadDemoOrders()">
-            <i class="fa-solid fa-vial"></i> Modo Demostración
-          </button>
-        </div>
       </div>
 
-      <!-- Pegado de Texto Alternativo -->
+      <!-- 3. Integración con @ubiCNFL en Telegram -->
+      <div class="card-panel" style="margin-top:12px;border-left:3px solid #0088cc">
+        <h3 class="panel-title">
+          <i class="fa-brands fa-telegram" style="color:#0088cc"></i> Georreferenciación con @ubiCNFL
+        </h3>
+        <p class="panel-desc">
+          Extrae las localizaciones de la ruta para consultar al bot de Telegram y cargar las coordenadas Waze y circuitos:
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <button class="btn-primary" style="background:#0088cc;border-color:#0077b5" onclick="copyTelegramWazeCommands()">
+            <i class="fa-solid fa-copy"></i> Copiar Waze (<span id="tgCmdCount">0</span>)
+          </button>
+          <a href="https://t.me/ubiCNFL" target="_blank" class="btn-ghost" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;border-color:#0088cc;color:#7DD3FC">
+            <i class="fa-brands fa-telegram"></i> Abrir @ubiCNFL
+          </a>
+        </div>
+
+        <p class="panel-desc" style="margin-top:8px">Pega aquí los mensajes que te respondió @ubiCNFL:</p>
+        <textarea class="input-box" id="telegramBotReplies" rows="3" placeholder="Pega aquí los mensajes del bot con los links de Waze y circuitos..."></textarea>
+        <button class="btn-primary" style="margin-top:8px" onclick="importTelegramReplies()">
+          <i class="fa-solid fa-satellite-dish"></i> Vincular Coordenadas y Optimizar
+        </button>
+      </div>
+
+      <!-- 4. Pegado de Texto Alternativo -->
       <div class="card-panel" style="margin-top:12px">
         <h3 class="panel-title">
           <i class="fa-solid fa-keyboard" style="color:var(--text-muted)"></i> Ingreso Manual por Texto
         </h3>
-        <p class="panel-desc">Pega texto recibido por mensaje o correo:</p>
+        <p class="panel-desc">Pega texto copiado del listado o mensaje:</p>
         <textarea class="input-box" id="rawOrdersText" rows="4" placeholder="NIS, Medidor, Localización..."></textarea>
         <button class="btn-primary" style="margin-top:8px" onclick="processRawOrders()">
           <i class="fa-solid fa-arrow-right"></i> Procesar Texto

@@ -47,28 +47,82 @@ async function loadGeoCache() {
   }
 }
 
+if (typeof window !== 'undefined' && window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 // Inicializar órdenes de trabajo
 async function initOrders() {
   const savedOrders = localStorage.getItem('cnfl_work_orders');
   if (savedOrders) {
     try {
-      workOrders = JSON.parse(savedOrders);
-      if (workOrders.length > 0) return;
+      const parsed = JSON.parse(savedOrders);
+      // Validar que no sea la demo vieja (las demos viejas tenían cliente 'Carlos Murillo' o 'María Elena Solís' o menos de 5 órdenes)
+      const isOldDemo = parsed.length > 0 && parsed.some(o => (o.cliente && o.cliente.includes('Murillo')) || (o.client && o.client.includes('Murillo')) || o.id === 'ord-101');
+      if (!isOldDemo && parsed.length > 0) {
+        workOrders = parsed;
+        enrichOrdersWithCache();
+        updateTgCommandsCount();
+        return;
+      }
     } catch (e) {}
   }
   await loadTodayPreloadedOrders();
 }
 
-// Cargar las órdenes de hoy (41 órdenes oficiales)
-async function loadTodayPreloadedOrders() {
+// Vaciar bandeja de órdenes para iniciar nueva jornada
+function clearWorkOrders() {
+  if (workOrders.length === 0) {
+    showToast('La bandeja ya está vacía.');
+    return;
+  }
+  const conf = confirm('¿Deseas vaciar la bandeja de órdenes actual para iniciar una nueva jornada?');
+  if (!conf) return;
+
+  workOrders = [];
+  localStorage.removeItem('cnfl_work_orders');
+  renderOrders();
+  updateLiquidation();
+  updateTgCommandsCount();
+  showToast('Bandeja vaciada. Lista para nuevas órdenes.');
+  switchTab('cargar', document.querySelectorAll('.nav-tab-btn')[1]);
+}
+
+// Forzar recarga de las 41 órdenes oficiales desde el servidor (evitando caché)
+async function forceReloadTodayOrders() {
+  showToast('Descargando listado oficial de hoy...');
   try {
-    const res = await fetch('orders_today.json');
+    const res = await fetch('orders_today.json?cb=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
       workOrders = await res.json();
       enrichOrdersWithCache();
       localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
       setRouteFilter('pending', document.getElementById('btnFilterPending'));
       renderOrders();
+      updateLiquidation();
+      updateTgCommandsCount();
+      showToast(`¡Listo! Cargadas ${workOrders.length} órdenes oficiales.`);
+      switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
+      return;
+    }
+  } catch (e) {
+    console.error('Error al forzar recarga:', e);
+  }
+  showToast('No se pudo descargar orders_today.json');
+}
+
+// Cargar las órdenes de hoy (41 órdenes oficiales)
+async function loadTodayPreloadedOrders() {
+  try {
+    const res = await fetch('orders_today.json?cb=' + Date.now(), { cache: 'no-store' });
+    if (res.ok) {
+      workOrders = await res.json();
+      enrichOrdersWithCache();
+      localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+      setRouteFilter('pending', document.getElementById('btnFilterPending'));
+      renderOrders();
+      updateLiquidation();
+      updateTgCommandsCount();
       showToast(`Cargadas ${workOrders.length} órdenes oficiales de la jornada.`);
       return;
     }
@@ -530,6 +584,8 @@ function updateStats() {
   const elSegDone = document.getElementById('segCountDone');
   const elSegAll = document.getElementById('segCountAll');
 
+  const elTray = document.getElementById('trayCountDisplay');
+
   if (elTotal) elTotal.innerText = total;
   if (elDone) elDone.innerText = completedTotal;
   if (elFailed) elFailed.innerText = noAcceso + directos;
@@ -538,6 +594,9 @@ function updateStats() {
   if (elSegPending) elSegPending.innerText = pending;
   if (elSegDone) elSegDone.innerText = completedTotal;
   if (elSegAll) elSegAll.innerText = total;
+
+  if (elTray) elTray.innerText = `${total} órdenes (${pending} pendientes)`;
+  updateTgCommandsCount();
 }
 
 function handleSearch(val) {
@@ -554,6 +613,7 @@ function switchTab(tabId, btn) {
   if (btn) btn.classList.add('active');
 
   if (tabId === 'resumen') updateLiquidation();
+  if (tabId === 'cargar') updateTgCommandsCount();
 }
 
 // =========================================================
@@ -565,11 +625,19 @@ async function handlePdfUpload(event) {
   if (!file) return;
 
   const statusEl = document.getElementById('pdfLoadingStatus');
-  if (statusEl) statusEl.style.display = 'block';
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Leyendo PDF y extrayendo órdenes oficiales...';
+  }
 
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const loadingTask = pdfjsLib.getDocument({
+      data: arrayBuffer,
+      cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+      cMapPacked: true
+    });
+    const pdf = await loadingTask.promise;
     
     let fullText = '';
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -581,7 +649,7 @@ async function handlePdfUpload(event) {
 
     const parsed = parseCnflPdfText(fullText);
     if (parsed.length === 0) {
-      alert('No se detectaron órdenes con formato oficial de CNFL en este documento.');
+      alert('No se detectaron órdenes con formato estándar en este archivo PDF.\n\nPrueba copiando el texto del PDF y pegándolo en la caja de "Ingreso Manual por Texto".');
     } else {
       workOrders = parsed;
       enrichOrdersWithCache();
@@ -589,11 +657,14 @@ async function handlePdfUpload(event) {
       optimizeCurrentRoute();
       setRouteFilter('pending', document.getElementById('btnFilterPending'));
       renderOrders();
-      showToast(`Extraídas ${parsed.length} órdenes del PDF con éxito.`);
+      updateLiquidation();
+      updateTgCommandsCount();
+      showToast(`¡Éxito! Extraídas ${parsed.length} órdenes del PDF.`);
+      switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
     }
   } catch (err) {
     console.error('Error procesando PDF:', err);
-    alert('Error al leer el archivo PDF: ' + err.message);
+    alert('Error al leer el archivo PDF: ' + err.message + '\n\nPuedes usar la opción de "Ingreso Manual por Texto" abajo.');
   } finally {
     if (statusEl) statusEl.style.display = 'none';
     event.target.value = '';
@@ -602,10 +673,13 @@ async function handlePdfUpload(event) {
 
 function parseCnflPdfText(rawText) {
   const orders = [];
-  const regex = /(\d{6,8})\s+(TG - COMERCIAL|TR - RESIDENCIAL)\s+(\d{8})\s+(\d{10})\s+([A-Z0-9]+)\s+([\d,.]+)\s+([^0-9\n]+(?:\d+[^0-9\n]*)*?)\s+([A-Z\s]{4,})/g;
+  const clean = rawText.replace(/\r/g, '\n');
+
+  // Patrón tabular estándar de CNFL Zona 50
+  const regex = /(\d{6,8})\s+(TG\s*-\s*COMERCIAL|TR\s*-\s*RESIDENCIAL)\s+(\d{8})\s+(\d{10})\s+([A-Z0-9]+)\s+([\d,.]+)\s+([^0-9\n]+(?:\d+[^0-9\n]*)*?)\s+([A-ZÁÉÍÓÚÑ\s]{4,})/gi;
   
   let match;
-  while ((match = regex.exec(rawText)) !== null) {
+  while ((match = regex.exec(clean)) !== null) {
     const nis = match[1];
     const plan = match[2];
     const orden = match[3];
@@ -625,7 +699,7 @@ function parseCnflPdfText(rawText) {
       monto,
       direccion,
       cliente,
-      tipo: plan.includes('COMERCIAL') ? 'corta_comercial' : 'corta_residencial',
+      tipo: plan.toUpperCase().includes('COMERCIAL') ? 'corta_comercial' : 'corta_residencial',
       status: 'pending',
       lectura: '',
       sello_instalado: '',
@@ -634,21 +708,22 @@ function parseCnflPdfText(rawText) {
     });
   }
 
+  // Fallback por líneas si no cuadró en bloque
   if (orders.length === 0) {
-    const lines = rawText.split('\n');
+    const lines = clean.split('\n');
     for (const line of lines) {
       const nisM = line.match(/\b\d{6,8}\b/);
       const locM = line.match(/\b\d{10}\b/);
       const ordM = line.match(/\b744\d{5}\b/);
       if (nisM && locM) {
         orders.push({
-          id: `ord-${ordM ? ordM[0] : Date.now()}`,
+          id: `ord-${ordM ? ordM[0] : locM[0]}`,
           orden: ordM ? ordM[0] : '',
           nis: nisM[0],
           localizacion: locM[0],
-          medidor: (line.match(/[M-]?\d{6,8}/) || [''])[0],
-          direccion: line.substring(0, 40),
-          cliente: 'Cliente Abonado',
+          medidor: (line.match(/[M-]?\d{6,8}/) || ['N/D'])[0],
+          direccion: line.substring(0, 45).trim(),
+          cliente: 'Abonado CNFL',
           tipo: 'corta',
           status: 'pending',
           lectura: '',
@@ -666,7 +741,7 @@ function parseCnflPdfText(rawText) {
 function processRawOrders() {
   const raw = (document.getElementById('rawOrdersText').value || '').trim();
   if (!raw) {
-    alert('Ingrese el texto de las órdenes.');
+    alert('Ingrese o pegue el texto de las órdenes.');
     return;
   }
 
@@ -682,7 +757,7 @@ function processRawOrders() {
       localizacion: (line.match(/\b\d{10}\b/) || [''])[0],
       tipo: 'corta',
       cliente: line.split('-')[0].trim() || `Abonado #${idx + 1}`,
-      direccion: line,
+      direccion: line.trim(),
       status: 'pending',
       lectura: '',
       sello_instalado: '',
@@ -692,11 +767,121 @@ function processRawOrders() {
   }
 
   enrichOrdersWithCache();
+  optimizeCurrentRoute();
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
   document.getElementById('rawOrdersText').value = '';
   setRouteFilter('pending', document.getElementById('btnFilterPending'));
   renderOrders();
+  updateLiquidation();
+  updateTgCommandsCount();
   showToast(`Cargadas ${workOrders.length} órdenes.`);
+  switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
+}
+
+// =========================================================
+// INTEGRACIÓN CON TELEGRAM (@ubiCNFL)
+// =========================================================
+
+function getTelegramWazeCommands() {
+  const locs = [];
+  for (const ord of workOrders) {
+    const loc = (ord.localizacion || '').replace(/\D/g, '');
+    if (loc.length >= 8 && !locs.includes(loc)) {
+      locs.push(loc);
+    }
+  }
+  return locs.map(l => `Waze${l}`).join('\n');
+}
+
+function updateTgCommandsCount() {
+  const badge = document.getElementById('tgCmdCount');
+  if (badge) {
+    const locs = workOrders.filter(o => o.localizacion && o.localizacion.trim().length >= 8);
+    badge.innerText = locs.length;
+  }
+}
+
+function copyTelegramWazeCommands() {
+  const cmds = getTelegramWazeCommands();
+  if (!cmds) {
+    showToast('No hay órdenes con localización cargadas en la bandeja.');
+    return;
+  }
+  navigator.clipboard.writeText(cmds).then(() => {
+    showToast(`Copiados ${cmds.split('\n').length} comandos Waze al portapapeles.`);
+  }).catch(() => {
+    prompt('Copia los comandos para enviarle a @ubiCNFL en Telegram:', cmds);
+  });
+}
+
+function importTelegramReplies() {
+  const inputEl = document.getElementById('telegramBotReplies');
+  if (!inputEl) return;
+  const raw = inputEl.value.trim();
+  if (!raw) {
+    alert('Pega en la caja los mensajes que te respondió @ubiCNFL en Telegram.');
+    return;
+  }
+
+  let matchedCount = 0;
+  const lines = raw.split('\n');
+
+  for (const line of lines) {
+    const locMatch = line.match(/(?:Localizaci[oó]n\s*#?|Waze)?(\d{8,10})/i);
+    const coordMatch = line.match(/ll=([-0-9.]+),([-0-9.]+)/i);
+    const circMatch = line.match(/en\s+(Circuito\s+[^\)]+)/i);
+
+    if (locMatch && coordMatch) {
+      const loc = locMatch[1];
+      const lat = parseFloat(coordMatch[1]);
+      const lon = parseFloat(coordMatch[2]);
+      const circuito = circMatch ? circMatch[1].trim() : '';
+
+      geoCache[loc] = {
+        localizacion: loc,
+        lat,
+        lon,
+        circuito,
+        wazeUrl: `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`,
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+      };
+      matchedCount++;
+    }
+  }
+
+  // Fallback si vino en bloque sin saltos
+  if (matchedCount === 0) {
+    const globalCoords = [...raw.matchAll(/ll=([-0-9.]+),([-0-9.]+)/gi)];
+    const globalLocs = [...raw.matchAll(/\b0\d{9}\b/g)];
+    for (let i = 0; i < Math.min(globalCoords.length, globalLocs.length); i++) {
+      const loc = globalLocs[i][0];
+      const lat = parseFloat(globalCoords[i][1]);
+      const lon = parseFloat(globalCoords[i][2]);
+      geoCache[loc] = {
+        localizacion: loc,
+        lat,
+        lon,
+        circuito: 'Circuito CNFL',
+        wazeUrl: `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`,
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+      };
+      matchedCount++;
+    }
+  }
+
+  if (matchedCount > 0) {
+    localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
+    enrichOrdersWithCache();
+    optimizeCurrentRoute();
+    localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+    renderOrders();
+    updateLiquidation();
+    inputEl.value = '';
+    showToast(`¡Éxito! ${matchedCount} coordenadas GPS vinculadas a la ruta.`);
+    switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
+  } else {
+    alert('No se detectaron coordenadas GPS en el texto pegado. Asegúrate de incluir los enlaces con "ll=" que envía @ubiCNFL.');
+  }
 }
 
 function loadDemoOrders() {
