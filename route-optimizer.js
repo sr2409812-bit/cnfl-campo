@@ -21,7 +21,6 @@ function cnflBuildMicrozones(orders, thresholdKm = CNFL_MICROZONE_KM) {
   while (unassigned.size) {
     const start = unassigned.values().next().value;
     unassigned.delete(start);
-
     const queue = [start];
     const members = [orders[start]];
 
@@ -31,9 +30,7 @@ function cnflBuildMicrozones(orders, thresholdKm = CNFL_MICROZONE_KM) {
       const additions = [];
 
       for (const j of unassigned) {
-        if (cnflPointDistance(base, orders[j]) <= thresholdKm) {
-          additions.push(j);
-        }
+        if (cnflPointDistance(base, orders[j]) <= thresholdKm) additions.push(j);
       }
 
       for (const j of additions) {
@@ -49,21 +46,9 @@ function cnflBuildMicrozones(orders, thresholdKm = CNFL_MICROZONE_KM) {
   return clusters;
 }
 
-function cnflClusterCentroid(cluster) {
-  let lat = 0;
-  let lon = 0;
-  for (const o of cluster) {
-    lat += Number(o.lat);
-    lon += Number(o.lon);
-  }
-  return { lat: lat / cluster.length, lon: lon / cluster.length };
-}
-
 function cnflMinDistanceToCluster(point, cluster) {
   let best = Infinity;
-  for (const o of cluster) {
-    best = Math.min(best, cnflPointDistance(point, o));
-  }
+  for (const o of cluster) best = Math.min(best, cnflPointDistance(point, o));
   return best;
 }
 
@@ -93,12 +78,7 @@ function cnflRouteInsideCluster(cluster, startPoint) {
 }
 
 function cnflOrderClusters(clusters, startPoint) {
-  const remaining = clusters.map((members, idx) => ({
-    id: idx + 1,
-    members,
-    centroid: cnflClusterCentroid(members)
-  }));
-
+  const remaining = clusters.map((members, idx) => ({ id: idx + 1, members }));
   const ordered = [];
   let current = startPoint;
 
@@ -107,8 +87,8 @@ function cnflOrderClusters(clusters, startPoint) {
     let bestDist = Infinity;
 
     for (let i = 0; i < remaining.length; i++) {
-      // Para elegir la siguiente zona usamos el punto real más cercano del bloque,
-      // no solo el centroide. Así evitamos entrar por el extremo equivocado.
+      // Elegimos la siguiente microzona por su punto real de entrada más cercano.
+      // Cada microzona se termina completa antes de pasar a la siguiente.
       const d = cnflMinDistanceToCluster(current, remaining[i].members);
       if (d < bestDist) {
         bestDist = d;
@@ -117,58 +97,66 @@ function cnflOrderClusters(clusters, startPoint) {
     }
 
     const chosen = remaining.splice(bestIdx, 1)[0];
-    const path = cnflRouteInsideCluster(chosen.members, current);
-    chosen.path = path;
+    chosen.path = cnflRouteInsideCluster(chosen.members, current);
     ordered.push(chosen);
-    current = path[path.length - 1];
+    current = chosen.path[chosen.path.length - 1];
   }
 
   return ordered;
 }
 
 function cnflAnnotateMicrozones(orderedClusters) {
-  for (const cluster of orderedClusters) {
+  orderedClusters.forEach((cluster, idx) => {
     const size = cluster.path.length;
     for (const ord of cluster.path) {
-      ord.microzonaId = cluster.id;
+      ord.microzonaId = idx + 1;
       ord.microzonaSize = size;
     }
-  }
+  });
 }
 
-// Sustituye el optimizador anterior. No hace 2-Opt global sobre órdenes individuales,
-// porque eso puede partir una microzona y hacer que el técnico regrese a ella después.
+function cnflMissingGpsOrders() {
+  return (workOrders || []).filter(o =>
+    !Number.isFinite(Number(o.lat)) || !Number.isFinite(Number(o.lon))
+  );
+}
+
+// Sustituye el TSP global anterior. El TSP punto-a-punto podía partir una zona
+// y obligar a regresar después. Esta versión mantiene cada microzona contigua.
 optimizeCurrentRoute = function () {
   if (!workOrders || workOrders.length <= 1) {
     showToast('No hay suficientes órdenes para optimizar');
     return;
   }
 
-  const withCoords = workOrders.filter(o => Number.isFinite(Number(o.lat)) && Number.isFinite(Number(o.lon)));
-  const withoutCoords = workOrders.filter(o => !Number.isFinite(Number(o.lat)) || !Number.isFinite(Number(o.lon)));
-
-  if (withCoords.length === 0) {
-    showToast('Las órdenes todavía no tienen coordenadas GPS válidas');
+  // Control obligatorio: no se crea una ruta parcial por accidente.
+  const missingGps = cnflMissingGpsOrders();
+  if (missingGps.length > 0) {
+    const missingLocs = [...new Set(missingGps.map(o => o.localizacion || o.orden || 'SIN LOCALIZACIÓN'))];
+    alert(
+      `Ruta NO optimizada.\n\n` +
+      `Órdenes totales: ${workOrders.length}\n` +
+      `Con GPS: ${workOrders.length - missingGps.length}\n` +
+      `Sin GPS: ${missingGps.length}\n\n` +
+      `Faltantes:\n${missingLocs.join('\n')}`
+    );
     return;
   }
 
-  const clusters = cnflBuildMicrozones(withCoords, CNFL_MICROZONE_KM);
+  const clusters = cnflBuildMicrozones(workOrders, CNFL_MICROZONE_KM);
   const orderedClusters = cnflOrderClusters(clusters, CNFL_ROUTE_BASE);
   cnflAnnotateMicrozones(orderedClusters);
 
-  const logicalRoute = orderedClusters.flatMap(c => c.path);
-  workOrders = [...logicalRoute, ...withoutCoords];
-
+  workOrders = orderedClusters.flatMap(c => c.path);
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+
   renderOrders();
   updateLiquidation();
 
   const title = document.getElementById('routeStatusTitle');
   if (title) title.innerText = 'RUTA LÓGICA · SALIDA LA GUACA';
 
-  const zoneCount = orderedClusters.length;
-  const noGpsText = withoutCoords.length ? ` · ${withoutCoords.length} sin GPS al final` : '';
-  showToast(`Ruta lista: ${withCoords.length} paradas en ${zoneCount} microzonas${noGpsText}.`);
+  showToast(`Ruta lista: ${workOrders.length} paradas · ${orderedClusters.length} microzonas · salida La Guaca.`);
 };
 
-console.log('[CNFL] Optimizador lógico v1 activo · salida La Guaca · microzonas 50 m');
+console.log('[CNFL] Optimizador lógico v2 activo · salida La Guaca · microzonas 50 m · sin rutas parciales');
