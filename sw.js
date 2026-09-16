@@ -1,10 +1,11 @@
-const CACHE_NAME = 'cnfl-campo-v10';
+const CACHE_NAME = 'cnfl-campo-v11';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './telegram-fix.js',
+  './route-optimizer.js',
   './orders_today.json',
   './resolved_cache.json',
   './manifest.json',
@@ -15,7 +16,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v10] Pre-caching assets offline...');
+      console.log('[SW v11] Pre-caching assets offline...');
       return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('[SW] Cache addAll warning:', err));
     }).then(() => self.skipWaiting())
   );
