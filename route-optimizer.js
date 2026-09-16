@@ -1,17 +1,47 @@
-// CNFL Campo — optimizador lógico de ruta de campo
-// Prioridad: salida La Guaca (Paso Ancho), mantener microzonas juntas,
-// evitar volver a una zona ya atendida y reducir saltos GPS innecesarios.
+// CNFL Campo — optimizador lógico reutilizable para cualquier jornada
+// Usa SIEMPRE las órdenes actualmente cargadas en workOrders.
+// Prioridad: salida configurable (La Guaca por defecto), microzonas contiguas,
+// evitar regresar a zonas ya atendidas y no optimizar lotes incompletos.
 
-const CNFL_ROUTE_BASE = {
+const CNFL_ROUTE_CONFIG_KEY = 'cnfl_route_config';
+const CNFL_DEFAULT_ROUTE_BASE = {
   name: 'La Guaca · San Sebastián',
   lat: 9.91154,
   lon: -84.07826
 };
+const CNFL_MICROZONE_KM = 0.050; // 50 m
 
-const CNFL_MICROZONE_KM = 0.050; // 50 m: una misma microzona operativa
+function cnflGetRouteBase() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CNFL_ROUTE_CONFIG_KEY) || '{}');
+    if (Number.isFinite(Number(saved.lat)) && Number.isFinite(Number(saved.lon))) {
+      return {
+        name: saved.name || 'Punto de salida',
+        lat: Number(saved.lat),
+        lon: Number(saved.lon)
+      };
+    }
+  } catch (e) {}
+  return { ...CNFL_DEFAULT_ROUTE_BASE };
+}
+
+// Queda disponible para futuras mejoras/UI sin cambiar el motor.
+function cnflSetRouteBase(name, lat, lon) {
+  const base = { name: name || 'Punto de salida', lat: Number(lat), lon: Number(lon) };
+  if (!Number.isFinite(base.lat) || !Number.isFinite(base.lon)) {
+    throw new Error('Coordenadas de salida inválidas');
+  }
+  localStorage.setItem(CNFL_ROUTE_CONFIG_KEY, JSON.stringify(base));
+  return base;
+}
+
+function cnflResetRouteBase() {
+  localStorage.removeItem(CNFL_ROUTE_CONFIG_KEY);
+  return { ...CNFL_DEFAULT_ROUTE_BASE };
+}
 
 function cnflPointDistance(a, b) {
-  return haversineDistance(a.lat, a.lon, b.lat, b.lon);
+  return haversineDistance(Number(a.lat), Number(a.lon), Number(b.lat), Number(b.lon));
 }
 
 function cnflBuildMicrozones(orders, thresholdKm = CNFL_MICROZONE_KM) {
@@ -87,8 +117,6 @@ function cnflOrderClusters(clusters, startPoint) {
     let bestDist = Infinity;
 
     for (let i = 0; i < remaining.length; i++) {
-      // Elegimos la siguiente microzona por su punto real de entrada más cercano.
-      // Cada microzona se termina completa antes de pasar a la siguiente.
       const d = cnflMinDistanceToCluster(current, remaining[i].members);
       if (d < bestDist) {
         bestDist = d;
@@ -121,15 +149,14 @@ function cnflMissingGpsOrders() {
   );
 }
 
-// Sustituye el TSP global anterior. El TSP punto-a-punto podía partir una zona
-// y obligar a regresar después. Esta versión mantiene cada microzona contigua.
+// Motor genérico: funciona con cualquier PDF/lote futuro cargado en la app.
+// No contiene localizaciones ni coordenadas específicas de una jornada.
 optimizeCurrentRoute = function () {
   if (!workOrders || workOrders.length <= 1) {
     showToast('No hay suficientes órdenes para optimizar');
     return;
   }
 
-  // Control obligatorio: no se crea una ruta parcial por accidente.
   const missingGps = cnflMissingGpsOrders();
   if (missingGps.length > 0) {
     const missingLocs = [...new Set(missingGps.map(o => o.localizacion || o.orden || 'SIN LOCALIZACIÓN'))];
@@ -143,20 +170,27 @@ optimizeCurrentRoute = function () {
     return;
   }
 
+  const routeBase = cnflGetRouteBase();
   const clusters = cnflBuildMicrozones(workOrders, CNFL_MICROZONE_KM);
-  const orderedClusters = cnflOrderClusters(clusters, CNFL_ROUTE_BASE);
+  const orderedClusters = cnflOrderClusters(clusters, routeBase);
   cnflAnnotateMicrozones(orderedClusters);
 
   workOrders = orderedClusters.flatMap(c => c.path);
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+  localStorage.setItem('cnfl_last_route_meta', JSON.stringify({
+    optimizedAt: new Date().toISOString(),
+    total: workOrders.length,
+    microzones: orderedClusters.length,
+    base: routeBase
+  }));
 
   renderOrders();
   updateLiquidation();
 
   const title = document.getElementById('routeStatusTitle');
-  if (title) title.innerText = 'RUTA LÓGICA · SALIDA LA GUACA';
+  if (title) title.innerText = `RUTA LÓGICA · SALIDA ${routeBase.name.toUpperCase()}`;
 
-  showToast(`Ruta lista: ${workOrders.length} paradas · ${orderedClusters.length} microzonas · salida La Guaca.`);
+  showToast(`Ruta lista: ${workOrders.length} paradas · ${orderedClusters.length} microzonas · salida ${routeBase.name}.`);
 };
 
-console.log('[CNFL] Optimizador lógico v2 activo · salida La Guaca · microzonas 50 m · sin rutas parciales');
+console.log('[CNFL] Optimizador lógico genérico v3 activo · cualquier jornada · sin rutas parciales');
