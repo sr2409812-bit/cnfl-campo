@@ -1,9 +1,10 @@
-const CACHE_NAME = 'cnfl-campo-v7';
+const CACHE_NAME = 'cnfl-campo-v8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './telegram-fix.js',
   './orders_today.json',
   './resolved_cache.json',
   './manifest.json',
@@ -14,7 +15,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v6] Pre-caching assets offline...');
+      console.log('[SW v8] Pre-caching assets offline...');
       return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('[SW] Cache addAll warning:', err));
     }).then(() => self.skipWaiting())
   );
@@ -67,7 +68,7 @@ self.addEventListener('fetch', (event) => {
         if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(event.request, networkResponse.clone());
           });
         }
         return networkResponse;
