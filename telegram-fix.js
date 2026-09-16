@@ -47,8 +47,6 @@ function buildGeoEntry(loc, lat, lon, circuito) {
   };
 }
 
-// Sustituye el cargador anterior: mezcla caché del servidor + caché local +
-// coordenadas confirmadas en este hotfix. La caché local conserva prioridad.
 loadGeoCache = async function () {
   try {
     let serverCache = {};
@@ -96,8 +94,6 @@ function parseCnflBotReplies(raw) {
     const loc = normalizeCnflLocalization(lm[1]);
     if (loc.length !== 10) continue;
 
-    // El bot pone el enlace antes de "Localización #...". Tomamos la coordenada
-    // más cercana anterior; si no existe, aceptamos una posterior cercana.
     let cm = null;
     for (let i = coordMatches.length - 1; i >= 0; i--) {
       if (coordMatches[i].index <= lm.index && (lm.index - coordMatches[i].index) < 600) {
@@ -144,10 +140,6 @@ function parseCnflBotReplies(raw) {
   };
 }
 
-// Sustituye el importador anterior. La expresión vieja permitía que el prefijo
-// "Localización" fuera opcional y terminaba leyendo dígitos de la latitud como
-// si fueran la localización. Aquí la localización solo se acepta cuando viene
-// explícitamente rotulada por el bot.
 importTelegramReplies = function () {
   const inputEl = document.getElementById('telegramBotReplies');
   if (!inputEl) return;
@@ -220,4 +212,74 @@ importTelegramReplies = function () {
   switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
 };
 
-console.log('[CNFL] Hotfix Telegram/Waze 2026-09-16 activo');
+// =========================================================
+// CORRECCIÓN DE MONTOS CNFL
+// =========================================================
+// El PDF puede traer montos como "19,248.37". JavaScript parseFloat("19,248.37")
+// devuelve 19, por eso la tarjeta mostraba ₡19. Aquí convertimos separadores de miles
+// y decimales antes de que renderOrders() y Liquidación usen el monto.
+function normalizeCnflAmount(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '';
+
+  let s = String(value).trim().replace(/[₡\s]/g, '');
+  if (!s) return '';
+
+  const comma = s.lastIndexOf(',');
+  const dot = s.lastIndexOf('.');
+
+  if (comma >= 0 && dot >= 0) {
+    if (comma > dot) {
+      // Ej: 19.248,37
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Ej: 19,248.37
+      s = s.replace(/,/g, '');
+    }
+  } else if (comma >= 0) {
+    const decimals = s.length - comma - 1;
+    if (decimals === 2) {
+      // Ej: 19248,37
+      s = s.replace(',', '.');
+    } else {
+      // Ej: 19,248
+      s = s.replace(/,/g, '');
+    }
+  } else if (dot >= 0) {
+    const parts = s.split('.');
+    if (parts.length > 2) {
+      s = parts.join('');
+    } else if (parts.length === 2 && parts[1].length === 3 && parts[0].length <= 3) {
+      // Ej: 19.248 usado como separador de miles
+      s = parts.join('');
+    }
+  }
+
+  s = s.replace(/[^0-9.-]/g, '');
+  const n = Number(s);
+  return Number.isFinite(n) ? String(n) : String(value);
+}
+
+function normalizeAllCnflAmounts() {
+  let changed = false;
+  for (const ord of workOrders || []) {
+    if (ord.monto === undefined || ord.monto === null || ord.monto === '') continue;
+    const normalized = normalizeCnflAmount(ord.monto);
+    if (String(ord.monto) !== String(normalized)) {
+      ord.monto = normalized;
+      changed = true;
+    }
+  }
+  if (changed) {
+    localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+  }
+  return changed;
+}
+
+const renderOrdersBeforeAmountFix = renderOrders;
+renderOrders = function () {
+  normalizeAllCnflAmounts();
+  return renderOrdersBeforeAmountFix();
+};
+
+console.log('[CNFL] Hotfix Telegram/Waze + montos 2026-09-16 activo');
