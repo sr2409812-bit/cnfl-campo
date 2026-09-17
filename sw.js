@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v12';
+const CACHE_NAME = 'cnfl-campo-v13';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -16,7 +16,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v12] Pre-caching assets offline...');
+      console.log('[SW v13] Pre-caching assets offline...');
       return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('[SW] Cache addAll warning:', err));
     }).then(() => self.skipWaiting())
   );
