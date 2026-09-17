@@ -24,7 +24,7 @@
     </div>
     <div class="header-actions">
       <button class="btn-clean-header" onclick="clearWorkOrders()" title="Vaciar bandeja de órdenes"><i class="fa-solid fa-trash-can"></i></button>
-      <button class="btn-optimize" onclick="optimizeCurrentRoute()"><i class="fa-solid fa-route"></i> Optimizar</button>
+      <button class="btn-optimize" onclick="optimizeCurrentRoute()" title="Optimizar usando la red real de calles"><i class="fa-solid fa-route"></i> Optimizar calles</button>
     </div>
   </header>
 
@@ -40,9 +40,9 @@
       <div class="route-summary-banner" id="routeSummaryBanner">
         <div>
           <div class="route-info-title" id="routeStatusTitle">RUTA ACTIVA DE OPERACIÓN</div>
-          <div class="route-info-sub" id="routeDistanceSubtitle">Calculando recorrido...</div>
+          <div class="route-info-sub" id="routeDistanceSubtitle">Motor vial V4 · optimiza por calles, no por línea recta</div>
         </div>
-        <button class="btn-reorder" onclick="optimizeCurrentRoute()" title="Recalcular ruta lógica"><i class="fa-solid fa-arrows-rotate"></i> Recalcular</button>
+        <button class="btn-reorder" onclick="optimizeCurrentRoute()" title="Recalcular usando la red real de calles"><i class="fa-solid fa-arrows-rotate"></i> Recalcular calles</button>
       </div>
 
       <div class="segmented-control">
@@ -122,7 +122,7 @@
   <div class="toast-msg" id="mobileToast"></div>
 
   <script src="app.js"></script>
-  <script src="telegram-fix.js?v=20260916-2"></script>
-  <script src="route-optimizer.js?v=20260916-3"></script>
+  <script src="telegram-fix.js?v=20260917-1"></script>
+  <script src="route-optimizer.js?v=20260917-4"></script>
 </body>
 </html>
