@@ -989,6 +989,87 @@ function generateLiquidationText() {
   const dateStr = now.toLocaleDateString('es-CR');
   const timeStr = now.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
 
+  // El informe final NO sigue el orden de ruta. Se ordena por Localización
+  // de menor a mayor porque ese es el identificador usado para revisar/liquidar.
+  const orderedOrders = [...workOrders].sort((a, b) => {
+    const aLoc = String(a.localizacion || '').replace(/\D/g, '');
+    const bLoc = String(b.localizacion || '').replace(/\D/g, '');
+    if (aLoc && bLoc) return Number(aLoc) - Number(bLoc);
+    if (aLoc) return -1;
+    if (bLoc) return 1;
+    return String(a.nis || '').localeCompare(String(b.nis || ''), 'es', { numeric: true });
+  });
+
+  function miniReport(o, i) {
+    const stateLabel = getStatusLabel(o.status);
+    const lines = [
+      `${i + 1}. ${stateLabel}  Localización: ${o.localizacion || 'N/D'}`,
+      `   Medidor: ${o.medidor || o.meter || 'N/D'} | NIS: ${o.nis || 'N/D'} | Orden: ${o.orden || 'N/D'}`
+    ];
+
+    // Cada resultado muestra únicamente la información que tiene sentido
+    // para la gestión realizada. No se rellenan campos irrelevantes con N/R.
+    switch (o.status) {
+      case 'cortado':
+        lines.push('   Gestión: Corte ejecutado.');
+        if (o.lectura) lines.push(`   Lectura: ${o.lectura} kWh`);
+        if (o.sello_retirado) lines.push(`   Sello retirado: ${o.sello_retirado}`);
+        if (o.sello_instalado) lines.push(`   Sello instalado: ${o.sello_instalado}`);
+        break;
+
+      case 'reconectado':
+        lines.push('   Gestión: Reconexión realizada.');
+        if (o.lectura) lines.push(`   Lectura: ${o.lectura} kWh`);
+        if (o.sello_retirado) lines.push(`   Sello retirado: ${o.sello_retirado}`);
+        if (o.sello_instalado) lines.push(`   Sello instalado: ${o.sello_instalado}`);
+        break;
+
+      case 'pago':
+        // Si el cliente pagó, no hubo intervención de corte:
+        // lectura y sellos no pertenecen a este mini informe.
+        lines.push('   Gestión: Cliente pagó en sitio.');
+        break;
+
+      case 'avisado':
+        lines.push('   Gestión: Cliente avisado / notificado.');
+        // No hay sellos si no hubo intervención. Una lectura registrada sí puede
+        // ser útil y se conserva solo cuando realmente fue tomada.
+        if (o.lectura) lines.push(`   Lectura: ${o.lectura} kWh`);
+        break;
+
+      case 'ya_cortado':
+        lines.push('   Gestión: Servicio ya se encontraba cortado.');
+        if (o.lectura) lines.push(`   Lectura: ${o.lectura} kWh`);
+        break;
+
+      case 'no_acceso':
+        lines.push('   Gestión: Sin acceso al servicio / medidor.');
+        break;
+
+      case 'directo':
+        lines.push('   Gestión: Directo / anomalía detectada.');
+        if (o.lectura) lines.push(`   Lectura: ${o.lectura} kWh`);
+        if (o.sello_retirado) lines.push(`   Sello retirado: ${o.sello_retirado}`);
+        if (o.sello_instalado) lines.push(`   Sello instalado: ${o.sello_instalado}`);
+        break;
+
+      case 'pending':
+      default:
+        lines.push('   Gestión: Pendiente.');
+        break;
+    }
+
+    if (o.observaciones && String(o.observaciones).trim()) {
+      lines.push(`   Obs: ${String(o.observaciones).trim()}`);
+    }
+
+    // Datos administrativos mínimos para identificar el caso.
+    if (o.cliente || o.client) lines.push(`   Cliente: ${o.cliente || o.client}`);
+    if (o.monto) lines.push(`   Monto listado: ₡${parseFloat(o.monto).toLocaleString('es-CR')}`);
+
+    return lines.join('\n');
+  }
+
   return `==================================================
 COMPAÑÍA NACIONAL DE FUERZA Y LUZ
 REPORTE OFICIAL DE LIQUIDACIÓN — ZONA 50
@@ -1007,22 +1088,9 @@ RESUMEN DE GESTIÓN EN CAMPO:
   - Directos / Anomalías Detectadas: ${directos}
 • Pendientes Restantes: ${pendientes}
 ==================================================
-DETALLE DE ÓRDENES:
+DETALLE DE ÓRDENES — LOCALIZACIÓN DE MENOR A MAYOR:
 
-${workOrders.map((o, i) => {
-  const stateLabel = getStatusLabel(o.status);
-
-  const lines = [
-    `${i + 1}. ${stateLabel} NIS: ${o.nis} | Medidor: ${o.medidor || o.meter || 'N/D'}`,
-    `   Localización: ${o.localizacion || 'N/D'} | Orden: ${o.orden || 'N/D'}`,
-    `   Lectura: ${o.lectura ? `${o.lectura} kWh` : 'N/R'} | Sello Inst: ${o.sello_instalado || 'N/R'} | Sello Ret: ${o.sello_retirado || 'N/R'}`,
-    `   Obs: ${o.observaciones || 'Sin observaciones'}`,
-    `   Cliente: ${o.cliente || o.client || 'N/D'} | Monto: ₡${o.monto ? parseFloat(o.monto).toLocaleString('es-CR') : '0'}`,
-    `   Dirección: ${o.direccion || o.address || 'N/D'}`
-  ];
-
-  return lines.join('\n');
-}).join('\n\n')}
+${orderedOrders.map((o, i) => miniReport(o, i)).join('\n\n')}
 ==================================================
 Fin de Reporte Oficial de Cuadrilla CNFL`;
 }
