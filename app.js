@@ -82,6 +82,8 @@ function clearWorkOrders() {
 
   workOrders = [];
   localStorage.setItem('cnfl_work_orders', JSON.stringify([]));
+  localStorage.removeItem('cnfl_gps_batch_stage');
+  localStorage.removeItem('cnfl_last_route_meta');
   renderOrders();
   updateLiquidation();
   updateTgCommandsCount();
@@ -142,7 +144,7 @@ function enrichOrdersWithCache() {
     if (loc && loc !== rawLoc) ord.localizacion = loc;
     if (loc && geoCache[loc]) {
       const geo = geoCache[loc];
-      if (geo.lat && geo.lon) {
+      if (geo.lat && geo.lon && !(Number.isFinite(Number(ord.lat)) && Number.isFinite(Number(ord.lon)))) {
         ord.lat = geo.lat;
         ord.lon = geo.lon;
         ord.circuito = geo.circuito || ord.circuito || '';
@@ -731,6 +733,8 @@ async function handlePdfUpload(event) {
       }
 
       workOrders = parsed;
+      localStorage.removeItem('cnfl_gps_batch_stage');
+      localStorage.removeItem('cnfl_last_route_meta');
       enrichOrdersWithCache();
       localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
       setRouteFilter('pending', document.getElementById('btnFilterPending'));
@@ -738,14 +742,21 @@ async function handlePdfUpload(event) {
       updateLiquidation();
       updateTgCommandsCount();
 
-      const routeOk = typeof optimizeInitialRoute === 'function'
-        ? await optimizeInitialRoute()
-        : await optimizeCurrentRoute();
+      const missingGps = workOrders.filter(o =>
+        !Number.isFinite(Number(o.lat)) || !Number.isFinite(Number(o.lon))
+      );
+
+      let routeOk = false;
+      if (missingGps.length === 0) {
+        routeOk = typeof optimizeInitialRoute === 'function'
+          ? await optimizeInitialRoute()
+          : await optimizeCurrentRoute();
+      }
 
       showToast(
         routeOk
           ? `Extraídas ${parsed.length} órdenes · ruta inicial calculada.`
-          : `Extraídas ${parsed.length} órdenes · falta validar GPS/ruta.`
+          : `Extraídas ${parsed.length} órdenes · faltan ${missingGps.length} GPS por validar.`
       );
       switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
     }
@@ -927,13 +938,20 @@ async function processRawOrders() {
     return;
   }
 
+  localStorage.removeItem('cnfl_gps_batch_stage');
+  localStorage.removeItem('cnfl_last_route_meta');
   enrichOrdersWithCache();
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
 
-  if (typeof optimizeInitialRoute === 'function') {
-    await optimizeInitialRoute();
-  } else {
-    await optimizeCurrentRoute();
+  const missingGps = workOrders.filter(o =>
+    !Number.isFinite(Number(o.lat)) || !Number.isFinite(Number(o.lon))
+  );
+  if (missingGps.length === 0) {
+    if (typeof optimizeInitialRoute === 'function') {
+      await optimizeInitialRoute();
+    } else {
+      await optimizeCurrentRoute();
+    }
   }
   document.getElementById('rawOrdersText').value = '';
   setRouteFilter('pending', document.getElementById('btnFilterPending'));
@@ -975,7 +993,7 @@ function copyTelegramWazeCommands() {
     return;
   }
   navigator.clipboard.writeText(cmds).then(() => {
-    showToast(`Copiados ${cmds.split('\n').length} comandos Waze al portapapeles.`);
+    showToast(`Copiados ${cmds.split('\n').length} comandos gmaps al portapapeles.`);
   }).catch(() => {
     prompt('Copia los comandos para enviarle a @ubiCNFL en Telegram:', cmds);
   });
