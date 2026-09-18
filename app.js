@@ -742,21 +742,15 @@ async function handlePdfUpload(event) {
       updateLiquidation();
       updateTgCommandsCount();
 
-      const missingGps = workOrders.filter(o =>
-        !Number.isFinite(Number(o.lat)) || !Number.isFinite(Number(o.lon))
-      );
-
-      let routeOk = false;
-      if (missingGps.length === 0) {
-        routeOk = typeof optimizeInitialRoute === 'function'
-          ? await optimizeInitialRoute()
-          : await optimizeCurrentRoute();
-      }
+      // No se optimiza una jornada nueva usando solamente coordenadas de caché.
+      // Primero se exige validar el lote GPS actual en la sección @ubiCNFL.
+      const cachedGps = workOrders.filter(o =>
+        Number.isFinite(Number(o.lat)) && Number.isFinite(Number(o.lon))
+      ).length;
 
       showToast(
-        routeOk
-          ? `Extraídas ${parsed.length} órdenes · ruta inicial calculada.`
-          : `Extraídas ${parsed.length} órdenes · faltan ${missingGps.length} GPS por validar.`
+        `Extraídas ${parsed.length} órdenes · valida GPS del lote actual` +
+        (cachedGps ? ` (${cachedGps} referencias previas disponibles)` : '')
       );
       switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
     }
@@ -943,16 +937,8 @@ async function processRawOrders() {
   enrichOrdersWithCache();
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
 
-  const missingGps = workOrders.filter(o =>
-    !Number.isFinite(Number(o.lat)) || !Number.isFinite(Number(o.lon))
-  );
-  if (missingGps.length === 0) {
-    if (typeof optimizeInitialRoute === 'function') {
-      await optimizeInitialRoute();
-    } else {
-      await optimizeCurrentRoute();
-    }
-  }
+  // Igual que con PDF: una bandeja nueva exige validar las coordenadas
+  // del lote actual antes de optimizar, aunque existan referencias en caché.
   document.getElementById('rawOrdersText').value = '';
   setRouteFilter('pending', document.getElementById('btnFilterPending'));
   renderOrders();
