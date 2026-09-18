@@ -24,7 +24,7 @@
     </div>
     <div class="header-actions">
       <button class="btn-clean-header" onclick="clearWorkOrders()" title="Vaciar bandeja de órdenes"><i class="fa-solid fa-trash-can"></i></button>
-      <button class="btn-optimize" onclick="optimizeCurrentRoute()" title="Optimizar usando la red real de calles"><i class="fa-solid fa-route"></i> Optimizar calles</button>
+      <button class="btn-optimize" onclick="optimizePendingFromCurrentLocation()" title="Recalcular solo pendientes desde mi ubicación actual"><i class="fa-solid fa-location-crosshairs"></i> Desde aquí</button>
     </div>
   </header>
 
@@ -40,9 +40,9 @@
       <div class="route-summary-banner" id="routeSummaryBanner">
         <div>
           <div class="route-info-title" id="routeStatusTitle">RUTA ACTIVA DE OPERACIÓN</div>
-          <div class="route-info-sub" id="routeDistanceSubtitle">Motor vial V4 · optimiza por calles, no por línea recta</div>
+          <div class="route-info-sub" id="routeDistanceSubtitle">Motor vial V5 · pendientes desde tu ubicación actual</div>
         </div>
-        <button class="btn-reorder" onclick="optimizeCurrentRoute()" title="Recalcular usando la red real de calles"><i class="fa-solid fa-arrows-rotate"></i> Recalcular calles</button>
+        <button class="btn-reorder" onclick="optimizePendingFromCurrentLocation()" title="Recalcular solo pendientes desde donde estoy"><i class="fa-solid fa-location-crosshairs"></i> Recalcular desde aquí</button>
       </div>
 
       <div class="segmented-control">
@@ -84,11 +84,11 @@
         <h3 class="panel-title"><i class="fa-brands fa-telegram" style="color:#0088cc"></i> Georreferenciación con @ubiCNFL</h3>
         <p class="panel-desc">Extrae las localizaciones de la ruta para consultar al bot de Telegram y cargar las coordenadas Waze y circuitos:</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-          <button class="btn-primary" style="background:#0088cc;border-color:#0077b5" onclick="copyTelegramWazeCommands()"><i class="fa-solid fa-copy"></i> Copiar Waze (<span id="tgCmdCount">0</span>)</button>
+          <button class="btn-primary" style="background:#0088cc;border-color:#0077b5" onclick="copyTelegramWazeCommands()"><i class="fa-solid fa-copy"></i> Copiar gmaps (<span id="tgCmdCount">0</span>)</button>
           <a href="https://t.me/ubiCNFL" target="_blank" class="btn-ghost" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;border-color:#0088cc;color:#7DD3FC"><i class="fa-brands fa-telegram"></i> Abrir @ubiCNFL</a>
         </div>
         <p class="panel-desc" style="margin-top:8px">Pega aquí los mensajes que te respondió @ubiCNFL:</p>
-        <textarea class="input-box" id="telegramBotReplies" rows="3" placeholder="Pega aquí los mensajes del bot con los links de Waze y circuitos..."></textarea>
+        <textarea class="input-box" id="telegramBotReplies" rows="3" placeholder="Respuesta del bot o: 1605000184 9.9386196,-84.0826433"></textarea>
         <button class="btn-primary" style="margin-top:8px" onclick="importTelegramReplies()"><i class="fa-solid fa-satellite-dish"></i> Vincular Coordenadas y Optimizar</button>
       </div>
 
@@ -121,8 +121,8 @@
 
   <div class="toast-msg" id="mobileToast"></div>
 
-  <script src="app.js?v=20260918-1"></script>
-  <script src="telegram-fix.js?v=20260917-1"></script>
-  <script src="route-optimizer.js?v=20260917-4"></script>
+  <script src="app.js?v=20260918-2""></script>
+  <script src="telegram-fix.js?v=20260918-2""></script>
+  <script src="route-optimizer.js?v=20260918-5""></script>
 </body>
 </html>
