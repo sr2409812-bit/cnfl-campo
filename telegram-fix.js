@@ -68,10 +68,24 @@ loadGeoCache = async function () {
 
     const seeded = {};
     for (const [loc, g] of Object.entries(CNFL_GEO_SEED_20260916)) {
-      seeded[loc] = buildGeoEntry(loc, g.lat, g.lon, g.circuito);
+      seeded[loc] = {
+        ...buildGeoEntry(loc, g.lat, g.lon, g.circuito),
+        source: 'seed'
+      };
     }
 
-    geoCache = { ...serverCache, ...seeded, ...savedCache };
+    // Base confiable: seed < servidor.
+    geoCache = { ...seeded, ...serverCache };
+
+    // Una caché local antigua ya no pisa silenciosamente al servidor.
+    // Solo gana si fue confirmada explícitamente por el usuario en una importación actual,
+    // o si el servidor todavía no conoce esa localización.
+    for (const [loc, entry] of Object.entries(savedCache)) {
+      if (!geoCache[loc] || entry.source === 'user-confirmed') {
+        geoCache[loc] = entry;
+      }
+    }
+
     localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
   } catch (e) {
     console.warn('Caché no disponible:', e);
@@ -79,80 +93,111 @@ loadGeoCache = async function () {
 };
 
 function parseCnflBotReplies(raw) {
-  const locMatches = [...raw.matchAll(/Localizaci[oó]n\s*#?\s*(\d{8,10})/gi)];
-  const coordMatches = [
-    ...raw.matchAll(/(?:[?&]ll=|[?&](?:q|query)=)([-+]?\d+(?:\.\d+)?),([-+]?\d+(?:\.\d+)?)/gi)
-  ];
-
   const entries = [];
   const seenExact = new Set();
   const byLoc = new Map();
   const conflicts = new Set();
   let exactDuplicates = 0;
+  let totalDetected = 0;
 
-  for (const lm of locMatches) {
-    const loc = normalizeCnflLocalization(lm[1]);
-    if (loc.length !== 10) continue;
+  function addEntry(locRaw, latRaw, lonRaw, circuito) {
+    const loc = normalizeCnflLocalization(locRaw);
+    const lat = Number(latRaw);
+    const lon = Number(lonRaw);
+    if (loc.length !== 10) return;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
 
-    let cm = null;
-    for (let i = coordMatches.length - 1; i >= 0; i--) {
-      if (coordMatches[i].index <= lm.index && (lm.index - coordMatches[i].index) < 600) {
-        cm = coordMatches[i];
-        break;
-      }
-    }
-    if (!cm) {
-      cm = coordMatches.find(m => m.index > lm.index && (m.index - lm.index) < 600) || null;
-    }
-    if (!cm) continue;
-
-    const lat = parseFloat(cm[1]);
-    const lon = parseFloat(cm[2]);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-
-    const tail = raw.slice(lm.index, Math.min(raw.length, lm.index + 220));
-    const circMatch = tail.match(/en\s+(Circuito\s+[^\)\n\r]+)/i);
-    const circuito = circMatch ? circMatch[1].trim() : 'Circuito CNFL';
-
+    totalDetected++;
     const exactKey = `${loc}|${lat}|${lon}`;
     if (seenExact.has(exactKey)) {
       exactDuplicates++;
-      continue;
+      return;
     }
     seenExact.add(exactKey);
 
     if (byLoc.has(loc)) {
       const prev = byLoc.get(loc);
       if (prev.lat !== lat || prev.lon !== lon) conflicts.add(loc);
-      continue;
+      return;
     }
 
-    const entry = { loc, lat, lon, circuito };
+    const entry = {
+      loc,
+      lat,
+      lon,
+      circuito: circuito || 'Circuito CNFL'
+    };
     byLoc.set(loc, entry);
     entries.push(entry);
   }
 
+  // Formato normal de @ubiCNFL / Google Maps / Waze.
+  const locMatches = [...raw.matchAll(/Localizaci[oó]n\s*#?\s*(\d{8,10})/gi)];
+  const coordMatches = [
+    ...raw.matchAll(/(?:[?&]ll=|[?&](?:q|query)=)([-+]?\d+(?:\.\d+)?),([-+]?\d+(?:\.\d+)?)/gi)
+  ];
+
+  for (const lm of locMatches) {
+    let cm = null;
+
+    // En las respuestas actuales el link suele ir antes de "Localización #...".
+    for (let i = coordMatches.length - 1; i >= 0; i--) {
+      if (coordMatches[i].index <= lm.index && (lm.index - coordMatches[i].index) < 700) {
+        cm = coordMatches[i];
+        break;
+      }
+    }
+
+    if (!cm) {
+      cm = coordMatches.find(m => m.index > lm.index && (m.index - lm.index) < 700) || null;
+    }
+    if (!cm) continue;
+
+    const tail = raw.slice(lm.index, Math.min(raw.length, lm.index + 240));
+    const circMatch = tail.match(/en\s+(Circuito\s+[^\)\n\r]+)/i);
+    addEntry(lm[1], cm[1], cm[2], circMatch ? circMatch[1].trim() : 'Circuito CNFL');
+  }
+
+  // Formato directo de campo:
+  // 1605000184 9.93861960999999,-84.082643319
+  for (const line of raw.split(/\r?\n/)) {
+    if (/Localizaci[oó]n/i.test(line)) continue;
+    const m = line.match(/(?:^|\s)(\d{8,10})\s*[-=:,;\s]+\s*([-+]?\d{1,2}(?:\.\d+)?)\s*,\s*([-+]?\d{1,3}(?:\.\d+)?)(?:\s|$)/);
+    if (m) addEntry(m[1], m[2], m[3], 'Circuito CNFL');
+  }
+
   return {
     entries,
-    totalDetected: locMatches.length,
+    totalDetected,
     exactDuplicates,
     conflicts: [...conflicts]
   };
 }
 
-importTelegramReplies = function () {
+importTelegramReplies = async function () {
   const inputEl = document.getElementById('telegramBotReplies');
   if (!inputEl) return;
 
   const raw = inputEl.value.trim();
   if (!raw) {
-    alert('Pega en la caja los mensajes que te respondió @ubiCNFL en Telegram.');
+    alert('Pega las respuestas de @ubiCNFL o pares Localización + latitud,longitud.');
+    return;
+  }
+
+  if (!workOrders || workOrders.length === 0) {
+    alert('Primero carga las órdenes de la jornada. No voy a guardar coordenadas sin una bandeja actual para validarlas.');
     return;
   }
 
   const parsed = parseCnflBotReplies(raw);
   if (parsed.entries.length === 0) {
-    alert('No se detectaron pares válidos de Localización + coordenadas. Pega el mensaje completo del bot, incluyendo el enlace Waze y "Localización #...".');
+    alert(
+      'No se detectaron pares válidos de Localización + coordenadas.\n\n' +
+      'Acepto:\n' +
+      '• Respuesta completa de @ubiCNFL\n' +
+      '• 1605000184 9.9386196,-84.0826433'
+    );
     return;
   }
 
@@ -162,54 +207,102 @@ importTelegramReplies = function () {
       .filter(loc => loc.length === 10)
   );
 
-  let linkedToCurrentOrders = 0;
+  const receivedExpected = new Map();
   const notInCurrentOrders = [];
 
   for (const e of parsed.entries) {
-    geoCache[e.loc] = buildGeoEntry(e.loc, e.lat, e.lon, e.circuito);
-    if (expected.has(e.loc)) linkedToCurrentOrders++;
+    if (expected.has(e.loc)) receivedExpected.set(e.loc, e);
     else notInCurrentOrders.push(e.loc);
   }
 
-  localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
-  enrichOrdersWithCache();
-  localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
-  renderOrders();
-  updateLiquidation();
-
-  const missing = [...expected].filter(loc => {
-    const ord = workOrders.find(o => normalizeCnflLocalization(o.localizacion) === loc);
-    return !ord || !ord.lat || !ord.lon;
-  });
+  // CONTROL CRÍTICO: una coordenada vieja en caché NO cuenta como recibida hoy.
+  const missingFromPaste = [...expected].filter(loc => !receivedExpected.has(loc));
 
   const summary = [
-    `Resultados detectados: ${parsed.totalDetected}`,
+    `Localizaciones esperadas: ${expected.size}`,
+    `Resultados válidos detectados: ${parsed.totalDetected}`,
     `Duplicados exactos: ${parsed.exactDuplicates}`,
-    `Localizaciones únicas: ${parsed.entries.length}`,
-    `Vinculadas a órdenes actuales: ${linkedToCurrentOrders}`
+    `Únicas del lote actual: ${receivedExpected.size}`
   ];
 
   if (notInCurrentOrders.length) {
-    summary.push(`No pertenecen a la bandeja actual: ${notInCurrentOrders.length}`);
+    summary.push(`Fuera de la bandeja actual: ${notInCurrentOrders.length}`);
   }
 
   if (parsed.conflicts.length) {
     summary.push(`CONFLICTOS GPS: ${parsed.conflicts.join(', ')}`);
-    alert(summary.join('\n') + '\n\nNo se optimizó la ruta porque hay una misma localización con coordenadas distintas.');
+    alert(
+      summary.join('\n') +
+      '\n\nNo guardé ni optimicé porque una misma Localización llegó con coordenadas distintas.'
+    );
     return;
   }
 
-  if (missing.length > 0) {
-    summary.push(`Faltan coordenadas: ${missing.length}`);
-    alert(summary.join('\n') + `\n\nFaltantes:\n${missing.join('\n')}\n\nLas coordenadas recibidas sí quedaron guardadas, pero NO se optimizó la ruta porque el lote aún está incompleto.`);
+  if (missingFromPaste.length > 0) {
+    summary.push(`Faltantes reales del pegado: ${missingFromPaste.length}`);
+    alert(
+      summary.join('\n') +
+      `\n\nFaltantes:\n${missingFromPaste.join('\n')}\n\n` +
+      'Aunque el teléfono tenga coordenadas antiguas guardadas, NO las tomé como respuesta de este lote.'
+    );
     return;
   }
 
-  optimizeCurrentRoute();
+  let overwrittenOldGps = 0;
+
+  // Solo ahora, con el lote completo y validado, se actualiza la geocaché.
+  for (const [loc, e] of receivedExpected.entries()) {
+    const previous = geoCache[loc];
+    if (
+      previous &&
+      Number.isFinite(Number(previous.lat)) &&
+      Number.isFinite(Number(previous.lon)) &&
+      (Number(previous.lat) !== e.lat || Number(previous.lon) !== e.lon)
+    ) {
+      overwrittenOldGps++;
+    }
+
+    geoCache[loc] = {
+      ...buildGeoEntry(loc, e.lat, e.lon, e.circuito),
+      source: 'user-confirmed'
+    };
+  }
+
+  localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
+
+  // Vinculación explícita por Localización para evitar depender de una caché previa.
+  for (const ord of workOrders) {
+    const loc = normalizeCnflLocalization(ord.localizacion);
+    const e = receivedExpected.get(loc);
+    if (!e) continue;
+
+    ord.localizacion = loc;
+    ord.lat = e.lat;
+    ord.lon = e.lon;
+    ord.circuito = e.circuito || ord.circuito || 'Circuito CNFL';
+    ord.wazeUrl = `https://www.waze.com/ul?ll=${e.lat},${e.lon}&navigate=yes`;
+    ord.mapsUrl = `https://www.google.com/maps/search/?api=1&query=${e.lat},${e.lon}`;
+  }
+
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+  renderOrders();
+  updateLiquidation();
+
+  const routeOk = typeof optimizeInitialRoute === 'function'
+    ? await optimizeInitialRoute()
+    : await optimizeCurrentRoute();
+
   inputEl.value = '';
-  showToast(`GPS listo: ${parsed.entries.length} únicas, ${parsed.exactDuplicates} duplicadas. Ruta completa.`);
-  switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
+
+  if (routeOk) {
+    showToast(
+      `GPS validado: ${receivedExpected.size}/${expected.size} · ruta inicial lista` +
+      (overwrittenOldGps ? ` · ${overwrittenOldGps} GPS antiguos corregidos` : '')
+    );
+    switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
+  } else {
+    showToast(`GPS validado: ${receivedExpected.size}/${expected.size}. Falta recalcular la ruta.`);
+  }
 };
 
 // =========================================================
