@@ -135,7 +135,11 @@ async function loadTodayPreloadedOrders() {
 
 function enrichOrdersWithCache() {
   for (const ord of workOrders) {
-    const loc = (ord.localizacion || '').trim();
+    const rawLoc = (ord.localizacion || '').trim();
+    const loc = (typeof normalizeCnflLocalization === 'function')
+      ? normalizeCnflLocalization(rawLoc)
+      : rawLoc.replace(/\D/g, '');
+    if (loc && loc !== rawLoc) ord.localizacion = loc;
     if (loc && geoCache[loc]) {
       const geo = geoCache[loc];
       if (geo.lat && geo.lon) {
@@ -541,20 +545,33 @@ function calculateRouteDistance() {
   const subtitle = document.getElementById('routeDistanceSubtitle');
   if (!subtitle) return;
 
-  const valid = workOrders.filter(o => o.status === 'pending' && o.lat && o.lon);
-  if (valid.length <= 1) {
-    const pendingCount = workOrders.filter(o => o.status === 'pending').length;
-    subtitle.innerText = `${pendingCount} paradas pendientes asignadas`;
+  const pendingCount = workOrders.filter(o => o.status === 'pending').length;
+  if (pendingCount === 0) {
+    subtitle.innerText = 'Sin paradas pendientes';
     return;
   }
 
-  let totalKm = 0;
-  for (let i = 0; i < valid.length - 1; i++) {
-    totalKm += haversineDistance(valid[i].lat, valid[i].lon, valid[i + 1].lat, valid[i + 1].lon);
+  let meta = null;
+  try {
+    meta = JSON.parse(localStorage.getItem('cnfl_last_route_meta') || 'null');
+  } catch (e) {}
+
+  if (
+    meta &&
+    meta.engine &&
+    String(meta.engine).startsWith('road-network-osrm') &&
+    Number(meta.pendingTotal) === pendingCount &&
+    Number.isFinite(Number(meta.totalRoadMeters))
+  ) {
+    subtitle.innerText = `${pendingCount} pendientes · ~${(Number(meta.totalRoadMeters) / 1000).toFixed(1)} km por calles`;
+    return;
   }
 
-  const pendingCount = workOrders.filter(o => o.status === 'pending').length;
-  subtitle.innerText = `${pendingCount} paradas pendientes • Distancia estimada: ~${totalKm.toFixed(1)} km`;
+  if (workOrders.some(o => o.status !== 'pending')) {
+    subtitle.innerText = `${pendingCount} pendientes · toca “Recalcular desde aquí” para actualizar la ruta`;
+  } else {
+    subtitle.innerText = `${pendingCount} paradas pendientes · ruta vial aún no calculada`;
+  }
 }
 
 function setOrderStatus(id, newStatus) {
@@ -632,6 +649,39 @@ function switchTab(tabId, btn) {
 
 // =========================================================
 // PARSER DE PDF OFICIAL EN NAVEGADOR
+
+function validateCnflOrders(orders) {
+  const errors = [];
+  if (!Array.isArray(orders) || orders.length === 0) {
+    return { ok: false, errors: ['No se extrajeron órdenes.'] };
+  }
+
+  const seenOrders = new Set();
+  let malformedLoc = 0;
+  let missingMeter = 0;
+  let duplicateOrders = 0;
+
+  for (const o of orders) {
+    const loc = String(o.localizacion || '').replace(/\D/g, '');
+    if (loc.length !== 10) malformedLoc++;
+
+    const med = String(o.medidor || '').trim();
+    if (!med || med === 'N/D') missingMeter++;
+
+    const orderId = String(o.orden || o.id || '').trim();
+    if (orderId) {
+      if (seenOrders.has(orderId)) duplicateOrders++;
+      seenOrders.add(orderId);
+    }
+  }
+
+  if (malformedLoc) errors.push(`${malformedLoc} Localizaciones no tienen 10 dígitos.`);
+  if (missingMeter) errors.push(`${missingMeter} órdenes quedaron sin número de medidor.`);
+  if (duplicateOrders) errors.push(`${duplicateOrders} órdenes aparecen duplicadas.`);
+
+  return { ok: errors.length === 0, errors };
+}
+
 // =========================================================
 
 async function handlePdfUpload(event) {
@@ -670,15 +720,33 @@ async function handlePdfUpload(event) {
     if (parsed.length === 0) {
       alert('No se detectaron órdenes con formato estándar en este archivo PDF.\n\nPrueba copiando el texto del PDF y pegándolo en la caja de "Ingreso Manual por Texto".');
     } else {
+      const validation = validateCnflOrders(parsed);
+      if (!validation.ok) {
+        alert(
+          'No cargué el PDF porque falló la validación de datos:\n\n' +
+          validation.errors.join('\n') +
+          '\n\nCorrige/revisa el origen antes de salir a campo.'
+        );
+        return;
+      }
+
       workOrders = parsed;
       enrichOrdersWithCache();
       localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
-      optimizeCurrentRoute();
       setRouteFilter('pending', document.getElementById('btnFilterPending'));
       renderOrders();
       updateLiquidation();
       updateTgCommandsCount();
-      showToast(`¡Éxito! Extraídas ${parsed.length} órdenes del PDF.`);
+
+      const routeOk = typeof optimizeInitialRoute === 'function'
+        ? await optimizeInitialRoute()
+        : await optimizeCurrentRoute();
+
+      showToast(
+        routeOk
+          ? `Extraídas ${parsed.length} órdenes · ruta inicial calculada.`
+          : `Extraídas ${parsed.length} órdenes · falta validar GPS/ruta.`
+      );
       switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
     }
   } catch (err) {
@@ -720,6 +788,16 @@ function parseCnflPdfText(rawText) {
         const pageLocs = lines.slice(ordIdx + 1, locIdx);
         const pageMeds = (medIdx !== -1) ? lines.slice(locIdx + 1, medIdx) : [];
         const pageMontos = (totIdx !== -1 && pendIdx !== -1) ? lines.slice(pendIdx + 1, totIdx) : [];
+
+        if (pageLocs.length < count) {
+          throw new Error(`PDF desalineado: esperaba ${count} Localizaciones y encontré ${pageLocs.length}.`);
+        }
+        if (medIdx !== -1 && pageMeds.length < count) {
+          throw new Error(`PDF desalineado: esperaba ${count} Medidores y encontré ${pageMeds.length}.`);
+        }
+        if (pendIdx !== -1 && totIdx !== -1 && pageMontos.length < count) {
+          throw new Error(`PDF desalineado: esperaba ${count} montos y encontré ${pageMontos.length}.`);
+        }
 
         let pageNis = [];
         let pagePlans = [];
@@ -812,7 +890,7 @@ function parseCnflPdfText(rawText) {
   return orders;
 }
 
-function processRawOrders() {
+async function processRawOrders() {
   const raw = (document.getElementById('rawOrdersText').value || '').trim();
   if (!raw) {
     alert('Ingrese o pegue el texto de las órdenes.');
@@ -840,9 +918,23 @@ function processRawOrders() {
     }));
   }
 
+  const validation = validateCnflOrders(workOrders);
+  if (!validation.ok) {
+    alert(
+      'No cargué el texto porque falló la validación:\n\n' +
+      validation.errors.join('\n')
+    );
+    return;
+  }
+
   enrichOrdersWithCache();
-  optimizeCurrentRoute();
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+
+  if (typeof optimizeInitialRoute === 'function') {
+    await optimizeInitialRoute();
+  } else {
+    await optimizeCurrentRoute();
+  }
   document.getElementById('rawOrdersText').value = '';
   setRouteFilter('pending', document.getElementById('btnFilterPending'));
   renderOrders();
@@ -859,12 +951,13 @@ function processRawOrders() {
 function getTelegramWazeCommands() {
   const locs = [];
   for (const ord of workOrders) {
-    const loc = (ord.localizacion || '').replace(/\D/g, '');
-    if (loc.length >= 8 && !locs.includes(loc)) {
-      locs.push(loc);
-    }
+    const raw = (ord.localizacion || '').replace(/\D/g, '');
+    const loc = (typeof normalizeCnflLocalization === 'function')
+      ? normalizeCnflLocalization(raw)
+      : raw;
+    if (loc.length === 10 && !locs.includes(loc)) locs.push(loc);
   }
-  return locs.map(l => `Waze${l}`).join('\n');
+  return locs.map(l => `gmaps${l}`).join('\n');
 }
 
 function updateTgCommandsCount() {
@@ -991,7 +1084,9 @@ function generateLiquidationText() {
 
   // El informe final NO sigue el orden de ruta. Se ordena por Localización
   // de menor a mayor porque ese es el identificador usado para revisar/liquidar.
-  const orderedOrders = [...workOrders].sort((a, b) => {
+  const orderedOrders = workOrders
+    .filter(o => o.status !== 'pending')
+    .sort((a, b) => {
     const aLoc = String(a.localizacion || '').replace(/\D/g, '');
     const bLoc = String(b.localizacion || '').replace(/\D/g, '');
     if (aLoc && bLoc) return Number(aLoc) - Number(bLoc);
@@ -1088,9 +1183,12 @@ RESUMEN DE GESTIÓN EN CAMPO:
   - Directos / Anomalías Detectadas: ${directos}
 • Pendientes Restantes: ${pendientes}
 ==================================================
-DETALLE DE ÓRDENES — LOCALIZACIÓN DE MENOR A MAYOR:
+DETALLE DE ÓRDENES GESTIONADAS — LOCALIZACIÓN DE MENOR A MAYOR:
+(Las pendientes se cuentan arriba pero no se incluyen en el detalle final.)
 
-${orderedOrders.map((o, i) => miniReport(o, i)).join('\n\n')}
+${orderedOrders.length
+  ? orderedOrders.map((o, i) => miniReport(o, i)).join('\n\n')
+  : 'Sin órdenes gestionadas todavía.'}
 ==================================================
 Fin de Reporte Oficial de Cuadrilla CNFL`;
 }
