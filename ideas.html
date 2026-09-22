@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CNFL Campo · Lluvia de Ideas & Pitch Deck</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B12;
+      --card-bg: #0E1626;
+      --card-border: #1E2D4A;
+      --cyan: #00D2FF;
+      --cyan-glow: rgba(0, 210, 255, 0.15);
+      --green: #10B981;
+      --green-glow: rgba(16, 185, 129, 0.15);
+      --yellow: #F59E0B;
+      --yellow-glow: rgba(245, 158, 11, 0.15);
+      --purple: #A855F7;
+      --purple-glow: rgba(168, 85, 247, 0.15);
+      --red: #EF4444;
+      --text: #F8FAFC;
+      --muted: #94A3B8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); padding: 16px; min-height: 100vh; padding-bottom: 75px; }
+
+    /* Header Compacto */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--cyan);
+      color: #001D40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .badge-text h1 { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; }
+    .badge-text p { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .reu-pill {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid var(--green);
+      color: #86EFAC;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Grid de Ideas */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .idea-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .idea-card:active { transform: scale(0.98); }
+
+    /* Acentos de color */
+    .c-cyan { border-top: 3px solid var(--cyan); }
+    .c-green { border-top: 3px solid var(--green); }
+    .c-yellow { border-top: 3px solid var(--yellow); }
+    .c-purple { border-top: 3px solid var(--purple); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+    .c-cyan .card-icon { background: var(--cyan-glow); color: var(--cyan); }
+    .c-green .card-icon { background: var(--green-glow); color: var(--green); }
+    .c-yellow .card-icon { background: var(--yellow-glow); color: var(--yellow); }
+    .c-purple .card-icon { background: var(--purple-glow); color: var(--purple); }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* Bullets rápidos */
+    .bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bullets li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: #CBD5E1;
+      line-height: 1.4;
+    }
+    .bullets li i {
+      margin-top: 3px;
+      font-size: 10px;
+    }
+    .c-cyan .bullets li i { color: var(--cyan); }
+    .c-green .bullets li i { color: var(--green); }
+    .c-yellow .bullets li i { color: var(--yellow); }
+    .c-purple .bullets li i { color: var(--purple); }
+
+    .highlight-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed var(--card-border);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Frase Matona para la reunión */
+    .punchline-card {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #0A1C33 0%, #081424 100%);
+      border: 1px solid var(--cyan);
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 0 25px rgba(0, 210, 255, 0.1);
+    }
+    .punchline-card h2 {
+      font-size: 16px;
+      color: var(--cyan);
+      font-weight: 800;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .punchline-card p {
+      font-size: 14px;
+      color: #fff;
+      font-style: italic;
+      font-weight: 600;
+    }
+
+    /* Botón flotante para abrir la app */
+    .floating-app-btn {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      background: var(--cyan);
+      color: #001D40;
+      padding: 14px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 10px 25px rgba(0, 210, 255, 0.3);
+      z-index: 100;
+    }
+    .floating-app-btn:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="badge">
+      <div class="badge-icon"><i class="fa-solid fa-bolt"></i></div>
+      <div class="badge-text">
+        <h1>CNFL CAMPO</h1>
+        <p>PITCH DECK · ZONA 50</p>
+      </div>
+    </div>
+    <div class="reu-pill">
+      <i class="fa-solid fa-clock"></i> 2:30 PM
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Tarjeta 1: El Dolor en Calle -->
+    <div class="idea-card c-cyan">
+      <div class="card-header">
+        <div class="card-icon"><i class="fa-solid fa-traffic-light"></i></div>
+        <div class="card-title">1. El Dolor Real en Calle</div>
+      </div>
+      <ul class="bullets">
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Pérdida de tiempo:</strong> 45 a 90 min diarios buscando medidores.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Rutas en zigzag:</strong> Gastamos gasolina dando vueltas innecesarias.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Zonas sin señal:</strong> Los sistemas web normales se congelan en sombra celular.</li>
+      </ul>
+      <div class="highlight-box">
+        💡 <em>"Tener el mapa guardado en la oficina no ayuda al técnico que está metido en una presa o buscando un poste."</em>
+      </div>
+    </div>
+
+    <!-- Tarjeta 2: La Inspiración Mundial -->
+    <div class="idea-card c-green">
+      <div class="card-header">
+        <div class="card-icon"><i class="fa-solid fa-globe"></i></div>
+        <div class="card-title">2. Inspiración Líder (Enel)</div>
+      </div>
+      <ul class="bullets">
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Enel / Gridspertise:</strong> Crearon <em>NetNav</em> para 70 millones de usuarios.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>La Regla de Oro:</strong> Llevar la cartografía eléctrica al celular del técnico en calle.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Resultado comprobado:</strong> -30% en tiempos de traslado en Brasil, España e Italia.</li>
+      </ul>
+      <div class="highlight-box">
+        🎯 <em>"Hicimos exactamente lo mismo pero adaptado a la Zona 50 de CNFL."</em>
+      </div>
+    </div>
+
+    <!-- Tarjeta 3: Más Allá de los Cortes -->
+    <div class="idea-card c-purple">
+      <div class="card-header">
+        <div class="card-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <div class="card-title">3. Universal (No solo cortes)</div>
+      </div>
+      <ul class="bullets">
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Reconexiones:</strong> Inmediatas con 1 toque en la app.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Inspección y Sellos:</strong> Registro digital de sellos y lecturas.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Fraudes y Averías:</strong> Localización guiada al poste exacto sin rodeos.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Mantenimiento:</strong> Trazabilidad del circuito y orden de trabajo.</li>
+      </ul>
+    </div>
+
+    <!-- Tarjeta 4: El Regalo para el de GIS -->
+    <div class="idea-card c-yellow">
+      <div class="card-header">
+        <div class="card-icon"><i class="fa-solid fa-map-pin"></i></div>
+        <div class="card-title">4. El Gancho para el de GIS</div>
+      </div>
+      <ul class="bullets">
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Retroalimentación en vivo:</strong> Si un medidor se movió, la cuadrilla lo reporta in situ.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Mapa actualizado:</strong> La cuadrilla se convierte en los inspectores del catastro.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Cero trabajo pesado:</strong> Solo ocupamos un archivo Excel/CSV de 1 circuito para iniciar.</li>
+      </ul>
+      <div class="highlight-box">
+        🤝 <em>"Le ayudamos a depurar su base de datos gratis con las cuadrillas en la calle."</em>
+      </div>
+    </div>
+
+    <!-- Tarjeta 5: TI y Costos -->
+    <div class="idea-card c-cyan">
+      <div class="card-header">
+        <div class="card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="card-title">5. Cero Costo y Seguridad</div>
+      </div>
+      <ul class="bullets">
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Cero licencias extras:</strong> Es una PWA, corre en cualquier celular Android/iPhone.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Instalación en 10 seg:</strong> Sin pasar por Play Store ni pedir permisos raros.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>Seguridad TI:</strong> Pesa menos de 1 MB y puede alojarse en servidores internos de CNFL.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>100% Offline:</strong> Los datos se procesan en el teléfono, cero riesgo de fuga.</li>
+      </ul>
+    </div>
+
+    <!-- Tarjeta 6: La Propuesta de Cierre -->
+    <div class="idea-card c-green">
+      <div class="card-header">
+        <div class="card-icon"><i class="fa-solid fa-handshake"></i></div>
+        <div class="card-title">6. El Acuerdo Inmediato</div>
+      </div>
+      <ul class="bullets">
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>El Pedido:</strong> Un archivo muestra de 1 circuito con NIS, Medidor y Coordenadas.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>La Prueba:</strong> Piloto de 1 solo día en mi cuadrilla.</li>
+        <li><i class="fa-solid fa-chevron-right"></i> <strong>El Entregable:</strong> Medir minutos y kilómetros ahorrados con números reales.</li>
+      </ul>
+    </div>
+
+    <!-- Frase Matona Final -->
+    <div class="punchline-card">
+      <h2>La Frase de Cierre</h2>
+      <p>"La CNFL ya tiene el mapa y tiene medidores inteligentes. Lo único que faltaba era conectar esa inteligencia con el volante de la cuadrilla en la calle. Hagamos la prueba de 1 día."</p>
+    </div>
+
+  </div>
+
+  <a href="https://sr2409812-bit.github.io/cnfl-campo/?v=20260921-17" target="_blank" class="floating-app-btn">
+    <i class="fa-solid fa-mobile-screen"></i> ABRIR APP CNFL EN VIVO
+  </a>
+
+</body>
+</html>
