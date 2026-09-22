@@ -685,6 +685,8 @@ function validateCnflOrders(orders) {
   let malformedLoc = 0;
   let missingMeter = 0;
   let duplicateOrders = 0;
+  let reviewNames = 0;
+  let reviewAddresses = 0;
 
   for (const o of orders) {
     const loc = String(o.localizacion || '').replace(/\D/g, '');
@@ -692,6 +694,12 @@ function validateCnflOrders(orders) {
 
     const med = String(o.medidor || '').trim();
     if (!med || med === 'N/D') missingMeter++;
+
+    const client = String(o.cliente || o.client || '').trim();
+    if (!client || /REVISAR NOMBRE/i.test(client)) reviewNames++;
+
+    const address = String(o.direccion || o.address || '').trim();
+    if (!address || /REVISAR DIRECCI[ÓO]N/i.test(address)) reviewAddresses++;
 
     const orderId = String(o.orden || o.id || '').trim();
     if (orderId) {
@@ -703,11 +711,195 @@ function validateCnflOrders(orders) {
   if (malformedLoc) errors.push(`${malformedLoc} Localizaciones no tienen 10 dígitos.`);
   if (missingMeter) errors.push(`${missingMeter} órdenes quedaron sin número de medidor.`);
   if (duplicateOrders) errors.push(`${duplicateOrders} órdenes aparecen duplicadas.`);
+  if (reviewNames) errors.push(`${reviewNames} nombres no pudieron asociarse con seguridad.`);
+  if (reviewAddresses) errors.push(`${reviewAddresses} direcciones no pudieron asociarse con seguridad.`);
 
   return { ok: errors.length === 0, errors };
 }
 
 // =========================================================
+
+function cnflPdfNormText(s) {
+  return String(s || '').replace(/\s+/g, ' ').trim();
+}
+
+function cnflPdfItemXY(item) {
+  const t = item && item.transform;
+  return {
+    x: Array.isArray(t) ? Number(t[4]) : 0,
+    y: Array.isArray(t) ? Number(t[5]) : 0,
+    w: Number(item && item.width) || 0,
+    text: cnflPdfNormText(item && item.str)
+  };
+}
+
+function cnflFindHeaderItem(items, matcher) {
+  return items.find(p => matcher(p.text)) || null;
+}
+
+function cnflJoinColumn(items) {
+  return items
+    .filter(p => p.text)
+    .sort((a, b) => (Math.abs(a.y - b.y) > 1.5 ? b.y - a.y : a.x - b.x))
+    .map(p => p.text)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Parser geométrico: usa la posición real del texto en el PDF.
+// Evita que nombres/direcciones de dos líneas se desplacen hacia el cliente siguiente.
+function parseCnflPdfLayout(layoutPages) {
+  const rows = [];
+
+  for (const rawItems of layoutPages || []) {
+    const items = (rawItems || [])
+      .map(cnflPdfItemXY)
+      .filter(p => p.text);
+
+    const hLoc = cnflFindHeaderItem(items, t => /^Localizaci[oó]n$/i.test(t));
+    const hMed = cnflFindHeaderItem(items, t => /^Medidor$/i.test(t));
+    const hPend = cnflFindHeaderItem(items, t => /^Pendientes?$/i.test(t));
+    const hMonto = cnflFindHeaderItem(items, t => /^Monto\s+Total$/i.test(t));
+    const hDir = cnflFindHeaderItem(items, t => /^Direcci[oó]n$/i.test(t));
+    const hNom = cnflFindHeaderItem(items, t => /^Nombre$/i.test(t));
+
+    if (!hLoc || !hMed || !hMonto || !hDir || !hNom) continue;
+
+    const xLoc = hLoc.x;
+    const xMed = hMed.x;
+    const xPend = hPend ? hPend.x : (xMed + (hMonto.x - xMed) * 0.45);
+    const xMonto = hMonto.x;
+    const xDir = hDir.x;
+    const xNom = hNom.x;
+
+    const anchors = items
+      .filter(p =>
+        /^\d{10}$/.test(p.text.replace(/\D/g, '')) &&
+        Math.abs(p.x - xLoc) < Math.max(45, (xMed - xLoc) * 0.7) &&
+        p.y < hLoc.y - 2
+      )
+      .sort((a, b) => b.y - a.y);
+
+    for (let ai = 0; ai < anchors.length; ai++) {
+      const a = anchors[ai];
+      const next = anchors[ai + 1] || null;
+
+      // El bloque útil de la fila termina en OBSERVACIONES, antes de vencimientos/notas.
+      const obsCandidates = items
+        .filter(p =>
+          /^OBSERVACIONES$/i.test(p.text) &&
+          p.y < a.y - 1 &&
+          (!next || p.y > next.y + 2)
+        )
+        .sort((p, q) => q.y - p.y);
+      const obsY = obsCandidates.length ? obsCandidates[0].y : (next ? (a.y + next.y) / 2 : a.y - 26);
+
+      const topY = a.y + 5;
+      const bottomY = obsY + 1;
+
+      const rowItems = items.filter(p =>
+        p.y <= topY &&
+        p.y >= bottomY &&
+        !/^OBSERVACIONES$/i.test(p.text)
+      );
+
+      // Límites de columnas por puntos medios entre encabezados.
+      const bLocMed = (xLoc + xMed) / 2;
+      const bMedPend = (xMed + xPend) / 2;
+      const bPendMonto = (xPend + xMonto) / 2;
+      const bMontoDir = (xMonto + xDir) / 2;
+      const bDirNom = (xDir + xNom) / 2;
+
+      const col = (minX, maxX) => rowItems.filter(p => p.x >= minX && p.x < maxX);
+
+      const loc = a.text.replace(/\D/g, '');
+      const medidor = cnflJoinColumn(col(bLocMed, bMedPend)).replace(/\s/g, '');
+      const pendientes = cnflJoinColumn(col(bMedPend, bPendMonto));
+      const monto = cnflJoinColumn(col(bPendMonto, bMontoDir));
+      const direccion = cnflJoinColumn(col(bMontoDir, bDirNom));
+      const cliente = cnflJoinColumn(col(bDirNom, Infinity));
+
+      // Orden: número de 8 dígitos inmediatamente a la izquierda de Localización.
+      const leftItems = rowItems
+        .filter(p => p.x < bLocMed && p.x < xLoc)
+        .map(p => ({...p, digits:p.text.replace(/\D/g,'')}))
+        .filter(p => /^\d{8}$/.test(p.digits))
+        .sort((p,q) => Math.abs(p.y-a.y)-Math.abs(q.y-a.y));
+      const orden = leftItems.length ? leftItems[0].digits : '';
+
+      rows.push({
+        orden,
+        localizacion: loc,
+        medidor: medidor || 'N/D',
+        pendientes: pendientes || '',
+        monto: monto || '',
+        direccion: direccion || '',
+        cliente: cliente || '',
+        _layoutY: a.y
+      });
+    }
+  }
+
+  return rows;
+}
+
+function mergeCnflPdfParsers(textOrders, layoutRows) {
+  if (!layoutRows || layoutRows.length === 0) return textOrders;
+
+  const byLoc = new Map();
+  for (const row of layoutRows) {
+    if (row.localizacion) byLoc.set(row.localizacion, row);
+  }
+
+  const merged = [];
+  const seen = new Set();
+
+  for (const order of textOrders || []) {
+    const loc = String(order.localizacion || '').replace(/\D/g,'');
+    const layout = byLoc.get(loc);
+    if (!layout) {
+      merged.push(order);
+      continue;
+    }
+
+    seen.add(loc);
+    merged.push({
+      ...order,
+      orden: layout.orden || order.orden,
+      localizacion: loc,
+      medidor: layout.medidor && layout.medidor !== 'N/D' ? layout.medidor : order.medidor,
+      monto: layout.monto || order.monto,
+      direccion: layout.direccion || order.direccion,
+      cliente: layout.cliente || 'REVISAR NOMBRE'
+    });
+  }
+
+  // Si el parser textual perdió una fila pero el geométrico sí la vio,
+  // no inventamos NIS/plan: la agregamos marcada para revisión.
+  for (const layout of layoutRows) {
+    if (seen.has(layout.localizacion)) continue;
+    merged.push({
+      id: `ord-${layout.orden || layout.localizacion}`,
+      orden: layout.orden || '',
+      nis: '',
+      plan: 'TR - RESIDENCIAL',
+      localizacion: layout.localizacion,
+      medidor: layout.medidor || 'N/D',
+      monto: layout.monto || '0.00',
+      direccion: layout.direccion || 'REVISAR DIRECCIÓN',
+      cliente: layout.cliente || 'REVISAR NOMBRE',
+      tipo: 'corta_residencial',
+      status: 'pending',
+      lectura: '',
+      sello_instalado: '',
+      sello_retirado: '',
+      observaciones: 'REVISAR: fila recuperada por posición PDF'
+    });
+  }
+
+  return merged;
+}
 
 async function handlePdfUpload(event) {
   const file = event.target.files[0];
@@ -729,9 +921,12 @@ async function handlePdfUpload(event) {
     const pdf = await loadingTask.promise;
     
     let fullText = '';
+    const layoutPages = [];
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
+      layoutPages.push(textContent.items || []);
+
       const pageLines = [];
       for (const item of textContent.items) {
         if (item.str && item.str.trim()) {
@@ -741,7 +936,24 @@ async function handlePdfUpload(event) {
       fullText += pageLines.join('\n') + '\n---PAGE_BREAK---\n';
     }
 
-    const parsed = parseCnflPdfText(fullText);
+    const textParsed = parseCnflPdfText(fullText);
+    const layoutParsed = parseCnflPdfLayout(layoutPages);
+    const parsed = mergeCnflPdfParsers(textParsed, layoutParsed);
+
+    // Control adicional: si ambos parsers vieron Localizaciones y no coinciden,
+    // detener antes de mandar al técnico con datos cruzados.
+    if (layoutParsed.length > 0) {
+      const textLocs = new Set(textParsed.map(o => String(o.localizacion || '').replace(/\D/g,'')));
+      const layoutLocs = new Set(layoutParsed.map(o => o.localizacion));
+      const onlyText = [...textLocs].filter(x => x && !layoutLocs.has(x));
+      const onlyLayout = [...layoutLocs].filter(x => x && !textLocs.has(x));
+      if (onlyText.length || onlyLayout.length) {
+        throw new Error(
+          'PDF inconsistente entre lectura textual y lectura por posición. ' +
+          `Solo texto: ${onlyText.length}; solo tabla: ${onlyLayout.length}. No cargué datos cruzados.`
+        );
+      }
+    }
     if (parsed.length === 0) {
       alert('No se detectaron órdenes con formato estándar en este archivo PDF.\n\nPrueba copiando el texto del PDF y pegándolo en la caja de "Ingreso Manual por Texto".');
     } else {
