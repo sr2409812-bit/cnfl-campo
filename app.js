@@ -9,7 +9,7 @@ let activeFilter = 'pending'; // Por defecto se muestran SOLO las PENDIENTES
 let searchQuery = '';
 let geoCache = {};
 const expandedFields = {};
-const CNFL_PDF_PARSER_VERSION = 3;
+const CNFL_PDF_PARSER_VERSION = 4;
 let cnflPdfBatchStale = false;
 
 // 1. Inicialización del Sistema
@@ -87,8 +87,8 @@ async function initOrders() {
           setTimeout(() => {
             alert(
               'ATENCIÓN: este lote fue cargado con una versión anterior del lector PDF.\n\n' +
-              'Los nombres de clientes NO se consideran confiables.\n\n' +
-              'No borré tu trabajo, pero debes volver a cargar el PDF con la versión nueva para validar nombres y direcciones.'
+              'Los nombres, direcciones y montos de este lote NO se consideran confiables.\n\n' +
+              'No borré tu trabajo, pero debes volver a cargar el PDF con la versión nueva para validarlos.'
             );
           }, 150);
         }
@@ -423,7 +423,9 @@ function renderOrders() {
         <!-- Cliente y Monto -->
         <div class="client-header">
           <div class="client-name">${cnflPdfBatchStale ? '⚠ NOMBRE NO VALIDADO — RECARGAR PDF' : (ord.cliente || ord.client || 'ABONADO CNFL')}</div>
-          ${ord.monto ? `<div class="monto-val">₡${parseFloat(ord.monto).toLocaleString('es-CR')}</div>` : ''}
+          ${cnflPdfBatchStale
+            ? '<div class="monto-val">⚠ MONTO NO VALIDADO</div>'
+            : (ord.monto ? `<div class="monto-val">₡${parseFloat(ord.monto).toLocaleString('es-CR')}</div>` : '')}
         </div>
         
         <!-- Dirección Oficial -->
@@ -716,6 +718,7 @@ function validateCnflOrders(orders) {
   let duplicateOrders = 0;
   let reviewNames = 0;
   let reviewAddresses = 0;
+  let badAmounts = 0;
 
   for (const o of orders) {
     const loc = String(o.localizacion || '').replace(/\D/g, '');
@@ -730,6 +733,9 @@ function validateCnflOrders(orders) {
     const address = String(o.direccion || o.address || '').trim();
     if (!address || /REVISAR DIRECCI[ÓO]N/i.test(address)) reviewAddresses++;
 
+    const amountText = String(o.monto || '').replace(/\s/g, '').trim();
+    if (!amountText || !cnflPdfIsMoney(amountText)) badAmounts++;
+
     const orderId = String(o.orden || o.id || '').trim();
     if (orderId) {
       if (seenOrders.has(orderId)) duplicateOrders++;
@@ -742,6 +748,7 @@ function validateCnflOrders(orders) {
   if (duplicateOrders) errors.push(`${duplicateOrders} órdenes aparecen duplicadas.`);
   if (reviewNames) errors.push(`${reviewNames} nombres no pudieron asociarse con seguridad.`);
   if (reviewAddresses) errors.push(`${reviewAddresses} direcciones no pudieron asociarse con seguridad.`);
+  if (badAmounts) errors.push(`${badAmounts} montos no tienen un formato monetario válido.`);
 
   return { ok: errors.length === 0, errors };
 }
@@ -778,6 +785,32 @@ function cnflJoinColumn(items) {
 
 // Parser geométrico: usa la posición real del texto en el PDF.
 // Evita que nombres/direcciones de dos líneas se desplacen hacia el cliente siguiente.
+function cnflPdfPickNearest(items, xTarget, yTarget, matcher, maxDx = Infinity) {
+  const candidates = (items || [])
+    .filter(p => matcher(p.text))
+    .map(p => ({
+      p,
+      score: Math.abs(Number(p.x) - Number(xTarget)) +
+        1.8 * Math.abs(Number(p.y) - Number(yTarget))
+    }))
+    .filter(x => Math.abs(Number(x.p.x) - Number(xTarget)) <= maxDx)
+    .sort((a, b) => a.score - b.score);
+
+  return candidates.length ? candidates[0].p : null;
+}
+
+function cnflPdfIsMoney(text) {
+  const s = String(text || '').replace(/\s/g, '');
+  return /^\d{1,3}(?:,\d{3})+(?:\.\d{2})$/.test(s) ||
+    /^\d+(?:\.\d{2})$/.test(s) ||
+    /^\d{1,3}(?:\.\d{3})+(?:,\d{2})$/.test(s) ||
+    /^\d+(?:,\d{2})$/.test(s);
+}
+
+function cnflPdfNormalizeMoneyText(text) {
+  return String(text || '').replace(/\s/g, '').trim();
+}
+
 function parseCnflPdfLayout(layoutPages) {
   const rows = [];
 
@@ -843,9 +876,35 @@ function parseCnflPdfLayout(layoutPages) {
       const col = (minX, maxX) => rowItems.filter(p => p.x >= minX && p.x < maxX);
 
       const loc = a.text.replace(/\D/g, '');
-      const medidor = cnflJoinColumn(col(bLocMed, bMedPend)).replace(/\s/g, '');
-      const pendientes = cnflJoinColumn(col(bMedPend, bPendMonto));
-      const monto = cnflJoinColumn(col(bPendMonto, bMontoDir));
+
+      // Campos numéricos críticos se eligen por tipo + cercanía al encabezado.
+      // Esto evita convertir "Pendientes 1" + "Monto 38,830.00" en "138,830.00".
+      const medItem = cnflPdfPickNearest(
+        rowItems,
+        xMed,
+        a.y,
+        t => /^\d{5,8}$/.test(String(t || '').replace(/\D/g, '')),
+        Math.max(70, Math.abs(xPend - xMed))
+      );
+      const pendItem = cnflPdfPickNearest(
+        rowItems,
+        xPend,
+        a.y,
+        t => /^\d{1,2}$/.test(String(t || '').trim()),
+        Math.max(55, Math.abs(xMonto - xPend))
+      );
+      const montoItem = cnflPdfPickNearest(
+        rowItems,
+        xMonto,
+        a.y,
+        cnflPdfIsMoney,
+        Math.max(100, Math.abs(xDir - xMonto))
+      );
+
+      const medidor = medItem ? medItem.text.replace(/\D/g, '') : '';
+      const pendientes = pendItem ? pendItem.text.trim() : '';
+      const monto = montoItem ? cnflPdfNormalizeMoneyText(montoItem.text) : '';
+
       const direccion = cnflJoinColumn(col(bMontoDir, bDirNom));
       const cliente = cnflJoinColumn(col(bDirNom, Infinity));
 
@@ -967,6 +1026,13 @@ async function handlePdfUpload(event) {
 
     const textParsed = parseCnflPdfText(fullText);
     const layoutParsed = parseCnflPdfLayout(layoutPages);
+
+    if (layoutParsed.length === 0) {
+      throw new Error(
+        'No pude leer la tabla por posición. No voy a cargar nombres, direcciones o montos usando un parser inseguro.'
+      );
+    }
+
     const parsed = mergeCnflPdfParsers(textParsed, layoutParsed);
 
     // Control adicional: si ambos parsers vieron Localizaciones y no coinciden,
@@ -1439,7 +1505,11 @@ function generateLiquidationText() {
     } else if (cnflPdfBatchStale) {
       lines.push('   Cliente: NO VALIDADO — RECARGAR PDF');
     }
-    if (o.monto) lines.push(`   Monto listado: ₡${parseFloat(o.monto).toLocaleString('es-CR')}`);
+    if (cnflPdfBatchStale) {
+      lines.push('   Monto listado: NO VALIDADO — RECARGAR PDF');
+    } else if (o.monto) {
+      lines.push(`   Monto listado: ₡${parseFloat(o.monto).toLocaleString('es-CR')}`);
+    }
 
     return lines.join('\n');
   }
