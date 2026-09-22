@@ -425,7 +425,7 @@ function renderOrders() {
           <div class="client-name">${cnflPdfBatchStale ? '⚠ NOMBRE NO VALIDADO — RECARGAR PDF' : (ord.cliente || ord.client || 'ABONADO CNFL')}</div>
           ${cnflPdfBatchStale
             ? '<div class="monto-val">⚠ MONTO NO VALIDADO</div>'
-            : (ord.monto ? `<div class="monto-val">₡${parseFloat(ord.monto).toLocaleString('es-CR')}</div>` : '')}
+            : (ord.monto ? `<div class="monto-val">₡${cnflFormatAmount(ord.monto)}</div>` : '')}
         </div>
         
         <!-- Dirección Oficial -->
@@ -719,6 +719,8 @@ function validateCnflOrders(orders) {
   let reviewNames = 0;
   let reviewAddresses = 0;
   let badAmounts = 0;
+  let badPendingCounts = 0;
+  let badOrderNumbers = 0;
 
   for (const o of orders) {
     const loc = String(o.localizacion || '').replace(/\D/g, '');
@@ -736,6 +738,13 @@ function validateCnflOrders(orders) {
     const amountText = String(o.monto || '').replace(/\s/g, '').trim();
     if (!amountText || !cnflPdfIsMoney(amountText)) badAmounts++;
 
+    if (o.pendientes !== undefined && o.pendientes !== '' && !/^\d{1,2}$/.test(String(o.pendientes))) {
+      badPendingCounts++;
+    }
+
+    const orderNumber = String(o.orden || '').replace(/\D/g, '');
+    if (!/^\d{8}$/.test(orderNumber)) badOrderNumbers++;
+
     const orderId = String(o.orden || o.id || '').trim();
     if (orderId) {
       if (seenOrders.has(orderId)) duplicateOrders++;
@@ -749,6 +758,8 @@ function validateCnflOrders(orders) {
   if (reviewNames) errors.push(`${reviewNames} nombres no pudieron asociarse con seguridad.`);
   if (reviewAddresses) errors.push(`${reviewAddresses} direcciones no pudieron asociarse con seguridad.`);
   if (badAmounts) errors.push(`${badAmounts} montos no tienen un formato monetario válido.`);
+  if (badPendingCounts) errors.push(`${badPendingCounts} filas tienen cantidad Pendientes inválida.`);
+  if (badOrderNumbers) errors.push(`${badOrderNumbers} filas no tienen Orden válida de 8 dígitos.`);
 
   return { ok: errors.length === 0, errors };
 }
@@ -809,6 +820,76 @@ function cnflPdfIsMoney(text) {
 
 function cnflPdfNormalizeMoneyText(text) {
   return String(text || '').replace(/\s/g, '').trim();
+}
+
+function cnflAmountNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+
+  let s = String(value).trim().replace(/[₡\s]/g, '');
+  if (!s) return null;
+
+  const comma = s.lastIndexOf(',');
+  const dot = s.lastIndexOf('.');
+
+  if (comma >= 0 && dot >= 0) {
+    if (comma > dot) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '');
+    }
+  } else if (comma >= 0) {
+    const decimals = s.length - comma - 1;
+    s = decimals === 2 ? s.replace(',', '.') : s.replace(/,/g, '');
+  } else if (dot >= 0) {
+    const parts = s.split('.');
+    if (parts.length > 2) s = parts.join('');
+    else if (parts.length === 2 && parts[1].length === 3 && parts[0].length <= 3) s = parts.join('');
+  }
+
+  s = s.replace(/[^0-9.-]/g, '');
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function cnflFormatAmount(value) {
+  const n = cnflAmountNumber(value);
+  if (!Number.isFinite(n)) return 'NO VALIDADO';
+  return n.toLocaleString('es-CR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function validateCnflLayoutRows(rows) {
+  const errors = [];
+  let badOrder = 0;
+  let badLoc = 0;
+  let badMeter = 0;
+  let badPending = 0;
+  let badAmount = 0;
+  let badAddress = 0;
+  let badName = 0;
+
+  for (const r of rows || []) {
+    if (!/^\d{8}$/.test(String(r.orden || ''))) badOrder++;
+    if (!/^\d{10}$/.test(String(r.localizacion || ''))) badLoc++;
+    if (!/^\d{5,8}$/.test(String(r.medidor || ''))) badMeter++;
+    if (!/^\d{1,2}$/.test(String(r.pendientes || ''))) badPending++;
+    if (!cnflPdfIsMoney(r.monto)) badAmount++;
+    if (!String(r.direccion || '').trim()) badAddress++;
+    if (!String(r.cliente || '').trim()) badName++;
+  }
+
+  if (badOrder) errors.push(`${badOrder} filas sin Orden válida de 8 dígitos.`);
+  if (badLoc) errors.push(`${badLoc} filas sin Localización válida de 10 dígitos.`);
+  if (badMeter) errors.push(`${badMeter} filas sin Medidor válido.`);
+  if (badPending) errors.push(`${badPending} filas sin cantidad Pendientes válida.`);
+  if (badAmount) errors.push(`${badAmount} filas sin Monto Total monetario válido.`);
+  if (badAddress) errors.push(`${badAddress} filas sin Dirección.`);
+  if (badName) errors.push(`${badName} filas sin Nombre.`);
+
+  return { ok: errors.length === 0, errors };
 }
 
 function parseCnflPdfLayout(layoutPages) {
@@ -957,6 +1038,7 @@ function mergeCnflPdfParsers(textOrders, layoutRows) {
       orden: layout.orden || order.orden,
       localizacion: loc,
       medidor: layout.medidor && layout.medidor !== 'N/D' ? layout.medidor : order.medidor,
+      pendientes: layout.pendientes || order.pendientes || '',
       monto: layout.monto || order.monto,
       direccion: layout.direccion || order.direccion,
       cliente: layout.cliente || 'REVISAR NOMBRE'
@@ -974,6 +1056,7 @@ function mergeCnflPdfParsers(textOrders, layoutRows) {
       plan: 'TR - RESIDENCIAL',
       localizacion: layout.localizacion,
       medidor: layout.medidor || 'N/D',
+      pendientes: layout.pendientes || '',
       monto: layout.monto || '0.00',
       direccion: layout.direccion || 'REVISAR DIRECCIÓN',
       cliente: layout.cliente || 'REVISAR NOMBRE',
@@ -1033,6 +1116,14 @@ async function handlePdfUpload(event) {
       );
     }
 
+    const layoutValidation = validateCnflLayoutRows(layoutParsed);
+    if (!layoutValidation.ok) {
+      throw new Error(
+        'La tabla PDF no pasó la validación estricta:\n' +
+        layoutValidation.errors.join('\n')
+      );
+    }
+
     const parsed = mergeCnflPdfParsers(textParsed, layoutParsed);
 
     // Control adicional: si ambos parsers vieron Localizaciones y no coinciden,
@@ -1046,6 +1137,33 @@ async function handlePdfUpload(event) {
         throw new Error(
           'PDF inconsistente entre lectura textual y lectura por posición. ' +
           `Solo texto: ${onlyText.length}; solo tabla: ${onlyLayout.length}. No cargué datos cruzados.`
+        );
+      }
+
+      const textByLoc = new Map(
+        textParsed.map(o => [String(o.localizacion || '').replace(/\D/g,''), o])
+      );
+      const mismatches = [];
+
+      for (const lr of layoutParsed) {
+        const tr = textByLoc.get(lr.localizacion);
+        if (!tr) continue;
+
+        const textOrder = String(tr.orden || '').replace(/\D/g,'');
+        const textMeter = String(tr.medidor || '').replace(/\D/g,'');
+
+        if (textOrder && lr.orden && textOrder !== lr.orden) {
+          mismatches.push(`${lr.localizacion}: Orden texto=${textOrder}, tabla=${lr.orden}`);
+        }
+        if (textMeter && lr.medidor && textMeter !== lr.medidor) {
+          mismatches.push(`${lr.localizacion}: Medidor texto=${textMeter}, tabla=${lr.medidor}`);
+        }
+      }
+
+      if (mismatches.length) {
+        throw new Error(
+          'PDF inconsistente en campos críticos. No cargué el lote.\n' +
+          mismatches.slice(0, 8).join('\n')
         );
       }
     }
@@ -1508,7 +1626,7 @@ function generateLiquidationText() {
     if (cnflPdfBatchStale) {
       lines.push('   Monto listado: NO VALIDADO — RECARGAR PDF');
     } else if (o.monto) {
-      lines.push(`   Monto listado: ₡${parseFloat(o.monto).toLocaleString('es-CR')}`);
+      lines.push(`   Monto listado: ₡${cnflFormatAmount(o.monto)}`);
     }
 
     return lines.join('\n');
