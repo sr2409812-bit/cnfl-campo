@@ -9,6 +9,8 @@ let activeFilter = 'pending'; // Por defecto se muestran SOLO las PENDIENTES
 let searchQuery = '';
 let geoCache = {};
 const expandedFields = {};
+const CNFL_PDF_PARSER_VERSION = 3;
+let cnflPdfBatchStale = false;
 
 // 1. Inicialización del Sistema
 document.addEventListener('DOMContentLoaded', async () => {
@@ -61,10 +63,35 @@ async function initOrders() {
       const isOldDemo = parsed.length > 0 && parsed.some(o => (o.cliente && o.cliente.includes('Murillo')) || (o.client && o.client.includes('Murillo')) || o.id === 'ord-101');
       if (!isOldDemo) {
         workOrders = parsed;
+
+        const looksLikePdfBatch = workOrders.some(o =>
+          String(o.id || '').startsWith('ord-') || /^\d{8}$/.test(String(o.orden || ''))
+        );
+        const parserVersions = workOrders
+          .map(o => Number(o._pdfParserVersion || 0))
+          .filter(v => Number.isFinite(v));
+        const minParserVersion = parserVersions.length ? Math.min(...parserVersions) : 0;
+
+        cnflPdfBatchStale = looksLikePdfBatch && minParserVersion < CNFL_PDF_PARSER_VERSION;
+        if (cnflPdfBatchStale) {
+          localStorage.setItem('cnfl_pdf_batch_stale', '1');
+        } else {
+          localStorage.removeItem('cnfl_pdf_batch_stale');
+        }
+
         enrichOrdersWithCache();
         updateTgCommandsCount();
         renderOrders();
         updateLiquidation();
+        if (cnflPdfBatchStale) {
+          setTimeout(() => {
+            alert(
+              'ATENCIÓN: este lote fue cargado con una versión anterior del lector PDF.\n\n' +
+              'Los nombres de clientes NO se consideran confiables.\n\n' +
+              'No borré tu trabajo, pero debes volver a cargar el PDF con la versión nueva para validar nombres y direcciones.'
+            );
+          }, 150);
+        }
         return;
       }
     } catch (e) {}
@@ -84,6 +111,8 @@ function clearWorkOrders() {
   localStorage.setItem('cnfl_work_orders', JSON.stringify([]));
   localStorage.removeItem('cnfl_gps_batch_stage');
   localStorage.removeItem('cnfl_last_route_meta');
+  localStorage.removeItem('cnfl_pdf_batch_stale');
+  cnflPdfBatchStale = false;
   renderOrders();
   updateLiquidation();
   updateTgCommandsCount();
@@ -393,7 +422,7 @@ function renderOrders() {
 
         <!-- Cliente y Monto -->
         <div class="client-header">
-          <div class="client-name">${ord.cliente || ord.client || 'ABONADO CNFL'}</div>
+          <div class="client-name">${cnflPdfBatchStale ? '⚠ NOMBRE NO VALIDADO — RECARGAR PDF' : (ord.cliente || ord.client || 'ABONADO CNFL')}</div>
           ${ord.monto ? `<div class="monto-val">₡${parseFloat(ord.monto).toLocaleString('es-CR')}</div>` : ''}
         </div>
         
@@ -957,6 +986,11 @@ async function handlePdfUpload(event) {
     if (parsed.length === 0) {
       alert('No se detectaron órdenes con formato estándar en este archivo PDF.\n\nPrueba copiando el texto del PDF y pegándolo en la caja de "Ingreso Manual por Texto".');
     } else {
+      for (const o of parsed) {
+        o._pdfParserVersion = CNFL_PDF_PARSER_VERSION;
+        o._source = 'pdf';
+      }
+
       const validation = validateCnflOrders(parsed);
       if (!validation.ok) {
         alert(
@@ -968,6 +1002,8 @@ async function handlePdfUpload(event) {
       }
 
       workOrders = parsed;
+      cnflPdfBatchStale = false;
+      localStorage.removeItem('cnfl_pdf_batch_stale');
       localStorage.removeItem('cnfl_gps_batch_stage');
       localStorage.removeItem('cnfl_last_route_meta');
       enrichOrdersWithCache();
@@ -1398,7 +1434,11 @@ function generateLiquidationText() {
     }
 
     // Datos administrativos mínimos para identificar el caso.
-    if (o.cliente || o.client) lines.push(`   Cliente: ${o.cliente || o.client}`);
+    if (!cnflPdfBatchStale && (o.cliente || o.client)) {
+      lines.push(`   Cliente: ${o.cliente || o.client}`);
+    } else if (cnflPdfBatchStale) {
+      lines.push('   Cliente: NO VALIDADO — RECARGAR PDF');
+    }
     if (o.monto) lines.push(`   Monto listado: ₡${parseFloat(o.monto).toLocaleString('es-CR')}`);
 
     return lines.join('\n');
