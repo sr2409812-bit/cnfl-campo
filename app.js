@@ -721,6 +721,7 @@ function validateCnflOrders(orders) {
   let badAmounts = 0;
   let badPendingCounts = 0;
   let badOrderNumbers = 0;
+  let badNis = 0;
 
   for (const o of orders) {
     const loc = String(o.localizacion || '').replace(/\D/g, '');
@@ -745,6 +746,9 @@ function validateCnflOrders(orders) {
     const orderNumber = String(o.orden || '').replace(/\D/g, '');
     if (!/^\d{8}$/.test(orderNumber)) badOrderNumbers++;
 
+    const nisDigits = String(o.nis || '').replace(/\D/g, '');
+    if (!/^\d{5,8}$/.test(nisDigits)) badNis++;
+
     const orderId = String(o.orden || o.id || '').trim();
     if (orderId) {
       if (seenOrders.has(orderId)) duplicateOrders++;
@@ -760,6 +764,7 @@ function validateCnflOrders(orders) {
   if (badAmounts) errors.push(`${badAmounts} montos no tienen un formato monetario válido.`);
   if (badPendingCounts) errors.push(`${badPendingCounts} filas tienen cantidad Pendientes inválida.`);
   if (badOrderNumbers) errors.push(`${badOrderNumbers} filas no tienen Orden válida de 8 dígitos.`);
+  if (badNis) errors.push(`${badNis} filas no tienen NIS válido.`);
 
   return { ok: errors.length === 0, errors };
 }
@@ -900,6 +905,8 @@ function parseCnflPdfLayout(layoutPages) {
       .map(cnflPdfItemXY)
       .filter(p => p.text);
 
+    const hNis = cnflFindHeaderItem(items, t => /^(?:NIS|NISE|NIS\s*\/\s*E)$/i.test(t.replace(/\s+/g, '')));
+    const hPlan = cnflFindHeaderItem(items, t => /^Plan$/i.test(t));
     const hLoc = cnflFindHeaderItem(items, t => /^Localizaci[oó]n$/i.test(t));
     const hMed = cnflFindHeaderItem(items, t => /^Medidor$/i.test(t));
     const hPend = cnflFindHeaderItem(items, t => /^Pendientes?$/i.test(t));
@@ -909,6 +916,8 @@ function parseCnflPdfLayout(layoutPages) {
 
     if (!hLoc || !hMed || !hMonto || !hDir || !hNom) continue;
 
+    const xNis = hNis ? hNis.x : null;
+    const xPlan = hPlan ? hPlan.x : null;
     const xLoc = hLoc.x;
     const xMed = hMed.x;
     const xPend = hPend ? hPend.x : (xMed + (hMonto.x - xMed) * 0.45);
@@ -986,6 +995,25 @@ function parseCnflPdfLayout(layoutPages) {
       const pendientes = pendItem ? pendItem.text.trim() : '';
       const monto = montoItem ? cnflPdfNormalizeMoneyText(montoItem.text) : '';
 
+      const nisItem = hNis ? cnflPdfPickNearest(
+        rowItems,
+        xNis,
+        a.y,
+        t => /^\d{5,8}$/.test(String(t || '').replace(/\D/g, '')),
+        Math.max(65, hPlan ? Math.abs(xPlan - xNis) : 80)
+      ) : null;
+
+      const planItem = hPlan ? cnflPdfPickNearest(
+        rowItems,
+        xPlan,
+        a.y,
+        t => /^(?:TR|TG)\s*-\s*[A-ZÁÉÍÓÚÑ ]+$/i.test(String(t || '').trim()),
+        Math.max(120, Math.abs(xLoc - xPlan))
+      ) : null;
+
+      const nis = nisItem ? nisItem.text.replace(/\D/g, '') : '';
+      const plan = planItem ? planItem.text.replace(/\s+/g, ' ').trim() : '';
+
       const direccion = cnflJoinColumn(col(bMontoDir, bDirNom));
       const cliente = cnflJoinColumn(col(bDirNom, Infinity));
 
@@ -999,6 +1027,8 @@ function parseCnflPdfLayout(layoutPages) {
 
       rows.push({
         orden,
+        nis,
+        plan,
         localizacion: loc,
         medidor: medidor || 'N/D',
         pendientes: pendientes || '',
@@ -1036,6 +1066,8 @@ function mergeCnflPdfParsers(textOrders, layoutRows) {
     merged.push({
       ...order,
       orden: layout.orden || order.orden,
+      nis: layout.nis || order.nis,
+      plan: layout.plan || order.plan,
       localizacion: loc,
       medidor: layout.medidor && layout.medidor !== 'N/D' ? layout.medidor : order.medidor,
       pendientes: layout.pendientes || order.pendientes || '',
@@ -1070,6 +1102,32 @@ function mergeCnflPdfParsers(textOrders, layoutRows) {
   }
 
   return merged;
+}
+
+function mergeCnflFieldProgress(previousOrders, freshOrders) {
+  const byLoc = new Map(
+    (previousOrders || []).map(o => [String(o.localizacion || '').replace(/\D/g, ''), o])
+  );
+
+  return (freshOrders || []).map(fresh => {
+    const loc = String(fresh.localizacion || '').replace(/\D/g, '');
+    const old = byLoc.get(loc);
+    if (!old) return fresh;
+
+    return {
+      ...fresh,
+      status: old.status || fresh.status || 'pending',
+      lectura: old.lectura || '',
+      sello_instalado: old.sello_instalado || '',
+      sello_retirado: old.sello_retirado || '',
+      observaciones: old.observaciones || '',
+      lat: Number.isFinite(Number(old.lat)) ? Number(old.lat) : fresh.lat,
+      lon: Number.isFinite(Number(old.lon)) ? Number(old.lon) : fresh.lon,
+      circuito: old.circuito || fresh.circuito,
+      wazeUrl: old.wazeUrl || fresh.wazeUrl,
+      mapsUrl: old.mapsUrl || fresh.mapsUrl
+    };
+  });
 }
 
 async function handlePdfUpload(event) {
@@ -1151,12 +1209,16 @@ async function handlePdfUpload(event) {
 
         const textOrder = String(tr.orden || '').replace(/\D/g,'');
         const textMeter = String(tr.medidor || '').replace(/\D/g,'');
+        const textNis = String(tr.nis || '').replace(/\D/g,'');
 
         if (textOrder && lr.orden && textOrder !== lr.orden) {
           mismatches.push(`${lr.localizacion}: Orden texto=${textOrder}, tabla=${lr.orden}`);
         }
         if (textMeter && lr.medidor && textMeter !== lr.medidor) {
           mismatches.push(`${lr.localizacion}: Medidor texto=${textMeter}, tabla=${lr.medidor}`);
+        }
+        if (textNis && lr.nis && textNis !== lr.nis) {
+          mismatches.push(`${lr.localizacion}: NIS texto=${textNis}, tabla=${lr.nis}`);
         }
       }
 
@@ -1185,7 +1247,8 @@ async function handlePdfUpload(event) {
         return;
       }
 
-      workOrders = parsed;
+      const previousOrders = [...workOrders];
+      workOrders = mergeCnflFieldProgress(previousOrders, parsed);
       cnflPdfBatchStale = false;
       localStorage.removeItem('cnfl_pdf_batch_stale');
       localStorage.removeItem('cnfl_gps_batch_stage');
