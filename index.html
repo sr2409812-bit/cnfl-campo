@@ -19,8 +19,9 @@
       <div class="brand-icon"><i class="fa-solid fa-bolt"></i></div>
       <div class="brand-text">
         <h1>CNFL CAMPO</h1>
-        <p id="headerZoneSubtitle">TÉC. RAMÍREZ S. • ZONA 50 CENTRAL</p>
+        <p id="headerZoneSubtitle">TERMINAL INTEGRAL DE CUADRILLAS • ZONA 50</p>
       </div>
+
     </div>
     <div class="header-actions">
       <button class="btn-clean-header" onclick="clearWorkOrders()" title="Vaciar bandeja de órdenes"><i class="fa-solid fa-trash-can"></i></button>
@@ -80,17 +81,13 @@
         <div id="pdfLoadingStatus" style="display:none;margin-bottom:12px;padding:9px;background:rgba(0,163,224,0.1);border:1px solid var(--cnfl-cyan);border-radius:var(--radius-xs);font-size:12px;color:#7DD3FC;text-align:center"><i class="fa-solid fa-spinner fa-spin"></i> Extrayendo órdenes y asociando coordenadas...</div>
       </div>
 
-      <div class="card-panel" style="margin-top:12px;border-left:3px solid #0088cc">
-        <h3 class="panel-title"><i class="fa-brands fa-telegram" style="color:#0088cc"></i> Georreferenciación con @ubiCNFL</h3>
-        <p class="panel-desc">Extrae las localizaciones de la ruta para consultar al bot de Telegram y cargar las coordenadas Waze y circuitos:</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-          <button class="btn-primary" style="background:#0088cc;border-color:#0077b5" onclick="copyTelegramWazeCommands()"><i class="fa-solid fa-copy"></i> Copiar gmaps (<span id="tgCmdCount">0</span>)</button>
-          <a href="https://t.me/ubiCNFL" target="_blank" class="btn-ghost" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;border-color:#0088cc;color:#7DD3FC"><i class="fa-brands fa-telegram"></i> Abrir @ubiCNFL</a>
-        </div>
-        <p class="panel-desc" style="margin-top:8px">Pega aquí los mensajes que te respondió @ubiCNFL:</p>
-        <textarea class="input-box" id="telegramBotReplies" rows="3" placeholder="Respuesta del bot o: 1605000184 9.9386196,-84.0826433"></textarea>
-        <button class="btn-primary" style="margin-top:8px" onclick="importTelegramReplies()"><i class="fa-solid fa-satellite-dish"></i> Vincular Coordenadas y Optimizar</button>
+      <div class="card-panel" style="margin-top:12px;border-left:3px solid var(--cnfl-cyan)">
+        <h3 class="panel-title"><i class="fa-solid fa-map-location-dot" style="color:var(--cnfl-cyan)"></i> Integración de Coordenadas GIS Institucional</h3>
+        <p class="panel-desc">Vincula las coordenadas de postes y medidores desde el catastro SIG de CNFL (formato WGS84 o CRTM05):</p>
+        <textarea class="input-box" id="telegramBotReplies" rows="3" placeholder="Pega aquí pares de Localización/Medidor y Coordenadas (ej: 1605000184 9.9386196,-84.0826433)"></textarea>
+        <button class="btn-primary" style="margin-top:8px" onclick="importTelegramReplies()"><i class="fa-solid fa-satellite-dish"></i> Vincular Coordenadas GIS y Optimizar</button>
       </div>
+
 
       <div class="card-panel" style="margin-top:12px">
         <h3 class="panel-title"><i class="fa-solid fa-keyboard" style="color:var(--text-muted)"></i> Ingreso Manual por Texto</h3>

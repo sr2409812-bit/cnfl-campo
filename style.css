@@ -333,6 +333,27 @@ body {
   border: 1px solid var(--color-success);
   color: #86EFAC;
 }
+.pill-insp {
+  background: rgba(0, 163, 224, 0.15);
+  border: 1px solid var(--cnfl-cyan);
+  color: #7DD3FC;
+}
+.pill-fraude {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--color-warning);
+  color: #FDE047;
+}
+.pill-averia {
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid #EF4444;
+  color: #FCA5A5;
+}
+.pill-mantenimiento {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid #A855F7;
+  color: #D8B4FE;
+}
+
 
 .client-header {
   display: flex;

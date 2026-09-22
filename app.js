@@ -337,9 +337,30 @@ function renderOrders() {
     const isDone = ord.status === 'cortado' || ord.status === 'avisado' || ord.status === 'reconectado' || ord.status === 'pago' || ord.status === 'ya_cortado';
     const isFailed = ord.status === 'no_acceso' || ord.status === 'directo';
     
-    const isRecon = (ord.tipo || '').includes('recon');
-    const typeClass = isRecon ? 'pill-recon' : 'pill-corta';
-    const typeName = isRecon ? 'RECONEXIÓN' : (ord.plan && ord.plan.includes('COMERCIAL') ? 'CORTE COMERCIAL' : 'CORTE RESIDENCIAL');
+    const tLower = (ord.tipo || ord.plan || '').toLowerCase();
+    let typeClass = 'pill-corta';
+    let typeName = 'CORTE RESIDENCIAL';
+
+    if (tLower.includes('recon')) {
+      typeClass = 'pill-recon';
+      typeName = 'RECONEXIÓN';
+    } else if (tLower.includes('insp') || tLower.includes('revision') || tLower.includes('revisión')) {
+      typeClass = 'pill-insp';
+      typeName = 'INSPECCIÓN TÉCNICA';
+    } else if (tLower.includes('fraude') || tLower.includes('anomalia') || tLower.includes('sello')) {
+      typeClass = 'pill-fraude';
+      typeName = 'VERIF. SELLOS / FRAUDE';
+    } else if (tLower.includes('averia') || tLower.includes('avería') || tLower.includes('falla') || tLower.includes('dano')) {
+      typeClass = 'pill-averia';
+      typeName = 'ATENCIÓN AVERÍA';
+    } else if (tLower.includes('mantenimiento') || tLower.includes('cambio') || tLower.includes('poste')) {
+      typeClass = 'pill-mantenimiento';
+      typeName = 'MANTENIMIENTO RED';
+    } else if (ord.plan && ord.plan.includes('COMERCIAL')) {
+      typeClass = 'pill-corta';
+      typeName = 'CORTE COMERCIAL';
+    }
+
 
     const hasGps = ord.lat && ord.lon;
     const wazeUrl = hasGps ? `https://www.waze.com/ul?ll=${ord.lat},${ord.lon}&navigate=yes` : `https://waze.com/ul?q=${encodeURIComponent(ord.direccion + ', San José Costa Rica')}`;
@@ -489,11 +510,13 @@ function renderOrders() {
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Medidor directo')">Medidor directo</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Abonado no permite corte')">No permite corte</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Display ilegible/apagado')">Display dañado</button>
-              <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Inmueble deshabitado')">Deshabitado</button>
               <button type="button" class="tech-tag" onclick="appendQuickObs('${cardId}', 'Sello violentado')">Sello violentado</button>
+              <button type="button" class="tech-tag" style="border-color:var(--cnfl-cyan);color:#7DD3FC" onclick="appendQuickObs('${cardId}', 'Retroalimentación GIS: Poste reubicado')">GIS: Poste reubicado</button>
+              <button type="button" class="tech-tag" style="border-color:var(--cnfl-cyan);color:#7DD3FC" onclick="appendQuickObs('${cardId}', 'Retroalimentación GIS: Coordenada corregida en sitio')">GIS: Coord. en sitio</button>
             </div>
           </div>
         </div>
+
 
         ${nextDistText ? `<div class="next-stop-indicator">${nextDistText}</div>` : ''}
 
