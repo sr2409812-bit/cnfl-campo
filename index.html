@@ -81,6 +81,16 @@
         <div id="pdfLoadingStatus" style="display:none;margin-bottom:12px;padding:9px;background:rgba(0,163,224,0.1);border:1px solid var(--cnfl-cyan);border-radius:var(--radius-xs);font-size:12px;color:#7DD3FC;text-align:center"><i class="fa-solid fa-spinner fa-spin"></i> Extrayendo órdenes y asociando coordenadas...</div>
       </div>
 
+      <div class="card-panel" style="margin-top:12px;border-left:3px solid #2AABEE">
+        <h3 class="panel-title"><i class="fa-brands fa-telegram" style="color:#2AABEE"></i> Localizaciones para @ubiCNFL</h3>
+        <p class="panel-desc">Después de cargar el PDF, estas son las Localizaciones listas para enviar al bot:</p>
+        <textarea class="input-box" id="telegramCommandsPreview" rows="5" readonly placeholder="Carga primero el PDF. Aquí aparecerán las Localizaciones como gmaps##########."></textarea>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <button class="btn-primary" onclick="copyTelegramWazeCommands()"><i class="fa-solid fa-copy"></i> Copiar gmaps (<span id="tgCmdCount">0</span>)</button>
+          <a href="https://t.me/ubiCNFL" target="_blank" class="btn-primary" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;background:#2AABEE"><i class="fa-brands fa-telegram"></i> Abrir Telegram</a>
+        </div>
+      </div>
+
       <div class="card-panel" style="margin-top:12px;border-left:3px solid var(--cnfl-cyan)">
         <h3 class="panel-title"><i class="fa-solid fa-map-location-dot" style="color:var(--cnfl-cyan)"></i> Integración de Coordenadas GIS Institucional</h3>
         <p class="panel-desc">Vincula las coordenadas de postes y medidores desde el catastro SIG de CNFL (formato WGS84 o CRTM05):</p>
@@ -118,7 +128,7 @@
 
   <div class="toast-msg" id="mobileToast"></div>
 
-  <script src="app.js?v=20260924-2"></script>
+  <script src="app.js?v=20260924-3"></script>
   <script src="telegram-fix.js?v=20260921-17"></script>
   <script src="route-optimizer.js?v=20260921-17"></script>
 </body>
