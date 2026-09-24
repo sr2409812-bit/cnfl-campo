@@ -1496,10 +1496,18 @@ function getTelegramWazeCommands() {
 }
 
 function updateTgCommandsCount() {
+  const cmds = getTelegramWazeCommands();
+  const count = cmds ? cmds.split('\n').filter(Boolean).length : 0;
+
   const badge = document.getElementById('tgCmdCount');
-  if (badge) {
-    const locs = workOrders.filter(o => o.localizacion && o.localizacion.trim().length >= 8);
-    badge.innerText = locs.length;
+  if (badge) badge.innerText = count;
+
+  const preview = document.getElementById('telegramCommandsPreview');
+  if (preview) {
+    preview.value = cmds;
+    preview.placeholder = count
+      ? ''
+      : 'Carga primero el PDF. Aquí aparecerán las Localizaciones como gmaps##########.';
   }
 }
 
