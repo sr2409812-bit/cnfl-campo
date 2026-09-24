@@ -9,7 +9,7 @@ let activeFilter = 'pending'; // Por defecto se muestran SOLO las PENDIENTES
 let searchQuery = '';
 let geoCache = {};
 const expandedFields = {};
-const CNFL_PDF_PARSER_VERSION = 5;
+const CNFL_PDF_PARSER_VERSION = 6;
 let cnflPdfBatchStale = false;
 
 // 1. Inicialización del Sistema
@@ -747,7 +747,7 @@ function validateCnflOrders(orders) {
     if (!/^\d{8}$/.test(orderNumber)) badOrderNumbers++;
 
     const nisDigits = String(o.nis || '').replace(/\D/g, '');
-    if (!/^\d{5,8}$/.test(nisDigits)) badNis++;
+    if (!/^\d+$/.test(nisDigits)) badNis++;
 
     const orderId = String(o.orden || o.id || '').trim();
     if (orderId) {
@@ -764,7 +764,7 @@ function validateCnflOrders(orders) {
   if (badAmounts) errors.push(`${badAmounts} montos no tienen un formato monetario válido.`);
   if (badPendingCounts) errors.push(`${badPendingCounts} filas tienen cantidad Pendientes inválida.`);
   if (badOrderNumbers) errors.push(`${badOrderNumbers} filas no tienen Orden válida de 8 dígitos.`);
-  if (badNis) errors.push(`${badNis} filas no tienen NIS válido.`);
+  if (badNis) errors.push(`${badNis} filas no tienen NISE numérico válido.`);
 
   return { ok: errors.length === 0, errors };
 }
@@ -869,6 +869,7 @@ function cnflFormatAmount(value) {
 function validateCnflLayoutRows(rows) {
   const errors = [];
   let badOrder = 0;
+  let badNis = 0;
   let badLoc = 0;
   let badMeter = 0;
   let badPending = 0;
@@ -878,6 +879,7 @@ function validateCnflLayoutRows(rows) {
 
   for (const r of rows || []) {
     if (!/^\d{8}$/.test(String(r.orden || ''))) badOrder++;
+    if (r.nis !== undefined && r.nis !== null && String(r.nis).trim() !== '' && !/^\d+$/.test(String(r.nis))) badNis++;
     if (!/^\d{10}$/.test(String(r.localizacion || ''))) badLoc++;
     if (!/^\d{5,8}$/.test(String(r.medidor || ''))) badMeter++;
     if (!/^\d{1,2}$/.test(String(r.pendientes || ''))) badPending++;
@@ -887,6 +889,7 @@ function validateCnflLayoutRows(rows) {
   }
 
   if (badOrder) errors.push(`${badOrder} filas sin Orden válida de 8 dígitos.`);
+  if (badNis) errors.push(`${badNis} filas con NISE no numérico.`);
   if (badLoc) errors.push(`${badLoc} filas sin Localización válida de 10 dígitos.`);
   if (badMeter) errors.push(`${badMeter} filas sin Medidor válido.`);
   if (badPending) errors.push(`${badPending} filas sin cantidad Pendientes válida.`);
@@ -1001,7 +1004,7 @@ function parseCnflPdfLayout(layoutPages) {
         rowItems,
         xNis,
         a.y,
-        t => /^\d{5,8}$/.test(String(t || '').replace(/\D/g, '')),
+        t => /^\d+$/.test(String(t || '').replace(/\D/g, '')),
         Math.max(65, hPlan ? Math.abs(xPlan - xNis) : 80)
       ) : null;
 
