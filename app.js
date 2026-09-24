@@ -9,7 +9,7 @@ let activeFilter = 'pending'; // Por defecto se muestran SOLO las PENDIENTES
 let searchQuery = '';
 let geoCache = {};
 const expandedFields = {};
-const CNFL_PDF_PARSER_VERSION = 4;
+const CNFL_PDF_PARSER_VERSION = 5;
 let cnflPdfBatchStale = false;
 
 // 1. Inicialización del Sistema
@@ -907,6 +907,7 @@ function parseCnflPdfLayout(layoutPages) {
 
     const hNis = cnflFindHeaderItem(items, t => /^(?:NIS|NISE|NIS\s*\/\s*E)$/i.test(t.replace(/\s+/g, '')));
     const hPlan = cnflFindHeaderItem(items, t => /^Plan$/i.test(t));
+    const hOrder = cnflFindHeaderItem(items, t => /^Orden$/i.test(t));
     const hLoc = cnflFindHeaderItem(items, t => /^Localizaci[oó]n$/i.test(t));
     const hMed = cnflFindHeaderItem(items, t => /^Medidor$/i.test(t));
     const hPend = cnflFindHeaderItem(items, t => /^Pendientes?$/i.test(t));
@@ -914,10 +915,11 @@ function parseCnflPdfLayout(layoutPages) {
     const hDir = cnflFindHeaderItem(items, t => /^Direcci[oó]n$/i.test(t));
     const hNom = cnflFindHeaderItem(items, t => /^Nombre$/i.test(t));
 
-    if (!hLoc || !hMed || !hMonto || !hDir || !hNom) continue;
+    if (!hOrder || !hLoc || !hMed || !hMonto || !hDir || !hNom) continue;
 
     const xNis = hNis ? hNis.x : null;
     const xPlan = hPlan ? hPlan.x : null;
+    const xOrder = hOrder.x;
     const xLoc = hLoc.x;
     const xMed = hMed.x;
     const xPend = hPend ? hPend.x : (xMed + (hMonto.x - xMed) * 0.45);
@@ -1017,13 +1019,21 @@ function parseCnflPdfLayout(layoutPages) {
       const direccion = cnflJoinColumn(col(bMontoDir, bDirNom));
       const cliente = cnflJoinColumn(col(bDirNom, Infinity));
 
-      // Orden: número de 8 dígitos inmediatamente a la izquierda de Localización.
-      const leftItems = rowItems
-        .filter(p => p.x < bLocMed && p.x < xLoc)
-        .map(p => ({...p, digits:p.text.replace(/\D/g,'')}))
-        .filter(p => /^\d{8}$/.test(p.digits))
-        .sort((p,q) => Math.abs(p.y-a.y)-Math.abs(q.y-a.y));
-      const orden = leftItems.length ? leftItems[0].digits : '';
+      // Orden: SOLO desde la columna "Orden".
+      // NISE también puede tener 8 dígitos; por eso nunca buscamos "cualquier"
+      // número a la izquierda de Localización.
+      const orderNeighborGap = Math.min(
+        Math.abs(xLoc - xOrder),
+        xPlan !== null ? Math.abs(xOrder - xPlan) : Math.abs(xLoc - xOrder)
+      );
+      const orderItem = cnflPdfPickNearest(
+        rowItems,
+        xOrder,
+        a.y,
+        t => /^\d{8}$/.test(String(t || '').replace(/\D/g, '')),
+        Math.max(28, orderNeighborGap * 0.72)
+      );
+      const orden = orderItem ? orderItem.text.replace(/\D/g, '') : '';
 
       rows.push({
         orden,
