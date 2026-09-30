@@ -12,6 +12,172 @@ const expandedFields = {};
 const CNFL_PDF_PARSER_VERSION = 6;
 let cnflPdfBatchStale = false;
 
+const CNFL_HISTORY_KEY = 'cnfl_order_history_v1';
+const CNFL_HISTORY_DAYS = 14;
+const CNFL_HISTORY_MAX = 1200;
+
+function cnflLocalDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function cnflDateFromPdfText(rawText) {
+  const m = String(rawText || '').match(/Fecha\s+Desde:\s*(\d{2})-(\d{2})-(\d{4})/i);
+  if (!m) return cnflLocalDateKey();
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+function cnflHistoryLoad() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CNFL_HISTORY_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function cnflHistoryKey(o) {
+  const date = String(o._journeyDate || o.historyDate || cnflLocalDateKey());
+  const order = String(o.orden || '').replace(/\D/g, '');
+  const loc = String(o.localizacion || '').replace(/\D/g, '');
+  const meter = String(o.medidor || o.meter || '').replace(/\D/g, '');
+  return `${date}|${order}|${loc}|${meter}`;
+}
+
+function cnflCompactHistoryOrder(o, fallbackDate) {
+  return {
+    historyDate: String(o._journeyDate || o.historyDate || fallbackDate || cnflLocalDateKey()),
+    orden: String(o.orden || ''),
+    localizacion: String(o.localizacion || ''),
+    nis: String(o.nis || ''),
+    medidor: String(o.medidor || o.meter || ''),
+    cliente: String(o.cliente || o.client || ''),
+    direccion: String(o.direccion || o.address || ''),
+    monto: String(o.monto || ''),
+    pendientes: String(o.pendientes || ''),
+    plan: String(o.plan || ''),
+    status: String(o.status || 'pending'),
+    lectura: String(o.lectura || ''),
+    sello_instalado: String(o.sello_instalado || ''),
+    sello_retirado: String(o.sello_retirado || ''),
+    observaciones: String(o.observaciones || ''),
+    circuito: String(o.circuito || ''),
+    lat: Number.isFinite(Number(o.lat)) ? Number(o.lat) : null,
+    lon: Number.isFinite(Number(o.lon)) ? Number(o.lon) : null,
+    savedAt: Date.now()
+  };
+}
+
+function cnflHistoryPrune(items) {
+  const cutoff = new Date();
+  cutoff.setHours(0,0,0,0);
+  cutoff.setDate(cutoff.getDate() - CNFL_HISTORY_DAYS);
+
+  return (items || [])
+    .filter(o => {
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(String(o.historyDate || ''))
+        ? new Date(`${o.historyDate}T12:00:00`)
+        : new Date(Number(o.savedAt) || Date.now());
+      return d >= cutoff;
+    })
+    .sort((a,b) => Number(b.savedAt || 0) - Number(a.savedAt || 0))
+    .slice(0, CNFL_HISTORY_MAX);
+}
+
+function archiveOrdersToHistory(orders, fallbackDate) {
+  if (!Array.isArray(orders) || orders.length === 0) return 0;
+
+  const map = new Map(cnflHistoryLoad().map(o => [cnflHistoryKey(o), o]));
+  for (const raw of orders) {
+    const item = cnflCompactHistoryOrder(raw, fallbackDate);
+    map.set(cnflHistoryKey(item), item);
+  }
+
+  const finalItems = cnflHistoryPrune([...map.values()]);
+  localStorage.setItem(CNFL_HISTORY_KEY, JSON.stringify(finalItems));
+  return finalItems.length;
+}
+
+function cnflEscapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+function cnflHistoryDisplayDate(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : (iso || 'Fecha no disponible');
+}
+
+function renderOrderHistory(query = '') {
+  const container = document.getElementById('historyResults');
+  const countEl = document.getElementById('historyCount');
+  if (!container) return;
+
+  const q = String(query || '').trim().toLowerCase();
+  let items = cnflHistoryLoad();
+
+  // Incluir la bandeja activa aunque todavía no se haya archivado.
+  const active = (workOrders || []).map(o => cnflCompactHistoryOrder(o, o._journeyDate || cnflLocalDateKey()));
+  const map = new Map(items.map(o => [cnflHistoryKey(o), o]));
+  for (const a of active) map.set(cnflHistoryKey(a), a);
+  items = [...map.values()];
+
+  if (q) {
+    items = items.filter(o => [
+      o.orden, o.localizacion, o.nis, o.medidor, o.cliente,
+      o.direccion, o.observaciones, o.circuito
+    ].some(v => String(v || '').toLowerCase().includes(q)));
+  }
+
+  items.sort((a,b) => {
+    const d = String(b.historyDate || '').localeCompare(String(a.historyDate || ''));
+    return d || String(b.orden || '').localeCompare(String(a.orden || ''));
+  });
+
+  if (countEl) countEl.innerText = `${items.length} registro${items.length === 1 ? '' : 's'} · últimos ${CNFL_HISTORY_DAYS} días`;
+
+  if (!items.length) {
+    container.innerHTML = '<div class="card-panel" style="text-align:center;color:var(--text-muted)">No encontré órdenes en la memoria reciente.</div>';
+    return;
+  }
+
+  container.innerHTML = items.slice(0, 120).map(o => {
+    const amount = o.monto ? `₡${cnflEscapeHtml(typeof cnflFormatAmount === 'function' ? cnflFormatAmount(o.monto) : o.monto)}` : '';
+    const status = typeof getStatusLabel === 'function' ? getStatusLabel(o.status) : String(o.status || '');
+    const hasGps = Number.isFinite(Number(o.lat)) && Number.isFinite(Number(o.lon));
+    return `
+      <div class="card-panel" style="margin-bottom:10px;border-left:3px solid var(--cnfl-cyan)">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div>
+            <div style="font-family:var(--font-mono);color:var(--cnfl-cyan);font-size:11px;font-weight:700">${cnflEscapeHtml(cnflHistoryDisplayDate(o.historyDate))}</div>
+            <div style="font-size:15px;font-weight:800;color:#fff;margin-top:2px">${cnflEscapeHtml(o.cliente || 'SIN NOMBRE')}</div>
+          </div>
+          <div style="text-align:right;font-size:11px;color:#86EFAC;font-weight:700">${cnflEscapeHtml(status)}</div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-body)">${cnflEscapeHtml(o.direccion || 'Sin dirección')}</div>
+        <div class="tech-meta-grid" style="margin-top:8px">
+          <div class="meta-chip"><span>ORDEN</span><strong>${cnflEscapeHtml(o.orden || 'N/D')}</strong></div>
+          <div class="meta-chip"><span>LOCALIZACIÓN</span><strong>${cnflEscapeHtml(o.localizacion || 'N/D')}</strong></div>
+          <div class="meta-chip"><span>MEDIDOR</span><strong>${cnflEscapeHtml(o.medidor || 'N/D')}</strong></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:11px;color:var(--text-muted)">
+          <span>NIS: ${cnflEscapeHtml(o.nis || 'N/D')}</span>
+          <span>${amount}</span>
+        </div>
+        ${o.observaciones ? `<div style="margin-top:7px;padding:7px;background:var(--bg-input);border-radius:4px;font-size:11px">Obs: ${cnflEscapeHtml(o.observaciones)}</div>` : ''}
+        ${hasGps ? `<div style="margin-top:7px;font-size:10px;color:#86EFAC"><i class="fa-solid fa-location-dot"></i> GPS guardado</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function handleHistorySearch(value) {
+  renderOrderHistory(value);
+}
+
+
 // 1. Inicialización del Sistema
 document.addEventListener('DOMContentLoaded', async () => {
   registerServiceWorker();
@@ -80,6 +246,7 @@ async function initOrders() {
         }
 
         enrichOrdersWithCache();
+        archiveOrdersToHistory(workOrders);
         updateTgCommandsCount();
         renderOrders();
         updateLiquidation();
@@ -107,6 +274,7 @@ function clearWorkOrders() {
   const conf = confirm('¿Deseas vaciar la bandeja de órdenes actual para cargar un archivo nuevo o iniciar de cero?');
   if (!conf) return;
 
+  archiveOrdersToHistory(workOrders);
   workOrders = [];
   localStorage.setItem('cnfl_work_orders', JSON.stringify([]));
   localStorage.removeItem('cnfl_gps_batch_stage');
@@ -129,6 +297,7 @@ async function forceReloadTodayOrders() {
       workOrders = await res.json();
       enrichOrdersWithCache();
       localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+      archiveOrdersToHistory(workOrders, journeyDate);
       setRouteFilter('pending', document.getElementById('btnFilterPending'));
       renderOrders();
       updateLiquidation();
@@ -577,6 +746,7 @@ function updateFieldRecord(cardId, field, value) {
   if (ord) {
     ord[field] = value;
     localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+    archiveOrdersToHistory(workOrders);
     updateLiquidation();
   }
 }
@@ -591,6 +761,7 @@ function appendQuickObs(cardId, tag) {
       ord.observaciones = `${current}, ${tag}`;
     }
     localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+    archiveOrdersToHistory(workOrders);
     renderOrders();
     updateLiquidation();
     showToast(`Observación agregada: ${tag}`);
@@ -635,6 +806,7 @@ function setOrderStatus(id, newStatus) {
   if (ord) {
     ord.status = newStatus;
     localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+    archiveOrdersToHistory(workOrders);
     
     // Al finalizar una orden, si estamos en la vista de pendientes, se quita automáticamente
     renderOrders();
@@ -701,6 +873,7 @@ function switchTab(tabId, btn) {
 
   if (tabId === 'resumen') updateLiquidation();
   if (tabId === 'cargar') updateTgCommandsCount();
+  if (tabId === 'historial') renderOrderHistory(document.getElementById('historySearchInput')?.value || '');
 }
 
 // =========================================================
@@ -1118,13 +1291,15 @@ function mergeCnflPdfParsers(textOrders, layoutRows) {
 }
 
 function mergeCnflFieldProgress(previousOrders, freshOrders) {
-  const byLoc = new Map(
-    (previousOrders || []).map(o => [String(o.localizacion || '').replace(/\D/g, ''), o])
+  const byOrder = new Map(
+    (previousOrders || [])
+      .map(o => [String(o.orden || '').replace(/\D/g, ''), o])
+      .filter(([order]) => order)
   );
 
   return (freshOrders || []).map(fresh => {
-    const loc = String(fresh.localizacion || '').replace(/\D/g, '');
-    const old = byLoc.get(loc);
+    const order = String(fresh.orden || '').replace(/\D/g, '');
+    const old = byOrder.get(order);
     if (!old) return fresh;
 
     return {
@@ -1178,6 +1353,7 @@ async function handlePdfUpload(event) {
       fullText += pageLines.join('\n') + '\n---PAGE_BREAK---\n';
     }
 
+    const journeyDate = cnflDateFromPdfText(fullText);
     const textParsed = parseCnflPdfText(fullText);
     const layoutParsed = parseCnflPdfLayout(layoutPages);
 
@@ -1248,6 +1424,7 @@ async function handlePdfUpload(event) {
       for (const o of parsed) {
         o._pdfParserVersion = CNFL_PDF_PARSER_VERSION;
         o._source = 'pdf';
+        o._journeyDate = journeyDate;
       }
 
       const validation = validateCnflOrders(parsed);
@@ -1261,6 +1438,7 @@ async function handlePdfUpload(event) {
       }
 
       const previousOrders = [...workOrders];
+      archiveOrdersToHistory(previousOrders);
       workOrders = mergeCnflFieldProgress(previousOrders, parsed);
       cnflPdfBatchStale = false;
       localStorage.removeItem('cnfl_pdf_batch_stale');
@@ -1591,6 +1769,65 @@ function importTelegramReplies() {
     switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
   } else {
     alert('No se detectaron coordenadas GPS en el texto pegado. Asegúrate de incluir los enlaces con "ll=" que envía @ubiCNFL.');
+  }
+}
+
+async function handleHistoryPdfUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('historyImportStatus');
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.innerText = 'Leyendo PDF histórico...';
+  }
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+      cMapPacked: true
+    }).promise;
+
+    let fullText = '';
+    const layoutPages = [];
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      layoutPages.push(textContent.items || []);
+      fullText += (textContent.items || [])
+        .map(item => item.str && item.str.trim() ? item.str.trim() : '')
+        .filter(Boolean)
+        .join('\n') + '\n---PAGE_BREAK---\n';
+    }
+
+    const journeyDate = cnflDateFromPdfText(fullText);
+    const rows = parseCnflPdfLayout(layoutPages);
+    const validation = validateCnflLayoutRows(rows);
+    if (!rows.length || !validation.ok) {
+      throw new Error(validation.errors.join('\n') || 'No se detectaron órdenes válidas.');
+    }
+
+    const historicOrders = rows.map(row => ({
+      ...row,
+      status: 'historico',
+      lectura: '',
+      sello_instalado: '',
+      sello_retirado: '',
+      observaciones: '',
+      _journeyDate: journeyDate,
+      _source: 'pdf-historial'
+    }));
+
+    archiveOrdersToHistory(historicOrders, journeyDate);
+    renderOrderHistory(document.getElementById('historySearchInput')?.value || '');
+    showToast(`Historial: ${historicOrders.length} órdenes del ${cnflHistoryDisplayDate(journeyDate)} guardadas.`);
+  } catch (err) {
+    alert('No pude agregar ese PDF al historial: ' + err.message);
+  } finally {
+    if (statusEl) statusEl.style.display = 'none';
+    event.target.value = '';
   }
 }
 
