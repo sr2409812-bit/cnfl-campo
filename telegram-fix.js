@@ -35,16 +35,99 @@ function normalizeCnflLocalization(value) {
   return digits;
 }
 
-function buildGeoEntry(loc, lat, lon, circuito) {
+function cnflGeoNow() {
+  return new Date().toISOString();
+}
+
+function cnflValidGeoEntry(entry) {
+  const lat = Number(entry && entry.lat);
+  const lon = Number(entry && entry.lon);
+  return Number.isFinite(lat) && Number.isFinite(lon) &&
+    lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+}
+
+function cnflGeoSourceLabel(source) {
+  switch (String(source || '')) {
+    case 'sigel': return 'SIGEL';
+    case 'ubiCNFL': return '@ubiCNFL';
+    case 'campo-manual': return 'Campo';
+    case 'user-confirmed': return '@ubiCNFL / confirmado';
+    case 'server': return 'Base CNFL';
+    case 'seed': return 'Base inicial';
+    case 'legacy-memory': return 'Memoria anterior';
+    default: return source || 'Memoria';
+  }
+}
+
+function buildGeoEntry(loc, lat, lon, circuito, source = 'ubiCNFL', previous = null) {
+  const now = cnflGeoNow();
+  const prev = previous && typeof previous === 'object' ? previous : {};
   return {
     localizacion: loc,
-    lat,
-    lon,
-    circuito: circuito || 'Circuito CNFL',
+    lat: Number(lat),
+    lon: Number(lon),
+    circuito: circuito || prev.circuito || 'Circuito CNFL',
     wazeUrl: `https://www.waze.com/ul?ll=${lat},${lon}&navigate=yes`,
     mapsUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,
-    resolvedAt: new Date().toISOString()
+    source,
+    firstSeenAt: prev.firstSeenAt || prev.resolvedAt || now,
+    resolvedAt: now,
+    lastVerifiedAt: now,
+    lastUsedAt: now,
+    useCount: Number(prev.useCount || 0),
+    status: 'valid'
   };
+}
+
+function cnflMigrateGeoEntry(loc, entry, fallbackSource) {
+  if (!cnflValidGeoEntry(entry)) return null;
+  const now = cnflGeoNow();
+  const source = entry.source || fallbackSource || 'legacy-memory';
+  return {
+    ...entry,
+    localizacion: loc,
+    lat: Number(entry.lat),
+    lon: Number(entry.lon),
+    source,
+    firstSeenAt: entry.firstSeenAt || entry.resolvedAt || now,
+    resolvedAt: entry.resolvedAt || entry.firstSeenAt || now,
+    lastVerifiedAt: entry.lastVerifiedAt || entry.resolvedAt || null,
+    lastUsedAt: entry.lastUsedAt || null,
+    useCount: Number(entry.useCount || 0),
+    status: entry.status || 'valid',
+    wazeUrl: entry.wazeUrl || `https://www.waze.com/ul?ll=${entry.lat},${entry.lon}&navigate=yes`,
+    mapsUrl: entry.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${entry.lat},${entry.lon}`
+  };
+}
+
+function cnflHasReusableGeo(loc) {
+  const key = normalizeCnflLocalization(loc);
+  const entry = geoCache && geoCache[key];
+  return !!entry && cnflValidGeoEntry(entry) && entry.status !== 'conflict';
+}
+
+function cnflMarkGeoUsed(loc) {
+  const key = normalizeCnflLocalization(loc);
+  const entry = geoCache && geoCache[key];
+  if (!entry || !cnflValidGeoEntry(entry)) return;
+  entry.lastUsedAt = cnflGeoNow();
+  entry.useCount = Number(entry.useCount || 0) + 1;
+}
+
+function cnflGpsBadgeHtml(ord) {
+  if (ord && ord._gpsMemoryStatus === 'conflict') {
+    return '<span class="gps-verified-tag" style="color:#FCA5A5"><i class="fa-solid fa-triangle-exclamation"></i> GPS CONFLICTO</span>';
+  }
+  if (ord && ord._gpsMemoryStatus === 'new') {
+    return '<span class="gps-verified-tag"><i class="fa-solid fa-satellite-dish"></i> GPS NUEVO</span>';
+  }
+  if (ord && ord._gpsMemoryStatus === 'reused') {
+    return '<span class="gps-verified-tag" style="color:#86EFAC"><i class="fa-solid fa-clock-rotate-left"></i> GPS REUTILIZADO</span>';
+  }
+  if (ord && Number.isFinite(Number(ord.lat)) && Number.isFinite(Number(ord.lon))) {
+    return '<span class="gps-verified-tag"><i class="fa-solid fa-location-dot"></i> GPS DISPONIBLE</span>';
+  }
+  return '<span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">SIN GPS</span>';
 }
 
 loadGeoCache = async function () {
@@ -66,30 +149,67 @@ loadGeoCache = async function () {
       console.warn('Caché local inválida:', e);
     }
 
-    const seeded = {};
+    const merged = {};
+
     for (const [loc, g] of Object.entries(CNFL_GEO_SEED_20260916)) {
-      seeded[loc] = {
-        ...buildGeoEntry(loc, g.lat, g.lon, g.circuito),
-        source: 'seed'
-      };
+      const key = normalizeCnflLocalization(loc);
+      const migrated = cnflMigrateGeoEntry(key, g, 'seed');
+      if (migrated) merged[key] = migrated;
     }
 
-    // Base confiable: seed < servidor.
-    geoCache = { ...seeded, ...serverCache };
-
-    // Una caché local antigua ya no pisa silenciosamente al servidor.
-    // Solo gana si fue confirmada explícitamente por el usuario en una importación actual,
-    // o si el servidor todavía no conoce esa localización.
-    for (const [loc, entry] of Object.entries(savedCache)) {
-      if (!geoCache[loc] || entry.source === 'user-confirmed') {
-        geoCache[loc] = entry;
-      }
+    for (const [loc, g] of Object.entries(serverCache || {})) {
+      const key = normalizeCnflLocalization(loc);
+      const migrated = cnflMigrateGeoEntry(key, g, 'server');
+      if (migrated) merged[key] = migrated;
     }
 
+    // La memoria local conserva coordenadas confirmadas o aprendidas en campo.
+    for (const [loc, g] of Object.entries(savedCache || {})) {
+      const key = normalizeCnflLocalization(loc);
+      const migrated = cnflMigrateGeoEntry(key, g, g.source || 'legacy-memory');
+      if (!migrated) continue;
+      const localWins = ['ubiCNFL','campo-manual','sigel','user-confirmed','legacy-memory'].includes(migrated.source);
+      if (!merged[key] || localWins) merged[key] = migrated;
+    }
+
+    geoCache = merged;
     localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
   } catch (e) {
-    console.warn('Caché no disponible:', e);
+    console.warn('Caché GPS no disponible:', e);
   }
+};
+
+// Aplicar memoria geográfica por Localización a cualquier jornada nueva.
+enrichOrdersWithCache = function () {
+  let memoryHits = 0;
+  for (const ord of workOrders || []) {
+    const loc = normalizeCnflLocalization(ord.localizacion);
+    if (loc.length === 10) ord.localizacion = loc;
+
+    if (loc && cnflHasReusableGeo(loc)) {
+      const geo = geoCache[loc];
+      ord.lat = Number(geo.lat);
+      ord.lon = Number(geo.lon);
+      ord.circuito = geo.circuito || ord.circuito || '';
+      ord.wazeUrl = geo.wazeUrl || `https://www.waze.com/ul?ll=${geo.lat},${geo.lon}&navigate=yes`;
+      ord.mapsUrl = geo.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${geo.lat},${geo.lon}`;
+      ord._gpsMemoryStatus = ord._gpsMemoryStatus === 'new' ? 'new' : 'reused';
+      ord._gpsSource = geo.source || 'legacy-memory';
+      ord._gpsResolvedAt = geo.resolvedAt || geo.firstSeenAt || '';
+      cnflMarkGeoUsed(loc);
+      memoryHits++;
+    } else if (!(Number.isFinite(Number(ord.lat)) && Number.isFinite(Number(ord.lon)))) {
+      ord._gpsMemoryStatus = 'missing';
+    }
+
+    if (ord.lectura === undefined) ord.lectura = '';
+    if (ord.sello_instalado === undefined) ord.sello_instalado = '';
+    if (ord.sello_retirado === undefined) ord.sello_retirado = '';
+    if (ord.observaciones === undefined) ord.observaciones = '';
+  }
+
+  localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
+  return memoryHits;
 };
 
 function parseCnflBotReplies(raw) {
@@ -184,18 +304,16 @@ function cnflGpsBatchSignature(expected) {
 function cnflLoadGpsBatchStage(expected) {
   const signature = cnflGpsBatchSignature(expected);
   let stage = { signature, entries: {} };
-
   try {
     const saved = JSON.parse(localStorage.getItem(CNFL_GPS_BATCH_KEY) || 'null');
     if (saved && saved.signature === signature && saved.entries && typeof saved.entries === 'object') {
       stage = saved;
     }
   } catch (e) {}
-
   return stage;
 }
 
-function cnflApplyStageToCurrentOrders(stage) {
+function cnflApplyStageToCurrentOrders(stage, status = 'new') {
   for (const ord of workOrders || []) {
     const loc = normalizeCnflLocalization(ord.localizacion);
     const e = stage.entries[loc];
@@ -207,10 +325,74 @@ function cnflApplyStageToCurrentOrders(stage) {
     ord.circuito = e.circuito || ord.circuito || 'Circuito CNFL';
     ord.wazeUrl = `https://www.waze.com/ul?ll=${e.lat},${e.lon}&navigate=yes`;
     ord.mapsUrl = `https://www.google.com/maps/search/?api=1&query=${e.lat},${e.lon}`;
+    ord._gpsMemoryStatus = status;
+    ord._gpsSource = e.source || 'ubiCNFL';
+    ord._gpsResolvedAt = e.resolvedAt || cnflGeoNow();
   }
-
   localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
 }
+
+function cnflCurrentLocationSets() {
+  const all = [...new Set(
+    (workOrders || [])
+      .map(o => normalizeCnflLocalization(o.localizacion))
+      .filter(loc => loc.length === 10)
+  )];
+
+  const reusable = all.filter(loc => cnflHasReusableGeo(loc));
+  const missing = all.filter(loc => !cnflHasReusableGeo(loc));
+  return { all, reusable, missing };
+}
+
+// Por defecto Telegram recibe SOLO Localizaciones que todavía no están en memoria.
+getTelegramWazeCommands = function () {
+  const { missing } = cnflCurrentLocationSets();
+  return missing.map(loc => `gmaps${loc}`).join('\n');
+};
+
+updateTgCommandsCount = function () {
+  const { all, reusable, missing } = cnflCurrentLocationSets();
+  const cmds = missing.map(loc => `gmaps${loc}`).join('\n');
+
+  const badge = document.getElementById('tgCmdCount');
+  if (badge) badge.innerText = missing.length;
+
+  const known = document.getElementById('tgMemoryCount');
+  if (known) known.innerText = reusable.length;
+
+  const missingEl = document.getElementById('tgMissingCount');
+  if (missingEl) missingEl.innerText = missing.length;
+
+  const totalEl = document.getElementById('tgTotalCount');
+  if (totalEl) totalEl.innerText = all.length;
+
+  const preview = document.getElementById('telegramCommandsPreview');
+  if (preview) {
+    preview.value = cmds;
+    preview.placeholder = missing.length
+      ? ''
+      : (all.length
+          ? 'Todas las Localizaciones ya tienen GPS en memoria. No hace falta consultar Telegram.'
+          : 'Carga primero el PDF.');
+  }
+};
+
+copyTelegramWazeCommands = function () {
+  const cmds = getTelegramWazeCommands();
+  if (!cmds) {
+    showToast('No hay Localizaciones nuevas por consultar: el GPS ya está en memoria.');
+    return;
+  }
+
+  const done = () => showToast(`Copiadas ${cmds.split('\n').filter(Boolean).length} Localizaciones faltantes.`);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cmds).then(done).catch(() => {
+      prompt('Copia las Localizaciones faltantes para @ubiCNFL:', cmds);
+    });
+  } else {
+    prompt('Copia las Localizaciones faltantes para @ubiCNFL:', cmds);
+  }
+};
 
 importTelegramReplies = async function () {
   const inputEl = document.getElementById('telegramBotReplies');
@@ -223,7 +405,7 @@ importTelegramReplies = async function () {
   }
 
   if (!workOrders || workOrders.length === 0) {
-    alert('Primero carga las órdenes de la jornada. No voy a guardar coordenadas sin una bandeja actual para validarlas.');
+    alert('Primero carga las órdenes de la jornada.');
     return;
   }
 
@@ -231,128 +413,155 @@ importTelegramReplies = async function () {
   if (parsed.entries.length === 0) {
     alert(
       'No se detectaron pares válidos de Localización + coordenadas.\n\n' +
-      'Acepto:\n' +
-      '• Respuesta completa de @ubiCNFL\n' +
-      '• 1605000184 9.9386196,-84.0826433'
+      'Acepto:\n• Respuesta completa de @ubiCNFL\n• 1605000184 9.9386196,-84.0826433'
     );
     return;
   }
 
-  const expected = new Set(
-    workOrders
-      .map(o => normalizeCnflLocalization(o.localizacion))
-      .filter(loc => loc.length === 10)
-  );
-
-  const stage = cnflLoadGpsBatchStage(expected);
+  const sets = cnflCurrentLocationSets();
+  const allSet = new Set(sets.all);
+  const requiredSet = new Set(sets.missing);
+  const stage = cnflLoadGpsBatchStage(requiredSet);
   const notInCurrentOrders = [];
-  const crossPasteConflicts = new Set();
+  const conflicts = new Set(parsed.conflicts || []);
+  let verifiedExisting = 0;
+
+  const source = /Localizaci[oó]n|maps\.google|waze|ubiCNFL/i.test(raw) ? 'ubiCNFL' : 'campo-manual';
 
   for (const e of parsed.entries) {
-    if (!expected.has(e.loc)) {
+    if (!allSet.has(e.loc)) {
       notInCurrentOrders.push(e.loc);
       continue;
     }
 
-    const previous = stage.entries[e.loc];
+    const old = geoCache[e.loc];
+    if (old && cnflValidGeoEntry(old)) {
+      const same = Math.abs(Number(old.lat) - Number(e.lat)) < 0.000001 &&
+                   Math.abs(Number(old.lon) - Number(e.lon)) < 0.000001;
+      if (!same) {
+        old.status = 'conflict';
+        old.conflictCandidate = {
+          lat: Number(e.lat),
+          lon: Number(e.lon),
+          circuito: e.circuito || '',
+          source,
+          detectedAt: cnflGeoNow()
+        };
+        conflicts.add(e.loc);
+        for (const ord of workOrders) {
+          if (normalizeCnflLocalization(ord.localizacion) === e.loc) {
+            ord._gpsMemoryStatus = 'conflict';
+          }
+        }
+        continue;
+      }
+
+      old.lastVerifiedAt = cnflGeoNow();
+      old.status = 'valid';
+      old.source = old.source || source;
+      verifiedExisting++;
+      continue;
+    }
+
+    const previousStage = stage.entries[e.loc];
     if (
-      previous &&
-      (Number(previous.lat) !== Number(e.lat) || Number(previous.lon) !== Number(e.lon))
+      previousStage &&
+      (Number(previousStage.lat) !== Number(e.lat) || Number(previousStage.lon) !== Number(e.lon))
     ) {
-      crossPasteConflicts.add(e.loc);
+      conflicts.add(e.loc);
       continue;
     }
 
     stage.entries[e.loc] = {
       loc: e.loc,
-      lat: e.lat,
-      lon: e.lon,
-      circuito: e.circuito || 'Circuito CNFL'
-    };
-  }
-
-  const allConflicts = [...new Set([...parsed.conflicts, ...crossPasteConflicts])];
-
-  if (allConflicts.length) {
-    alert(
-      `CONFLICTO GPS en: ${allConflicts.join(', ')}\n\n` +
-      'La misma Localización llegó con coordenadas diferentes. No la voy a sobrescribir automáticamente.'
-    );
-    return;
-  }
-
-  // Guardado temporal EXCLUSIVO del lote actual. Esto permite pegar el bot
-  // en varias tandas sin usar coordenadas viejas de jornadas anteriores.
-  localStorage.setItem(CNFL_GPS_BATCH_KEY, JSON.stringify(stage));
-  cnflApplyStageToCurrentOrders(stage);
-  renderOrders();
-  updateLiquidation();
-
-  const receivedCount = Object.keys(stage.entries).filter(loc => expected.has(loc)).length;
-  const missingFromBatch = [...expected].filter(loc => !stage.entries[loc]);
-
-  const summary = [
-    `Localizaciones esperadas: ${expected.size}`,
-    `Únicas acumuladas de ESTE lote: ${receivedCount}`,
-    `Duplicados exactos en este pegado: ${parsed.exactDuplicates}`
-  ];
-
-  if (notInCurrentOrders.length) {
-    summary.push(`Fuera de la bandeja actual: ${notInCurrentOrders.length}`);
-  }
-
-  if (missingFromBatch.length > 0) {
-    summary.push(`Faltantes reales: ${missingFromBatch.length}`);
-    inputEl.value = '';
-    alert(
-      summary.join('\n') +
-      `\n\nFaltantes:\n${missingFromBatch.join('\n')}\n\n` +
-      'Guardé esta tanda dentro del lote actual. Puedes pegar solamente las faltantes en el siguiente intento.'
-    );
-    return;
-  }
-
-  let overwrittenOldGps = 0;
-
-  // El lote quedó 100% completo: ahora sí se promueve a la geocaché permanente.
-  for (const loc of expected) {
-    const e = stage.entries[loc];
-    const previous = geoCache[loc];
-
-    if (
-      previous &&
-      Number.isFinite(Number(previous.lat)) &&
-      Number.isFinite(Number(previous.lon)) &&
-      (Number(previous.lat) !== Number(e.lat) || Number(previous.lon) !== Number(e.lon))
-    ) {
-      overwrittenOldGps++;
-    }
-
-    geoCache[loc] = {
-      ...buildGeoEntry(loc, e.lat, e.lon, e.circuito),
-      source: 'user-confirmed'
+      lat: Number(e.lat),
+      lon: Number(e.lon),
+      circuito: e.circuito || 'Circuito CNFL',
+      source,
+      resolvedAt: cnflGeoNow()
     };
   }
 
   localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
+
+  if (conflicts.size) {
+    localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+    renderOrders();
+    updateTgCommandsCount();
+    alert(
+      'CONFLICTO GPS en:\n' + [...conflicts].join('\n') +
+      '\n\nLa memoria tiene otra coordenada para esa Localización. No la sobrescribí. Debe revisarse antes de usarla.'
+    );
+    return;
+  }
+
+  localStorage.setItem(CNFL_GPS_BATCH_KEY, JSON.stringify(stage));
+  cnflApplyStageToCurrentOrders(stage, 'new');
+
+  const missingFromBatch = [...requiredSet].filter(loc => !stage.entries[loc]);
+  if (missingFromBatch.length) {
+    renderOrders();
+    updateTgCommandsCount();
+    inputEl.value = '';
+    alert(
+      `GPS reutilizados desde memoria: ${sets.reusable.length}\n` +
+      `GPS nuevos recibidos: ${Object.keys(stage.entries).length}\n` +
+      `Faltan por consultar: ${missingFromBatch.length}\n\n` +
+      missingFromBatch.join('\n')
+    );
+    return;
+  }
+
+  // Promover únicamente los GPS nuevos a la memoria permanente.
+  for (const loc of requiredSet) {
+    const e = stage.entries[loc];
+    if (!e) continue;
+    geoCache[loc] = buildGeoEntry(loc, e.lat, e.lon, e.circuito, e.source || source, geoCache[loc]);
+    geoCache[loc].useCount = 1;
+  }
+
+  localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
   localStorage.removeItem(CNFL_GPS_BATCH_KEY);
-  cnflApplyStageToCurrentOrders(stage);
+
+  // Reaplicar memoria: los ya conocidos quedan "reutilizados"; los recién recibidos "nuevos".
+  for (const ord of workOrders || []) {
+    const loc = normalizeCnflLocalization(ord.localizacion);
+    const entry = geoCache[loc];
+    if (!entry || !cnflValidGeoEntry(entry)) continue;
+
+    const wasNew = requiredSet.has(loc);
+    ord.lat = Number(entry.lat);
+    ord.lon = Number(entry.lon);
+    ord.circuito = entry.circuito || ord.circuito || '';
+    ord.wazeUrl = entry.wazeUrl;
+    ord.mapsUrl = entry.mapsUrl;
+    ord._gpsMemoryStatus = wasNew ? 'new' : 'reused';
+    ord._gpsSource = entry.source;
+    ord._gpsResolvedAt = entry.resolvedAt || entry.firstSeenAt || '';
+    cnflMarkGeoUsed(loc);
+  }
+
+  localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
+  localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
+  renderOrders();
+  updateLiquidation();
+  updateTgCommandsCount();
 
   const routeOk = typeof optimizeInitialRoute === 'function'
     ? await optimizeInitialRoute()
     : await optimizeCurrentRoute();
 
   inputEl.value = '';
+  const total = sets.all.length;
+  const reused = sets.reusable.length;
+  const added = requiredSet.size;
 
-  if (routeOk) {
-    showToast(
-      `GPS validado: ${expected.size}/${expected.size} · ruta inicial lista` +
-      (overwrittenOldGps ? ` · ${overwrittenOldGps} GPS antiguos corregidos` : '')
-    );
-    switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
-  } else {
-    showToast(`GPS validado: ${expected.size}/${expected.size}. Falta recalcular la ruta.`);
-  }
+  showToast(
+    `GPS listos ${total}/${total}: ${reused} reutilizados + ${added} nuevos` +
+    (verifiedExisting ? ` · ${verifiedExisting} verificados` : '')
+  );
+
+  if (routeOk) switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
 };
 
 // =========================================================
