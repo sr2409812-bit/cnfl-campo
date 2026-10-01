@@ -147,7 +147,15 @@ function renderOrderHistory(query = '') {
   container.innerHTML = items.slice(0, 120).map(o => {
     const amount = o.monto ? `₡${cnflEscapeHtml(typeof cnflFormatAmount === 'function' ? cnflFormatAmount(o.monto) : o.monto)}` : '';
     const status = typeof getStatusLabel === 'function' ? getStatusLabel(o.status) : String(o.status || '');
-    const hasGps = Number.isFinite(Number(o.lat)) && Number.isFinite(Number(o.lon));
+    const locKey = String(o.localizacion || '').replace(/\D/g, '');
+    const memoryGeo = (typeof geoCache !== 'undefined' && geoCache && geoCache[locKey]) ? geoCache[locKey] : null;
+    const hasGps = (memoryGeo && Number.isFinite(Number(memoryGeo.lat)) && Number.isFinite(Number(memoryGeo.lon))) ||
+      (Number.isFinite(Number(o.lat)) && Number.isFinite(Number(o.lon)));
+    const gpsSource = memoryGeo
+      ? (typeof cnflGeoSourceLabel === 'function' ? cnflGeoSourceLabel(memoryGeo.source) : (memoryGeo.source || 'Memoria'))
+      : '';
+    const gpsDateRaw = memoryGeo && (memoryGeo.lastVerifiedAt || memoryGeo.resolvedAt || memoryGeo.firstSeenAt);
+    const gpsDate = gpsDateRaw ? String(gpsDateRaw).slice(0,10).split('-').reverse().join('-') : '';
     return `
       <div class="card-panel" style="margin-bottom:10px;border-left:3px solid var(--cnfl-cyan)">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
@@ -168,7 +176,7 @@ function renderOrderHistory(query = '') {
           <span>${amount}</span>
         </div>
         ${o.observaciones ? `<div style="margin-top:7px;padding:7px;background:var(--bg-input);border-radius:4px;font-size:11px">Obs: ${cnflEscapeHtml(o.observaciones)}</div>` : ''}
-        ${hasGps ? `<div style="margin-top:7px;font-size:10px;color:#86EFAC"><i class="fa-solid fa-location-dot"></i> GPS guardado</div>` : ''}
+        ${hasGps ? `<div style="margin-top:7px;font-size:10px;color:#86EFAC"><i class="fa-solid fa-location-dot"></i> GPS en memoria${gpsSource ? ' · ' + cnflEscapeHtml(gpsSource) : ''}${gpsDate ? ' · ' + gpsDate : ''}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -586,7 +594,11 @@ function renderOrders() {
         <div class="order-top-row">
           <span class="stop-badge">PARADA #${idx + 1}</span>
           <span class="type-pill ${typeClass}">${typeName}</span>
-          ${hasGps ? '<span class="gps-verified-tag"><i class="fa-solid fa-satellite-dish"></i> GPS EXACTO</span>' : '<span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">COORD. APROX</span>'}
+          ${typeof cnflGpsBadgeHtml === 'function'
+            ? cnflGpsBadgeHtml(ord)
+            : (hasGps
+                ? '<span class="gps-verified-tag"><i class="fa-solid fa-location-dot"></i> GPS DISPONIBLE</span>'
+                : '<span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">SIN GPS</span>')}
         </div>
 
         <!-- Cliente y Monto -->
@@ -1451,16 +1463,26 @@ async function handlePdfUpload(event) {
       updateLiquidation();
       updateTgCommandsCount();
 
-      // No se optimiza una jornada nueva usando solamente coordenadas de caché.
-      // Primero se exige validar el lote GPS actual en la sección @ubiCNFL.
-      const cachedGps = workOrders.filter(o =>
+      const gpsReady = workOrders.filter(o =>
         Number.isFinite(Number(o.lat)) && Number.isFinite(Number(o.lon))
       ).length;
+      const gpsMissing = workOrders.length - gpsReady;
 
-      showToast(
-        `Extraídas ${parsed.length} órdenes · valida GPS del lote actual` +
-        (cachedGps ? ` (${cachedGps} referencias previas disponibles)` : '')
-      );
+      if (gpsMissing === 0 && workOrders.length > 1) {
+        const routeOk = typeof optimizeInitialRoute === 'function'
+          ? await optimizeInitialRoute()
+          : await optimizeCurrentRoute();
+        showToast(
+          routeOk
+            ? `Extraídas ${parsed.length} órdenes · GPS 100% desde memoria · ruta lista`
+            : `Extraídas ${parsed.length} órdenes · GPS 100% disponible`
+        );
+      } else {
+        showToast(
+          `Extraídas ${parsed.length} órdenes · ${gpsReady} GPS reutilizados · ${gpsMissing} por consultar`
+        );
+      }
+
       switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
     }
   } catch (err) {
