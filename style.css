@@ -1278,3 +1278,36 @@ textarea.input-box {
   .brand-text p { font-size:9px; }
   .btn-optimize { padding:7px 8px; font-size:9px; }
 }
+
+
+/* Ajustes finales del tema unificado */
+.bottom-nav { grid-template-columns:repeat(4,1fr); }
+
+.field-form-panel {
+  background:#fff;
+  border-color:var(--border-subtle);
+  border-radius:2px;
+}
+.field-form-header {
+  background:#F0F5FB;
+  color:var(--cnfl-blue-primary);
+  border-bottom-color:var(--border-subtle);
+}
+.form-field input,
+.obs-full-row input {
+  background:#fff;
+  color:var(--cnfl-blue-header);
+  border-color:var(--border-subtle);
+  border-radius:2px;
+}
+.form-field input:focus,
+.obs-full-row input:focus { border-color:var(--cnfl-blue-primary); }
+
+.btn-act-noacc { color:#52677B; border-color:#C7D2DD; }
+.btn-act-yacortado { color:#62758A; border-color:#C7D2DD; }
+.btn-act-directo { color:#B45309; border-color:#F1C7A5; }
+
+#tgMemoryCount { color:#168A5B!important; }
+#tgMissingCount { color:#B45309!important; }
+
+.gps-verified-tag { color:#168A5B; }
