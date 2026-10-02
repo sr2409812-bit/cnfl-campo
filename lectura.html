@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CNFL Campo · Lectura</title>
   <meta name="theme-color" content="#0033A0" />
-  <link rel="stylesheet" href="lectura.css?v=20261001-7" />
+  <link rel="stylesheet" href="lectura.css?v=20261001-8" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -40,7 +40,7 @@
       <div class="stats-grid">
         <div><strong id="statTotal">59</strong><span>MEDIDORES</span></div>
         <div><strong id="statPending">59</strong><span>PENDIENTES</span></div>
-        <div><strong id="statRead">0</strong><span>LEÍDOS</span></div>
+        <div><strong id="statRead">0</strong><span>VISITADOS</span></div>
       </div>
       <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
     </section>
@@ -55,6 +55,14 @@
           <i class="fa-solid fa-location-crosshairs"></i> DESDE AQUÍ
         </button>
       </div>
+
+      <div class="route-helpers">
+        <button class="btn-nearby" onclick="showNearbyReadings()">
+          <i class="fa-solid fa-location-dot"></i> PENDIENTES CERCA DE MÍ
+        </button>
+        <span>Solo muestra opciones; vos elegís si cambiás el siguiente.</span>
+      </div>
+      <div id="nearbyReadingPanel" class="nearby-panel"></div>
 
       <div id="currentReadingCard"></div>
       <div id="nextReadingCard"></div>
@@ -136,8 +144,8 @@
         <div class="eyebrow">RESUMEN DE JORNADA</div>
         <h2 id="summaryRouteTitle">Ruta de lectura</h2>
         <div class="summary-grid">
-          <div><strong id="sumRead">0</strong><span>Leídos</span></div>
-          <div><strong id="sumUnread">0</strong><span>No leídos</span></div>
+          <div><strong id="sumTotal">59</strong><span>Total</span></div>
+          <div><strong id="sumRead">0</strong><span>Visitados</span></div>
           <div><strong id="sumPending">59</strong><span>Pendientes</span></div>
         </div>
       </div>
@@ -171,7 +179,8 @@
   </nav>
 
   <div id="readingToast" class="toast"></div>
-  <script src="lectura.js?v=20261001-5"></script>
+  <script src="lectura.js?v=20261001-6"></script>
+  <script src="lectura-ux.js?v=20261001-1"></script>
   <script src="lectura-pdf.js?v=20261001-1"></script>
 </body>
 </html>
