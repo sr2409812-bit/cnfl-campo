@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>CNFL Campo · Lectura</title>
+  <meta name="theme-color" content="#0033A0" />
+  <link rel="stylesheet" href="lectura.css?v=20261001-1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="back-link" href="index.html" aria-label="Volver a cortes"><i class="fa-solid fa-chevron-left"></i></a>
+    <div class="brand">
+      <div class="brand-mark">⚡</div>
+      <div>
+        <div class="brand-name">CNFL <span>CAMPO</span></div>
+        <div class="brand-sub">LECTURA DE MEDIDORES</div>
+      </div>
+    </div>
+    <div id="onlineBadge" class="online-badge">EN LÍNEA</div>
+  </header>
+
+  <main class="shell">
+    <section class="route-head">
+      <div class="route-title-row">
+        <div>
+          <div class="eyebrow">JORNADA ACTIVA</div>
+          <h1>Ruta 5051-71</h1>
+          <p>Paseo Estudiantes · Ciclo 5051</p>
+        </div>
+        <div class="route-date">01 OCT<br><strong>2026</strong></div>
+      </div>
+
+      <div class="stats-grid">
+        <div><strong id="statTotal">59</strong><span>MEDIDORES</span></div>
+        <div><strong id="statPending">59</strong><span>PENDIENTES</span></div>
+        <div><strong id="statRead">0</strong><span>LEÍDOS</span></div>
+      </div>
+      <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+    </section>
+
+    <section id="view-route" class="view active">
+      <div class="route-toolbar">
+        <div>
+          <strong id="routeEngineLabel">Secuencia del listado</strong>
+          <span id="routeEngineSub">Podés ordenarla por calles desde tu ubicación.</span>
+        </div>
+        <button class="btn-outline" onclick="optimizeReadingRouteFromHere()">
+          <i class="fa-solid fa-location-crosshairs"></i> DESDE AQUÍ
+        </button>
+      </div>
+
+      <div id="currentReadingCard"></div>
+      <div id="nextReadingCard"></div>
+    </section>
+
+    <section id="view-list" class="view">
+      <div class="list-tools">
+        <div class="search-field">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="readingSearch" type="text" placeholder="Buscar medidor o Localización" oninput="setReadingSearch(this.value)" />
+        </div>
+      </div>
+      <div id="readingList"></div>
+    </section>
+
+    <section id="view-summary" class="view">
+      <div class="summary-card">
+        <div class="eyebrow">RESUMEN DE JORNADA</div>
+        <h2>Ruta 5051-71</h2>
+        <div class="summary-grid">
+          <div><strong id="sumRead">0</strong><span>Leídos</span></div>
+          <div><strong id="sumUnread">0</strong><span>No leídos</span></div>
+          <div><strong id="sumPending">59</strong><span>Pendientes</span></div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="eyebrow">MEMORIA GPS COMPARTIDA</div>
+        <h2><span id="gpsMemoryCount">0</span> Localizaciones</h2>
+        <p>Las coordenadas quedan disponibles para futuras jornadas de lectura o cortes en este dispositivo.</p>
+      </div>
+
+      <div class="summary-actions">
+        <button class="btn-primary" onclick="copyReadingSummary()"><i class="fa-solid fa-copy"></i> COPIAR RESUMEN</button>
+        <button class="btn-danger-ghost" onclick="resetReadingDay()"><i class="fa-solid fa-arrow-rotate-left"></i> REINICIAR JORNADA</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button id="tabRoute" class="nav-btn active" onclick="switchReadingTab('route', this)">
+      <i class="fa-solid fa-route"></i><span>RUTA</span>
+    </button>
+    <button id="tabList" class="nav-btn" onclick="switchReadingTab('list', this)">
+      <i class="fa-solid fa-list-check"></i><span>LISTA</span>
+    </button>
+    <button id="tabSummary" class="nav-btn" onclick="switchReadingTab('summary', this)">
+      <i class="fa-solid fa-chart-column"></i><span>RESUMEN</span>
+    </button>
+  </nav>
+
+  <div id="readingToast" class="toast"></div>
+  <script src="lectura.js?v=20261001-1"></script>
+</body>
+</html>
