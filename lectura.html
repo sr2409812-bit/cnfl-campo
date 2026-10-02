@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CNFL Campo · Lectura</title>
   <meta name="theme-color" content="#0033A0" />
-  <link rel="stylesheet" href="lectura.css?v=20261001-6" />
+  <link rel="stylesheet" href="lectura.css?v=20261001-7" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -73,7 +74,16 @@
       <div class="summary-card">
         <div class="eyebrow">NUEVA RUTA DE LECTURA</div>
         <h2>Cargar jornada</h2>
-        <p>Pega únicamente Localización y Medidor. Una fila por medidor.</p>
+        <p>Podés cargar el PDF oficial o pegar únicamente Localización y Medidor.</p>
+
+        <input id="readingPdfInput" type="file" accept=".pdf,application/pdf" style="display:none" onchange="handleReadingPdfUpload(event)" />
+        <button class="btn-pdf-load" onclick="document.getElementById('readingPdfInput').click()">
+          <i class="fa-solid fa-file-pdf"></i>
+          <span><strong>CARGAR PDF DE MEDIDORES</strong><small>Extrae Secuencia de Visita + Medidor</small></span>
+        </button>
+        <div id="readingPdfStatus" class="pdf-status" style="display:none"></div>
+
+        <div class="load-divider"><span>O PEGAR MANUALMENTE</span></div>
 
         <div class="load-fields">
           <label>
@@ -161,6 +171,6 @@
   </nav>
 
   <div id="readingToast" class="toast"></div>
-  <script src="lectura.js?v=20261001-4"></script>
+  <script src="lectura.js?v=20261001-5"></script>
 </body>
 </html>
