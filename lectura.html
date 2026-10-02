@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CNFL Campo · Lectura</title>
   <meta name="theme-color" content="#0033A0" />
-  <link rel="stylesheet" href="lectura.css?v=20261001-5" />
+  <link rel="stylesheet" href="lectura.css?v=20261001-6" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
@@ -30,10 +30,10 @@
       <div class="route-title-row">
         <div>
           <div class="eyebrow">JORNADA ACTIVA</div>
-          <h1>Ruta 5051-71</h1>
-          <p>Paseo Estudiantes · Ciclo 5051</p>
+          <h1 id="activeRouteTitle">Ruta de lectura</h1>
+          <p id="activeRouteSubtitle">Jornada activa</p>
         </div>
-        <div class="route-date">01 OCT<br><strong>2026</strong></div>
+        <div class="route-date" id="activeRouteDate">--<br><strong>----</strong></div>
       </div>
 
       <div class="stats-grid">
@@ -69,10 +69,62 @@
       <div id="readingList"></div>
     </section>
 
+    <section id="view-load" class="view">
+      <div class="summary-card">
+        <div class="eyebrow">NUEVA RUTA DE LECTURA</div>
+        <h2>Cargar jornada</h2>
+        <p>Pega únicamente Localización y Medidor. Una fila por medidor.</p>
+
+        <div class="load-fields">
+          <label>
+            <span>NOMBRE DE LA RUTA</span>
+            <input id="newRouteName" type="text" placeholder="Ej: 5055-72 Paso La Vaca" />
+          </label>
+          <label>
+            <span>LOCALIZACIÓN + MEDIDOR</span>
+            <textarea id="newRouteData" rows="8" placeholder="0101000050 925995&#10;0101200320 706602&#10;0101301020 942027"></textarea>
+          </label>
+        </div>
+
+        <button class="btn-primary" onclick="loadNewReadingRoute()">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> CARGAR RUTA
+        </button>
+      </div>
+
+      <div class="summary-card">
+        <div class="eyebrow">GPS DE LA RUTA ACTIVA</div>
+        <div class="gps-load-stats">
+          <div><strong id="loadGpsTotal">0</strong><span>Total</span></div>
+          <div><strong id="loadGpsMemory">0</strong><span>En memoria</span></div>
+          <div><strong id="loadGpsMissing">0</strong><span>Faltan</span></div>
+        </div>
+
+        <button class="btn-secondary full" onclick="copyReadingMissingGps()">
+          <i class="fa-solid fa-copy"></i> COPIAR LOCALIZACIONES FALTANTES
+        </button>
+
+        <label class="gps-paste">
+          <span>PEGAR RESPUESTAS DE TELEGRAM / COORDENADAS</span>
+          <textarea id="readingGpsInput" rows="6" placeholder="Pega aquí las respuestas de @ubiCNFL o:&#10;0101000050 9.93270699,-84.07115632"></textarea>
+        </label>
+
+        <button class="btn-primary" onclick="importReadingGps()">
+          <i class="fa-solid fa-location-dot"></i> GUARDAR GPS
+        </button>
+      </div>
+
+      <div class="summary-card">
+        <div class="eyebrow">RUTAS RECIENTES</div>
+        <h2>Memoria de lectura</h2>
+        <p>Podés volver a consultar una jornada anterior sin perder la memoria GPS.</p>
+        <div id="readingRouteHistory" class="route-history"></div>
+      </div>
+    </section>
+
     <section id="view-summary" class="view">
       <div class="summary-card">
         <div class="eyebrow">RESUMEN DE JORNADA</div>
-        <h2>Ruta 5051-71</h2>
+        <h2 id="summaryRouteTitle">Ruta de lectura</h2>
         <div class="summary-grid">
           <div><strong id="sumRead">0</strong><span>Leídos</span></div>
           <div><strong id="sumUnread">0</strong><span>No leídos</span></div>
@@ -100,12 +152,15 @@
     <button id="tabList" class="nav-btn" onclick="switchReadingTab('list', this)">
       <i class="fa-solid fa-list-check"></i><span>LISTA</span>
     </button>
+    <button id="tabLoad" class="nav-btn" onclick="switchReadingTab('load', this)">
+      <i class="fa-solid fa-upload"></i><span>CARGAR</span>
+    </button>
     <button id="tabSummary" class="nav-btn" onclick="switchReadingTab('summary', this)">
       <i class="fa-solid fa-chart-column"></i><span>RESUMEN</span>
     </button>
   </nav>
 
   <div id="readingToast" class="toast"></div>
-  <script src="lectura.js?v=20261001-2"></script>
+  <script src="lectura.js?v=20261001-3"></script>
 </body>
 </html>
