@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v28';
+const CACHE_NAME = 'cnfl-campo-v30';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,6 +12,8 @@ const ASSETS_TO_CACHE = [
   './lectura.html',
   './lectura.css',
   './lectura.js',
+  './lectura-pdf.js',
+  './lectura-ux.js',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
 ];
@@ -19,7 +21,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v28] Pre-caching assets offline...');
+      console.log('[SW v30] Pre-caching assets offline...');
 
       return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('[SW] Cache addAll warning:', err));
     }).then(() => self.skipWaiting())
