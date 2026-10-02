@@ -75,7 +75,7 @@ const DEFAULT_READING_TEXT = `
 const DEFAULT_ORDERS = DEFAULT_READING_TEXT.split('\n').map((line, index) => {
   const [localizacion, medidor, lat, lon, circuito] = line.trim().split('|');
   return {
-    id: `read-\${localizacion}`,
+    id: `read-${localizacion}`,
     localizacion,
     medidor,
     lat: Number(lat),
@@ -113,19 +113,19 @@ function localDateKey() {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `\${y}-\${m}-\${day}`;
+  return `${y}-${m}-${day}`;
 }
 
 function routeDisplayName(info = readingRouteInfo) {
   const name = String(info?.name || 'Ruta de lectura').trim();
-  return /^ruta\s/i.test(name) ? name : `Ruta \${name}`;
+  return /^ruta\s/i.test(name) ? name : `Ruta ${name}`;
 }
 
 function routeDateLabel(iso) {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return {top:'--', year:'----'};
   const months = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SET','OCT','NOV','DIC'];
-  return {top:`\${m[3]} \${months[Number(m[2])-1]}`, year:m[1]};
+  return {top:`${m[3]} ${months[Number(m[2])-1]}`, year:m[1]};
 }
 
 function stats(orders = readingOrders) {
@@ -197,8 +197,8 @@ function seedDefaultGeoMemory() {
         lastUsedAt: now,
         useCount: 1,
         status: 'valid',
-        wazeUrl: `https://www.waze.com/ul?ll=\${row.lat},\${row.lon}&navigate=yes`,
-        mapsUrl: `https://www.google.com/maps/search/?api=1&query=\${row.lat},\${row.lon}`
+        wazeUrl: `https://www.waze.com/ul?ll=${row.lat},${row.lon}&navigate=yes`,
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${row.lat},${row.lon}`
       };
       added++;
       continue;
@@ -252,7 +252,7 @@ function renderRouteHeader() {
   document.getElementById('summaryRouteTitle').textContent = routeDisplayName();
 
   const d = routeDateLabel(readingRouteInfo.date || localDateKey());
-  document.getElementById('activeRouteDate').innerHTML = `\${d.top}<br><strong>\${d.year}</strong>`;
+  document.getElementById('activeRouteDate').innerHTML = `${d.top}<br><strong>${d.year}</strong>`;
 }
 
 function renderHeaderStats() {
@@ -260,7 +260,7 @@ function renderHeaderStats() {
   document.getElementById('statTotal').textContent = s.total;
   document.getElementById('statPending').textContent = s.pending;
   document.getElementById('statRead').textContent = s.read;
-  document.getElementById('progressBar').style.width = `\${s.total ? ((s.done / s.total) * 100).toFixed(1) : 0}%`;
+  document.getElementById('progressBar').style.width = `${s.total ? ((s.done / s.total) * 100).toFixed(1) : 0}%`;
 }
 
 function gpsLabel(order) {
@@ -281,7 +281,7 @@ function renderCurrent() {
       <div class="done-card">
         <i class="fa-solid fa-circle-check"></i>
         <h2>Jornada completada</h2>
-        <p>\${s.read} leídos · \${s.unread} no leídos</p>
+        <p>${s.read} leídos · ${s.unread} no leídos</p>
       </div>`;
     nextContainer.innerHTML = '';
     return;
@@ -291,37 +291,37 @@ function renderCurrent() {
   const gps = gpsLabel(current);
   const gpsOk = current.gpsStatus !== 'conflict' &&
     Number.isFinite(Number(current.lat)) && Number.isFinite(Number(current.lon));
-  const waze = gpsOk ? `https://www.waze.com/ul?ll=\${current.lat},\${current.lon}&navigate=yes` : '#';
-  const maps = gpsOk ? `https://www.google.com/maps/search/?api=1&query=\${current.lat},\${current.lon}` : '#';
+  const waze = gpsOk ? `https://www.waze.com/ul?ll=${current.lat},${current.lon}&navigate=yes` : '#';
+  const maps = gpsOk ? `https://www.google.com/maps/search/?api=1&query=${current.lat},${current.lon}` : '#';
 
   container.innerHTML = `
     <article class="reading-card">
       <div class="card-kicker">
         <span>MEDIDOR ACTUAL</span>
-        <span>\${s.done + 1} / \${s.total}</span>
+        <span>${s.done + 1} / ${s.total}</span>
       </div>
       <div class="reading-main">
         <div class="reading-ident">
           <div>
             <span>MEDIDOR</span>
-            <strong>\${escapeHtml(current.medidor)}</strong>
+            <strong>${escapeHtml(current.medidor)}</strong>
           </div>
           <div class="loc">
             <span>LOCALIZACIÓN</span>
-            <strong>\${escapeHtml(current.localizacion)}</strong>
+            <strong>${escapeHtml(current.localizacion)}</strong>
           </div>
         </div>
 
         <div class="gps-line">
-          <span class="gps-status \${gps.cls}"><i class="fa-solid fa-location-dot"></i> \${gps.text}</span>
-          <span class="circuit">\${escapeHtml(current.circuito || '')}</span>
+          <span class="gps-status ${gps.cls}"><i class="fa-solid fa-location-dot"></i> ${gps.text}</span>
+          <span class="circuit">${escapeHtml(current.circuito || '')}</span>
         </div>
 
         <div class="nav-grid">
-          <a class="nav-link \${gpsOk ? '' : 'disabled'}" href="\${waze}" target="_blank" rel="noopener">
+          <a class="nav-link ${gpsOk ? '' : 'disabled'}" href="${waze}" target="_blank" rel="noopener">
             <i class="fa-brands fa-waze"></i> WAZE
           </a>
-          <a class="nav-link \${gpsOk ? '' : 'disabled'}" href="\${maps}" target="_blank" rel="noopener">
+          <a class="nav-link ${gpsOk ? '' : 'disabled'}" href="${maps}" target="_blank" rel="noopener">
             <i class="fa-solid fa-map-location-dot"></i> MAPS
           </a>
         </div>
@@ -344,8 +344,8 @@ function renderCurrent() {
     <div class="next-card">
       <div class="eyebrow">SIGUIENTE EN LA RUTA</div>
       <div class="next-row">
-        <div><span>MEDIDOR</span><br><strong>\${escapeHtml(next.medidor)}</strong></div>
-        <div style="text-align:right"><span>LOCALIZACIÓN</span><br><strong>\${escapeHtml(next.localizacion)}</strong></div>
+        <div><span>MEDIDOR</span><br><strong>${escapeHtml(next.medidor)}</strong></div>
+        <div style="text-align:right"><span>LOCALIZACIÓN</span><br><strong>${escapeHtml(next.localizacion)}</strong></div>
       </div>
     </div>` : '';
 }
@@ -359,8 +359,8 @@ function markCurrentReading(status) {
   saveReadingState();
   renderAll();
   showReadingToast(status === 'read'
-    ? `Medidor \${current.medidor} leído · siguiente`
-    : `Medidor \${current.medidor} marcado no leído`);
+    ? `Medidor ${current.medidor} leído · siguiente`
+    : `Medidor ${current.medidor} marcado no leído`);
 }
 
 function archiveReadingEvent(order) {
@@ -385,12 +385,12 @@ function renderList() {
   document.getElementById('readingList').innerHTML = rows.map(o => {
     const label = o.status === 'read' ? 'LEÍDO' : (o.status === 'unread' ? 'NO LEÍDO' : 'PENDIENTE');
     return `
-      <div class="reading-list-item \${o.status}">
+      <div class="reading-list-item ${o.status}">
         <div class="list-id">
-          <div><span>MEDIDOR</span><strong>\${escapeHtml(o.medidor)}</strong></div>
-          <div><span>LOCALIZACIÓN</span><strong>\${escapeHtml(o.localizacion)}</strong></div>
+          <div><span>MEDIDOR</span><strong>${escapeHtml(o.medidor)}</strong></div>
+          <div><span>LOCALIZACIÓN</span><strong>${escapeHtml(o.localizacion)}</strong></div>
         </div>
-        <div class="list-status \${o.status}">\${label}</div>
+        <div class="list-status ${o.status}">${label}</div>
       </div>`;
   }).join('');
 }
@@ -419,9 +419,9 @@ function renderRouteMeta() {
   if (readingRouteMeta && readingRouteMeta.engine === 'osrm-road-network') {
     title.textContent = 'Ruta vial calculada';
     const km = Number.isFinite(Number(readingRouteMeta.totalMeters))
-      ? ` · ~\${(Number(readingRouteMeta.totalMeters)/1000).toFixed(1)} km`
+      ? ` · ~${(Number(readingRouteMeta.totalMeters)/1000).toFixed(1)} km`
       : '';
-    sub.textContent = `Desde tu ubicación\${km}`;
+    sub.textContent = `Desde tu ubicación${km}`;
   } else {
     title.textContent = 'Secuencia del listado';
     sub.textContent = 'Tocá “Desde aquí” para ordenarla por calles.';
@@ -482,14 +482,14 @@ function parseReadingRouteText(raw) {
 
     if (byLoc.has(loc)) {
       if (byLoc.get(loc).medidor !== meter) {
-        throw new Error(`Localización \${loc} aparece con dos medidores distintos.`);
+        throw new Error(`Localización ${loc} aparece con dos medidores distintos.`);
       }
       duplicates++;
       return;
     }
 
     const row = {
-      id: `read-\${loc}`,
+      id: `read-${loc}`,
       localizacion: loc,
       medidor: meter,
       status: 'pending',
@@ -502,7 +502,7 @@ function parseReadingRouteText(raw) {
   });
 
   if (invalid.length) {
-    throw new Error(`No pude interpretar las filas: \${invalid.slice(0,10).join(', ')}\${invalid.length > 10 ? '…' : ''}. Usa una fila por Localización + Medidor.`);
+    throw new Error(`No pude interpretar las filas: ${invalid.slice(0,10).join(', ')}${invalid.length > 10 ? '…' : ''}. Usa una fila por Localización + Medidor.`);
   }
   if (!rows.length) throw new Error('No encontré ninguna Localización de 10 dígitos con su Medidor.');
 
@@ -544,7 +544,7 @@ function loadNewReadingRoute() {
     archiveCurrentRoute();
 
     readingRouteInfo = {
-      routeId:`reading-\${Date.now()}`,
+      routeId:`reading-${Date.now()}`,
       name,
       subtitle:'Lectura de medidores',
       date:localDateKey()
@@ -560,7 +560,7 @@ function loadNewReadingRoute() {
 
     const sets = readingGpsSets();
     showReadingToast(
-      `Ruta cargada: \${readingOrders.length} medidores · \${sets.reusable.length} GPS en memoria · \${sets.missing.length} faltan`
+      `Ruta cargada: ${readingOrders.length} medidores · ${sets.reusable.length} GPS en memoria · ${sets.missing.length} faltan`
     );
     switchReadingTab('route', document.getElementById('tabRoute'));
   } catch (err) {
@@ -627,10 +627,10 @@ function copyReadingMissingGps() {
     showReadingToast('Toda la ruta ya tiene GPS en memoria.');
     return;
   }
-  const text = missing.map(loc => `gmaps\${loc}`).join('\n');
+  const text = missing.map(loc => `gmaps${loc}`).join('\n');
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(text)
-      .then(() => showReadingToast(`Copiadas \${missing.length} Localizaciones faltantes.`))
+      .then(() => showReadingToast(`Copiadas ${missing.length} Localizaciones faltantes.`))
       .catch(() => prompt('Copia las Localizaciones:', text));
   } else {
     prompt('Copia las Localizaciones:', text);
@@ -700,8 +700,8 @@ function importReadingGps() {
       lastUsedAt:now,
       useCount:1,
       status:'valid',
-      wazeUrl:`https://www.waze.com/ul?ll=\${e.lat},\${e.lon}&navigate=yes`,
-      mapsUrl:`https://www.google.com/maps/search/?api=1&query=\${e.lat},\${e.lon}`
+      wazeUrl:`https://www.waze.com/ul?ll=${e.lat},${e.lon}&navigate=yes`,
+      mapsUrl:`https://www.google.com/maps/search/?api=1&query=${e.lat},${e.lon}`
     };
     added++;
   }
@@ -722,8 +722,8 @@ function importReadingGps() {
 
   const sets = readingGpsSets();
   showReadingToast(
-    `GPS: \${added} nuevos · \${verified} verificados · \${sets.missing.length} faltan` +
-    (outside ? ` · \${outside} fuera de ruta` : '')
+    `GPS: ${added} nuevos · ${verified} verificados · ${sets.missing.length} faltan` +
+    (outside ? ` · ${outside} fuera de ruta` : '')
   );
 }
 
@@ -743,10 +743,10 @@ function renderReadingRouteHistory() {
     return `
       <div class="history-route-item">
         <div>
-          <strong>\${escapeHtml(routeDisplayName(info))}</strong>
-          <span>\${escapeHtml(info.date || '')} · \${s.total} medidores · \${s.read} leídos</span>
+          <strong>${escapeHtml(routeDisplayName(info))}</strong>
+          <span>${escapeHtml(info.date || '')} · ${s.total} medidores · ${s.read} leídos</span>
         </div>
-        <button onclick="restoreReadingRoute('\${escapeHtml(info.routeId || '')}')">ABRIR</button>
+        <button onclick="restoreReadingRoute('${escapeHtml(info.routeId || '')}')">ABRIR</button>
       </div>`;
   }).join('');
 }
@@ -767,7 +767,7 @@ function restoreReadingRoute(routeId) {
   saveReadingState();
   renderAll();
   switchReadingTab('route', document.getElementById('tabRoute'));
-  showReadingToast(`\${routeDisplayName()} abierta desde memoria.`);
+  showReadingToast(`${routeDisplayName()} abierta desde memoria.`);
 }
 
 function renderAll() {
@@ -786,7 +786,7 @@ function renderAll() {
 function switchReadingTab(tab, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(v => v.classList.remove('active'));
-  document.getElementById(`view-\${tab}`).classList.add('active');
+  document.getElementById(`view-${tab}`).classList.add('active');
   if (btn) btn.classList.add('active');
   if (tab === 'list') renderList();
   if (tab === 'summary') renderSummary();
@@ -887,8 +887,8 @@ async function optimizeReadingRouteFromHere() {
   try {
     const pos = await getCurrentPositionPromise();
     const start = {lat:pos.coords.latitude, lon:pos.coords.longitude};
-    const coords = [start, ...pending].map(p => `\${p.lon},\${p.lat}`).join(';');
-    const url = `https://router.project-osrm.org/table/v1/driving/\${coords}?annotations=duration,distance`;
+    const coords = [start, ...pending].map(p => `${p.lon},${p.lat}`).join(';');
+    const url = `https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration,distance`;
     const res = await fetch(url,{cache:'no-store'});
     if (!res.ok) throw new Error('El motor vial no respondió.');
 
@@ -958,17 +958,17 @@ function copyReadingSummary() {
     'CNFL CAMPO · LECTURA',
     routeDisplayName(),
     readingRouteInfo.subtitle || '',
-    `Total: \${s.total}`,
-    `Leídos: \${s.read}`,
-    `No leídos: \${s.unread}`,
-    `Pendientes: \${s.pending}`,
+    `Total: ${s.total}`,
+    `Leídos: ${s.read}`,
+    `No leídos: ${s.unread}`,
+    `Pendientes: ${s.pending}`,
     '',
     'NO LEÍDOS:'
   ];
 
   const unread = readingOrders.filter(o => o.status === 'unread');
   if (!unread.length) lines.push('Ninguno');
-  else unread.forEach(o => lines.push(`\${o.localizacion} · Medidor \${o.medidor}`));
+  else unread.forEach(o => lines.push(`${o.localizacion} · Medidor ${o.medidor}`));
 
   const text = lines.join('\n');
   if (navigator.clipboard?.writeText) {
@@ -1009,6 +1009,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const sets = readingGpsSets();
   showReadingToast(
-    `\${routeDisplayName()} · \${readingOrders.length} medidores · \${sets.reusable.length} GPS en memoria`
+    `${routeDisplayName()} · ${readingOrders.length} medidores · ${sets.reusable.length} GPS en memoria`
   );
 });
