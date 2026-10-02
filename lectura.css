@@ -177,3 +177,47 @@ button,a{-webkit-tap-highlight-color:transparent}
   .online-badge{display:none}
   .topbar{grid-template-columns:34px 1fr}
 }
+
+/* CNFL Campo · cabecera y selector compartidos con Cortes */
+.topbar{
+  grid-template-columns:1fr auto;
+}
+.brand-mark{
+  width:auto;
+  height:auto;
+  background:transparent;
+  color:var(--cnfl-orange);
+  font-size:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.mode-switch{
+  max-width:720px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+}
+.mode-btn{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  color:var(--muted);
+  text-decoration:none;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.6px;
+  border-bottom:3px solid transparent;
+}
+.mode-btn.active{
+  color:var(--cnfl-blue);
+  border-bottom-color:var(--cnfl-orange);
+  background:#F8FAFC;
+}
+@media(max-width:420px){
+  .topbar{grid-template-columns:1fr auto}
+}
