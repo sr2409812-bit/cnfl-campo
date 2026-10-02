@@ -221,3 +221,81 @@ button,a{-webkit-tap-highlight-color:transparent}
 @media(max-width:420px){
   .topbar{grid-template-columns:1fr auto}
 }
+
+
+/* Carga simple de nuevas rutas */
+.bottom-nav{grid-template-columns:repeat(4,1fr)}
+.load-fields{display:grid;gap:10px;margin:14px 0}
+.load-fields label,.gps-paste{display:block}
+.load-fields label>span,.gps-paste>span{
+  display:block;
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.8px;
+}
+.load-fields input,
+.load-fields textarea,
+.gps-paste textarea{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:2px;
+  background:#fff;
+  color:var(--navy);
+  padding:10px;
+  outline:none;
+  font-family:"SFMono-Regular",Consolas,monospace;
+  font-size:12px;
+}
+.load-fields input{height:44px;font-family:inherit}
+.load-fields input:focus,
+.load-fields textarea:focus,
+.gps-paste textarea:focus{border-color:var(--cnfl-blue)}
+.btn-secondary.full{width:100%;margin-top:10px}
+.gps-load-stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  margin:14px 0 10px;
+  border:1px solid var(--line);
+}
+.gps-load-stats>div{
+  text-align:center;
+  padding:10px 4px;
+  border-right:1px solid var(--line);
+  background:var(--soft);
+}
+.gps-load-stats>div:last-child{border-right:none}
+.gps-load-stats strong{display:block;font-size:21px;color:var(--navy)}
+.gps-load-stats>div:nth-child(2) strong{color:var(--ok)}
+.gps-load-stats>div:nth-child(3) strong{color:var(--cnfl-orange)}
+.gps-load-stats span{display:block;margin-top:4px;font-size:9px;color:var(--muted);font-weight:800}
+.gps-paste{margin:10px 0}
+.route-history{margin-top:12px}
+.history-route-item{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+  border-top:1px solid var(--line);
+  padding:10px 0;
+}
+.history-route-item:first-child{border-top:0}
+.history-route-item strong{display:block;color:var(--navy);font-size:12px}
+.history-route-item span{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.history-route-item button{
+  border:1px solid var(--cnfl-blue);
+  background:#fff;
+  color:var(--cnfl-blue);
+  border-radius:2px;
+  font-size:9px;
+  font-weight:900;
+  padding:8px 9px;
+}
+.empty-history{
+  border:1px solid var(--line);
+  background:var(--soft);
+  color:var(--muted);
+  padding:12px;
+  font-size:11px;
+}
