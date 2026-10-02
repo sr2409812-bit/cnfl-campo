@@ -299,3 +299,53 @@ button,a{-webkit-tap-highlight-color:transparent}
   padding:12px;
   font-size:11px;
 }
+
+
+/* Carga PDF de medidores */
+.btn-pdf-load{
+  width:100%;
+  min-height:72px;
+  margin-top:14px;
+  border:1px solid var(--cnfl-blue);
+  border-left:5px solid var(--cnfl-orange);
+  border-radius:2px;
+  background:#fff;
+  color:var(--navy);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  text-align:left;
+  cursor:pointer;
+}
+.btn-pdf-load>i{font-size:26px;color:var(--danger)}
+.btn-pdf-load strong{display:block;font-size:12px;letter-spacing:.3px}
+.btn-pdf-load small{display:block;margin-top:4px;color:var(--muted);font-size:10px;font-weight:700}
+.pdf-status{
+  margin-top:8px;
+  border:1px solid var(--line);
+  border-left:4px solid var(--cnfl-blue);
+  background:var(--soft);
+  color:var(--navy);
+  padding:9px 10px;
+  font-size:10px;
+  font-weight:800;
+}
+.pdf-status.ok{border-left-color:var(--ok)}
+.pdf-status.error{border-left-color:var(--danger);color:var(--danger)}
+.load-divider{
+  position:relative;
+  text-align:center;
+  margin:15px 0 4px;
+  border-top:1px solid var(--line);
+}
+.load-divider span{
+  position:relative;
+  top:-8px;
+  background:#fff;
+  padding:0 8px;
+  color:var(--muted);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.8px;
+}
