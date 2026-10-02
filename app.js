@@ -161,7 +161,7 @@ function renderOrderHistory(query = '') {
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
           <div>
             <div style="font-family:var(--font-mono);color:var(--cnfl-cyan);font-size:11px;font-weight:700">${cnflEscapeHtml(cnflHistoryDisplayDate(o.historyDate))}</div>
-            <div style="font-size:15px;font-weight:800;color:#fff;margin-top:2px">${cnflEscapeHtml(o.cliente || 'SIN NOMBRE')}</div>
+            <div style="font-size:15px;font-weight:800;color:var(--cnfl-blue-header);margin-top:2px">${cnflEscapeHtml(o.cliente || 'SIN NOMBRE')}</div>
           </div>
           <div style="text-align:right;font-size:11px;color:#86EFAC;font-weight:700">${cnflEscapeHtml(status)}</div>
         </div>
@@ -516,7 +516,7 @@ function renderOrders() {
     container.innerHTML = `
       <div style="text-align:center;padding:36px 18px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">
         <i class="fa-solid fa-inbox" style="font-size:36px;color:var(--cnfl-cyan);margin-bottom:12px;display:block"></i>
-        <p style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px">Bandeja de trabajo vacía</p>
+        <p style="color:var(--cnfl-blue-header);font-weight:700;font-size:14px;margin-bottom:6px">Bandeja de trabajo vacía</p>
         <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px">No hay órdenes cargadas. Carga un archivo PDF o ingresa tus órdenes en la pestaña "Cargar".</p>
         <button class="btn-primary" style="display:inline-block;width:auto;padding:8px 18px;font-size:12px" onclick="switchTab('cargar', document.querySelectorAll('.nav-tab-btn')[1])">
           <i class="fa-solid fa-file-arrow-up"></i> Cargar órdenes nuevas
@@ -533,7 +533,7 @@ function renderOrders() {
     container.innerHTML = `
       <div style="text-align:center;padding:36px 18px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">
         <i class="fa-solid fa-clipboard-check" style="font-size:30px;color:var(--cnfl-cyan);margin-bottom:10px;display:block"></i>
-        <p style="color:#fff;font-weight:700;font-size:13px">${emptyMsg}</p>
+        <p style="color:var(--cnfl-blue-header);font-weight:700;font-size:13px">${emptyMsg}</p>
       </div>`;
     return;
   }
