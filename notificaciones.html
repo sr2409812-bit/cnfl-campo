@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CNFL Campo · Notificaciones</title>
+<style>
+:root{--navy:#00264D;--blue:#0033A0;--orange:#FF6A13;--bg:#f4f6f8;--card:#fff;--muted:#667085;--ok:#137333}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#172033}
+header{background:var(--navy);color:#fff;padding:14px 16px;border-bottom:4px solid var(--orange);position:sticky;top:0;z-index:3}
+header b{font-size:18px}.sub{font-size:12px;opacity:.85;margin-top:3px}
+main{max-width:680px;margin:auto;padding:14px 14px 100px}
+.panel,.card{background:var(--card);border:1px solid #d9dee5;border-radius:8px;padding:14px;margin-bottom:12px}
+.stats{display:flex;gap:8px}.stat{flex:1;text-align:center;background:#eef2f6;border-radius:6px;padding:10px 4px}.stat b{display:block;font-size:20px}
+.label{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.04em}
+.loc{font-size:28px;font-weight:800;margin:4px 0 2px}.step{color:var(--muted);font-size:13px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+button,a.btn{border:0;border-radius:8px;padding:14px 12px;font-weight:800;font-size:15px;text-align:center;text-decoration:none;display:block;cursor:pointer}
+.waze{background:#22b8f0;color:#06273a}.maps{background:var(--blue);color:#fff}.done{background:var(--ok);color:#fff;grid-column:1/-1}.next{background:var(--orange);color:#fff}.secondary{background:#e9edf2;color:#243244}
+select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;background:#fff;font-size:16px}
+.row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #edf0f3}.row:last-child{border-bottom:0}.row .n{width:34px;color:var(--muted);font-size:13px}.row .l{flex:1;font-weight:700}.badge{font-size:11px;padding:4px 7px;border-radius:999px;background:#eef2f6}.badge.ok{background:#e2f4e8;color:#0b5d2a}.current{outline:2px solid var(--orange);border-radius:6px}
+.notice{font-size:12px;color:var(--muted);margin-top:10px}
+</style>
+</head>
+<body>
+<header><b>CNFL CAMPO · NOTIFICACIONES</b><div class="sub">23 pendientes · ruta rápida con Waze / Google Maps</div></header>
+<main>
+<div class="panel">
+  <div class="stats">
+    <div class="stat"><b id="pendingCount">23</b><span class="label">PENDIENTES</span></div>
+    <div class="stat"><b id="doneCount">0</b><span class="label">GESTIONADAS</span></div>
+    <div class="stat"><b id="currentNum">1</b><span class="label">ACTUAL</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="label">PARADA ACTUAL</div>
+  <div class="loc" id="loc">7601000090</div>
+  <div class="step" id="step">1 de 23</div>
+  <div class="btns">
+    <a id="waze" class="btn waze" target="_blank" rel="noopener">ABRIR WAZE</a>
+    <a id="maps" class="btn maps" target="_blank" rel="noopener">ABRIR MAPS</a>
+    <button class="done" onclick="markDone()">GESTIONADA · SIGUIENTE</button>
+    <button class="secondary" onclick="prevStop()">ANTERIOR</button>
+    <button class="next" onclick="nextStop()">SIGUIENTE</button>
+  </div>
+  <div class="notice">El avance queda guardado en este navegador.</div>
+</div>
+
+<div class="panel">
+  <div class="label" style="margin-bottom:8px">ELEGIR PARADA DE INICIO / SALTAR A UNA</div>
+  <select id="jump" onchange="jumpTo(this.value)"></select>
+</div>
+
+<div class="panel">
+  <div class="label" style="margin-bottom:8px">RUTA</div>
+  <div id="list"></div>
+</div>
+</main>
+
+<script>
+const STOPS=[
+["7601000090",9.908069022,-84.088432229],
+["7601090064",9.906373154,-84.088146417],
+["7601111158",9.904576993,-84.088583354],
+["7601500125",9.904211187,-84.088784984],
+["7601500296",9.904963072,-84.089368305],
+["7601500298",9.904975029,-84.089385197],
+["7601620300",9.905188566,-84.09037979],
+["7601770118",9.904834251,-84.091774299],
+["7601660280",9.905337574,-84.091114091],
+["7601640170",9.905973697,-84.090938985],
+["7601010482",9.90811629,-84.089896545],
+["7601010480",9.908141625,-84.08989413],
+["7601030140",9.909147321,-84.090446562],
+["7601050190",9.908115873,-84.090549634],
+["7601540200",9.906578075,-84.092041512],
+["7601700040",9.905998725,-84.092852584],
+["7601810070",9.905656711,-84.093264361],
+["7601710170",9.906882659,-84.093315222],
+["7601170420",9.907226749,-84.092682272],
+["7601170170",9.907645892,-84.092370211],
+["7601230180",9.908240781,-84.093500808],
+["7601240020",9.908481487,-84.09380329],
+["7601200780",9.908698555,-84.094067924]
+];
+const KEY="cnfl_notificaciones_20261015";
+let state=JSON.parse(localStorage.getItem(KEY)||'null')||{index:0,done:{}};
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function render(){
+  const i=Math.max(0,Math.min(state.index,STOPS.length-1));state.index=i;
+  const [loc,lat,lon]=STOPS[i];
+  document.getElementById("loc").textContent=loc;
+  document.getElementById("step").textContent=(i+1)+" de "+STOPS.length;
+  document.getElementById("currentNum").textContent=i+1;
+  document.getElementById("waze").href="https://www.waze.com/ul?ll="+lat+","+lon+"&navigate=yes";
+  document.getElementById("maps").href="https://www.google.com/maps/dir/?api=1&destination="+lat+","+lon;
+  const doneCount=Object.keys(state.done).filter(k=>state.done[k]).length;
+  document.getElementById("doneCount").textContent=doneCount;
+  document.getElementById("pendingCount").textContent=STOPS.length-doneCount;
+  const jump=document.getElementById("jump");jump.innerHTML="";
+  STOPS.forEach((s,idx)=>{const o=document.createElement("option");o.value=idx;o.textContent=(idx+1).toString().padStart(2,"0")+" · "+s[0]+(state.done[s[0]]?" · GESTIONADA":"");if(idx===i)o.selected=true;jump.appendChild(o)});
+  const list=document.getElementById("list");list.innerHTML="";
+  STOPS.forEach((s,idx)=>{const r=document.createElement("div");r.className="row"+(idx===i?" current":"");r.onclick=()=>{state.index=idx;save();render();scrollTo({top:0,behavior:"smooth"})};r.innerHTML='<div class="n">'+String(idx+1).padStart(2,"0")+'</div><div class="l">'+s[0]+'</div><div class="badge '+(state.done[s[0]]?"ok":"")+'">'+(state.done[s[0]]?"GESTIONADA":"PENDIENTE")+'</div>';list.appendChild(r)});
+  save();
+}
+function nextPending(from){
+  for(let k=1;k<=STOPS.length;k++){const idx=(from+k)%STOPS.length;if(!state.done[STOPS[idx][0]])return idx}
+  return from;
+}
+function markDone(){state.done[STOPS[state.index][0]]=true;state.index=nextPending(state.index);save();render()}
+function nextStop(){state.index=(state.index+1)%STOPS.length;save();render()}
+function prevStop(){state.index=(state.index-1+STOPS.length)%STOPS.length;save();render()}
+function jumpTo(v){state.index=Number(v);save();render()}
+render();
+</script>
+</body>
+</html>
