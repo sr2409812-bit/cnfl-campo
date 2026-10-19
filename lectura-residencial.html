@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CNFL Campo · Lectura residencial</title>
+<meta name="theme-color" content="#00264D">
+<link rel="stylesheet" href="campo.css?v=20261019-1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+.rs{max-width:720px;margin:auto;padding:18px 14px 90px}.rs-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}.rs-card h2{margin:4px 0 8px}.rs-card p{color:var(--muted);line-height:1.45}.upload{display:block;border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;cursor:pointer}.upload i{font-size:30px;color:var(--blue);display:block;margin-bottom:8px}.file-list{margin-top:10px}.file-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #EDF1F4}.file-row:last-child{border-bottom:0}.file-row span{flex:1}.note{background:#FFF6EF;border-left:4px solid var(--orange);padding:12px;border-radius:8px;font-size:13px;line-height:1.45}.disabled{opacity:.55}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a href="campo.html" class="menu-btn" style="display:grid;place-items:center;text-decoration:none"><i class="fa-solid fa-arrow-left"></i></a>
+  <div class="brand"><div class="brand-mark"><i class="fa-solid fa-house-signal"></i></div><div><div class="brand-name">CNFL <span>CAMPO</span></div><div class="brand-sub">LECTURA RESIDENCIAL</div></div></div>
+</header>
+<main class="rs">
+  <section class="rs-card">
+    <div class="eyebrow">NUEVA JORNADA</div>
+    <h2>Cargá todos los PDFs</h2>
+    <p>Podés seleccionar varios documentos a la vez. Con los PDFs reales de mañana, este módulo validará el formato antes de extraer datos.</p>
+    <label class="upload">
+      <input id="pdfs" type="file" accept=".pdf,application/pdf" multiple hidden onchange="showFiles(event)">
+      <i class="fa-solid fa-file-pdf"></i>
+      <strong>SELECCIONAR PDFs</strong>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Uno o varios archivos</div>
+    </label>
+    <div id="fileList" class="file-list"></div>
+  </section>
+  <section class="rs-card">
+    <div class="eyebrow">FLUJO</div>
+    <div class="note">PDFs → validar extracción → reutilizar GPS en memoria → pedir solo GPS faltante → optimizar por calles y zonas → trabajar parada por parada → guardar historial.</div>
+  </section>
+  <section class="rs-card disabled">
+    <div class="eyebrow">PARSER</div>
+    <h2>Se activa con el formato real</h2>
+    <p>No voy a asumir columnas ni estructura antes de ver los documentos. Así evitamos cargar una ruta incompleta o asociar un medidor incorrecto.</p>
+  </section>
+</main>
+<script>
+function showFiles(ev){
+  const files=[...(ev.target.files||[])];
+  document.getElementById('fileList').innerHTML=files.length
+    ? files.map((f,i)=>'<div class="file-row"><i class="fa-solid fa-file-pdf" style="color:#B42318"></i><span>'+(i+1)+'. '+f.name+'</span><small>'+Math.round(f.size/1024)+' KB</small></div>').join('')
+    : '';
+}
+</script>
+</body>
+</html>
