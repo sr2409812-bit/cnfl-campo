@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>CNFL Campo</title>
+  <meta name="theme-color" content="#00264D" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="campo.css?v=20261019-1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" aria-label="Abrir menú"><i class="fa-solid fa-bars"></i></button>
+    <div class="brand"><div class="brand-mark"><i class="fa-solid fa-bolt"></i></div><div><div class="brand-name">CNFL <span>CAMPO</span></div><div class="brand-sub">TRABAJO EN CAMPO</div></div></div>
+    <div class="status-dot"></div>
+  </header>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">MÓDULOS</div>
+    <a href="campo.html" class="drawer-link active"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
+    <a href="index.html" class="drawer-link"><i class="fa-solid fa-bolt"></i><span>Cortes</span></a>
+    <a href="lectura.html" class="drawer-link"><i class="fa-solid fa-gauge-high"></i><span>Demanda</span></a>
+    <a href="lectura-residencial.html" class="drawer-link"><i class="fa-solid fa-house-signal"></i><span>Lectura residencial</span></a>
+    <a href="notificaciones.html" class="drawer-link"><i class="fa-solid fa-file-signature"></i><span>Notificaciones</span></a>
+    <div class="drawer-spacer"></div>
+    <a href="backup.html" class="drawer-link"><i class="fa-solid fa-shield-halved"></i><span>Respaldo</span></a>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">¿QUÉ VAS A HACER?</div>
+      <h1>Elegí el trabajo.</h1>
+      <p>Una pantalla simple. Cada módulo conserva su propia jornada y comparte la memoria GPS.</p>
+    </section>
+    <section class="module-grid">
+      <a class="module-card" href="index.html"><div class="module-icon"><i class="fa-solid fa-bolt"></i></div><div class="module-copy"><strong>Cortes</strong><span>Órdenes, gestión y liquidación</span></div><i class="fa-solid fa-chevron-right"></i></a>
+      <a class="module-card" href="lectura.html"><div class="module-icon"><i class="fa-solid fa-gauge-high"></i></div><div class="module-copy"><strong>Demanda</strong><span>Lectura de alto consumo</span></div><i class="fa-solid fa-chevron-right"></i></a>
+      <a class="module-card featured" href="lectura-residencial.html"><div class="module-icon"><i class="fa-solid fa-house-signal"></i></div><div class="module-copy"><strong>Lectura residencial</strong><span>Varias zonas y muchos medidores</span></div><i class="fa-solid fa-chevron-right"></i></a>
+      <a class="module-card" href="notificaciones.html"><div class="module-icon"><i class="fa-solid fa-file-signature"></i></div><div class="module-copy"><strong>Notificaciones</strong><span>Localización → Waze/Maps → siguiente</span></div><i class="fa-solid fa-chevron-right"></i></a>
+    </section>
+    <section class="safety-card">
+      <div><div class="eyebrow">PROTECCIÓN DE DATOS</div><strong>Respaldá la memoria del teléfono</strong><p>Exporta GPS, jornadas e historial en un solo archivo.</p></div>
+      <a href="backup.html" class="backup-btn"><i class="fa-solid fa-download"></i> RESPALDAR</a>
+    </section>
+  </main>
+<script>
+const drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
+function setDrawer(open){drawer.classList.toggle('open',open);scrim.classList.toggle('show',open)}
+document.getElementById('menuBtn').onclick=()=>setDrawer(true);scrim.onclick=()=>setDrawer(false);
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body>
+</html>
