@@ -26,11 +26,11 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
 </style>
 </head>
 <body>
-<header><b>CNFL CAMPO · NOTIFICACIONES</b><div class="sub">13 notificaciones · sin NISE ni medidor · Waze / Google Maps</div></header>
+<header><b>CNFL CAMPO · NOTIFICACIONES</b><div class="sub">16 notificaciones · sin NISE ni medidor · Waze / Google Maps</div></header>
 <main>
 <div class="panel">
   <div class="stats">
-    <div class="stat"><b id="pendingCount">13</b><span class="label">PENDIENTES</span></div>
+    <div class="stat"><b id="pendingCount">16</b><span class="label">PENDIENTES</span></div>
     <div class="stat"><b id="doneCount">0</b><span class="label">GESTIONADAS</span></div>
     <div class="stat"><b id="currentNum">1</b><span class="label">ACTUAL</span></div>
   </div>
@@ -41,7 +41,7 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
 <div class="card">
   <div class="label">PARADA ACTUAL</div>
   <div class="loc" id="loc">0204700482</div>
-  <div class="step" id="step">1 de 13</div>
+  <div class="step" id="step">1 de 16</div>
   <div class="btns">
     <a id="waze" class="btn waze" target="_blank" rel="noopener">ABRIR WAZE</a>
     <a id="maps" class="btn maps" target="_blank" rel="noopener">ABRIR MAPS</a>
@@ -77,7 +77,10 @@ const DEFAULT_STOPS=[
 ["0613900754",9.94250627100001,-84.110821085],
 ["1404200360",9.92160052200001,-84.092106829],
 ["1605500200",9.94015393299998,-84.084416301],
-["4003000572",9.91695747300002,-84.088931966]
+["4003000572",9.91695747300002,-84.088931966],
+["0702500160",9.93228400499999,-84.082658725],
+["0802602280",9.92838709099999,-84.072010935],
+["0901680620",9.91908912500003,-84.070271452]
 ];
 const KEY="cnfl_notificaciones_20261019_v2";
 let state=JSON.parse(localStorage.getItem(KEY)||'null')||{index:0,done:{},order:DEFAULT_STOPS.map(s=>s[0]),meta:null};
