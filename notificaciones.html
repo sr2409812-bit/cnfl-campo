@@ -130,9 +130,11 @@ function render(){
   if(state.meta&&state.meta.optimizedAt){
     const when=new Date(state.meta.optimizedAt).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
     const km=Number.isFinite(state.meta.meters)?(" · "+(state.meta.meters/1000).toFixed(1)+" km aprox."):"";
-    rs.textContent="Ruta vial desde tu ubicación · evita devolverse · "+when+km+".";
+    const ctl=state.meta.control?(" · control "+state.meta.control):"";
+    rs.textContent="Ruta vial del control actual"+ctl+" · evita devolverse · "+when+km+".";
   } else {
-    rs.textContent="Progreso recuperado. La app conserva tu orden y tu parada actual; solo reordena pendientes si tocás el botón.";
+    const ctl=controlOf(currentStops()[state.index]&&currentStops()[state.index][0]);
+    rs.textContent="Control actual "+ctl+". La app termina este control antes de pasar al siguiente.";
   }
 
   const jump=document.getElementById("jump");jump.innerHTML="";
@@ -141,9 +143,27 @@ function render(){
   stops.forEach((s,idx)=>{const r=document.createElement("div");r.className="row"+(idx===i?" current":"");r.onclick=()=>{state.index=idx;save();render();scrollTo({top:0,behavior:"smooth"})};r.innerHTML='<div class="n">'+String(idx+1).padStart(2,"0")+'</div><div class="l">'+s[0]+'</div><div class="badge '+(state.done[s[0]]?"ok":"")+'">'+(state.done[s[0]]?"GESTIONADA":"PENDIENTE")+'</div>';list.appendChild(r)});
   save();
 }
+const CONTROL_SEQUENCE=["02","04","06","07","08","09","14","16","40"];
+function controlOf(loc){return String(loc||"").slice(0,2)}
 function nextPending(from){
   const stops=currentStops();
-  for(let k=1;k<=stops.length;k++){const idx=(from+k)%stops.length;if(!state.done[stops[idx][0]])return idx}
+  const currentControl=controlOf(stops[from]&&stops[from][0]);
+
+  // 1) Mientras queden pendientes del control actual, NO saltar a otro control.
+  for(let k=1;k<=stops.length;k++){
+    const idx=(from+k)%stops.length;
+    if(!state.done[stops[idx][0]] && controlOf(stops[idx][0])===currentControl) return idx;
+  }
+
+  // 2) Solo cuando ese control queda terminado, pasar al siguiente control de la jornada.
+  const pos=CONTROL_SEQUENCE.indexOf(currentControl);
+  for(let step=1;step<=CONTROL_SEQUENCE.length;step++){
+    const ctl=CONTROL_SEQUENCE[(Math.max(pos,0)+step)%CONTROL_SEQUENCE.length];
+    for(let k=1;k<=stops.length;k++){
+      const idx=(from+k)%stops.length;
+      if(!state.done[stops[idx][0]] && controlOf(stops[idx][0])===ctl) return idx;
+    }
+  }
   return from;
 }
 function markDone(){const stops=currentStops();state.done[stops[state.index][0]]=true;state.index=nextPending(state.index);save();render()}
@@ -217,8 +237,14 @@ function improveRoute(route,matrix){
   return {route:best,cost:bestCost};
 }
 async function optimizeFromHere(){
-  const pending=DEFAULT_STOPS.filter(s=>!state.done[s[0]]);
-  if(pending.length<2){alert("No hay suficientes pendientes para ordenar.");return}
+  const stopsNow=currentStops();
+  const current=stopsNow[Math.max(0,Math.min(Number(state.index)||0,stopsNow.length-1))];
+  const activeControl=controlOf(current&&current[0]);
+  const pending=DEFAULT_STOPS.filter(s=>!state.done[s[0]] && controlOf(s[0])===activeControl);
+  if(pending.length<2){
+    alert("En el control "+activeControl+" no hay suficientes pendientes para reordenar. La app no saltará al siguiente control hasta terminar este.");
+    return
+  }
   const btn=document.getElementById("optBtn"),old=btn.textContent;
   btn.disabled=true;btn.textContent="CALCULANDO RUTA…";
   try{
@@ -256,15 +282,19 @@ async function optimizeFromHere(){
     });
     const best=candidates[0].route;
     const orderedPending=best.map(idx=>pending[idx-1][0]);
-    const managed=currentStops().filter(s=>state.done[s[0]]).map(s=>s[0]);
-    state.order=[...orderedPending,...managed];
-    state.index=0;
+    const before=currentStops();
+    const currentLoc=current&&current[0];
+    const otherPending=before.filter(s=>!state.done[s[0]] && controlOf(s[0])!==activeControl).map(s=>s[0]);
+    const managed=before.filter(s=>state.done[s[0]]).map(s=>s[0]);
+    state.order=[...orderedPending,...otherPending,...managed];
+    state.index=Math.max(0,state.order.indexOf(currentLoc));
+    if(state.index<0) state.index=0;
 
     let meters=0,cur=0;
     if(Array.isArray(data.distances)){
       for(const idx of best){const d=Number(data.distances[cur][idx]);if(Number.isFinite(d))meters+=d;cur=idx}
     }
-    state.meta={optimizedAt:new Date().toISOString(),meters};
+    state.meta={optimizedAt:new Date().toISOString(),meters,control:activeControl};
     save();render();
   }catch(e){
     alert("No cambié la ruta. "+(e.message||e));
