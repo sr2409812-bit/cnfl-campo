@@ -34,7 +34,7 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
     <div class="stat"><b id="doneCount">0</b><span class="label">GESTIONADAS</span></div>
     <div class="stat"><b id="currentNum">1</b><span class="label">ACTUAL</span></div>
   </div>
-  <button id="optBtn" class="optimize" onclick="optimizeFromHere()">ORDENAR RUTA DESDE MI UBICACIÓN</button>
+  <button id="optBtn" class="optimize" onclick="optimizeFromHere()">ORDENAR RUTA · EVITAR DEVOLVERSE</button>
   <div id="routeStatus" class="routeStatus">Podés empezar en cualquier parada o dejar que la app ordene los pendientes desde donde estás.</div>
 </div>
 
@@ -110,7 +110,7 @@ function render(){
   if(state.meta&&state.meta.optimizedAt){
     const when=new Date(state.meta.optimizedAt).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
     const km=Number.isFinite(state.meta.meters)?(" · "+(state.meta.meters/1000).toFixed(1)+" km aprox."):"";
-    rs.textContent="Ruta vial calculada desde tu ubicación a las "+when+km+".";
+    rs.textContent="Ruta vial calculada para reducir vueltas y regresos innecesarios · "+when+km+".";
   }
 
   const jump=document.getElementById("jump");jump.innerHTML="";
@@ -140,6 +140,9 @@ function routeCost(route,matrix){
   for(const idx of route){const v=Number(matrix[cur][idx]);if(!Number.isFinite(v))return Infinity;total+=v;cur=idx}
   return total;
 }
+function matrixUsable(matrix,n){
+  return Array.isArray(matrix)&&matrix.length===n&&matrix.every(r=>Array.isArray(r)&&r.length===n);
+}
 function nearest(matrix,indices,forcedFirst=null){
   const left=new Set(indices),out=[];let cur=0;
   if(forcedFirst!==null&&left.has(forcedFirst)){out.push(forcedFirst);left.delete(forcedFirst);cur=forcedFirst}
@@ -151,18 +154,43 @@ function nearest(matrix,indices,forcedFirst=null){
   }
   return out;
 }
-function twoOpt(route,matrix){
+function improveRoute(route,matrix){
   let best=[...route],bestCost=routeCost(best,matrix);
-  for(let pass=0;pass<10;pass++){
-    let changed=false;
-    outer:for(let i=0;i<best.length-1;i++){
+  for(let pass=0;pass<30;pass++){
+    let winner=null,winnerCost=bestCost;
+
+    // 2-opt: elimina cruces y regresos evidentes.
+    for(let i=0;i<best.length-1;i++){
       for(let j=i+1;j<best.length;j++){
         const cand=[...best.slice(0,i),...best.slice(i,j+1).reverse(),...best.slice(j+1)];
-        const c=routeCost(cand,matrix);
-        if(c+0.5<bestCost){best=cand;bestCost=c;changed=true;break outer}
+        const cost=routeCost(cand,matrix);
+        if(cost+0.5<winnerCost){winner=cand;winnerCost=cost}
       }
     }
-    if(!changed)break;
+
+    // Relocate: mueve una parada mal colocada a otra zona del recorrido.
+    for(let i=0;i<best.length;i++){
+      const reduced=[...best];
+      const moved=reduced.splice(i,1)[0];
+      for(let j=0;j<=reduced.length;j++){
+        const cand=[...reduced.slice(0,j),moved,...reduced.slice(j)];
+        const cost=routeCost(cand,matrix);
+        if(cost+0.5<winnerCost){winner=cand;winnerCost=cost}
+      }
+    }
+
+    // Swap: corrige dos paradas cruzadas sin rehacer todo el bloque.
+    for(let i=0;i<best.length-1;i++){
+      for(let j=i+1;j<best.length;j++){
+        const cand=[...best];
+        [cand[i],cand[j]]=[cand[j],cand[i]];
+        const cost=routeCost(cand,matrix);
+        if(cost+0.5<winnerCost){winner=cand;winnerCost=cost}
+      }
+    }
+
+    if(!winner)break;
+    best=winner;bestCost=winnerCost;
   }
   return {route:best,cost:bestCost};
 }
@@ -182,12 +210,28 @@ async function optimizeFromHere(){
     if(data.code!=="Ok"||!Array.isArray(data.durations))throw new Error("No se recibió una matriz vial válida.");
 
     const indices=Array.from({length:pending.length},(_,i)=>i+1);
-    const ranked=[...indices].sort((a,b)=>Number(data.durations[0][a])-Number(data.durations[0][b]));
-    const seeds=[];
-    [ranked[0],ranked[1],ranked[2],ranked[Math.floor((ranked.length-1)/2)],ranked[ranked.length-1]].forEach(x=>{if(x&&!seeds.includes(x))seeds.push(x)});
-    const candidates=[twoOpt(nearest(data.durations,indices),data.durations)];
-    for(const first of seeds)candidates.push(twoOpt(nearest(data.durations,indices,first),data.durations));
-    candidates.sort((a,b)=>a.cost-b.cost);
+    const size=pending.length+1;
+
+    // Para trabajo de campo priorizamos MENOS DISTANCIA POR CALLES.
+    // Así se castigan naturalmente vueltas y regresos innecesarios.
+    // Si OSRM no trae distancias completas, se usa tiempo vial como respaldo.
+    const objective=matrixUsable(data.distances,size)?data.distances:data.durations;
+
+    // Con jornadas pequeñas probamos cada parada como posible primera visita.
+    // Luego aplicamos 2-opt + relocate + swap y elegimos la ruta vial más corta.
+    const candidates=[improveRoute(nearest(objective,indices),objective)];
+    const seeds=pending.length<=24?indices:[...indices].sort((a,b)=>Number(objective[0][a])-Number(objective[0][b])).slice(0,12);
+    for(const first of seeds){
+      const improved=improveRoute(nearest(objective,indices,first),objective);
+      improved.duration=routeCost(improved.route,data.durations);
+      candidates.push(improved);
+    }
+    candidates.forEach(x=>{if(!Number.isFinite(x.duration))x.duration=routeCost(x.route,data.durations)});
+    candidates.sort((a,b)=>{
+      const delta=a.cost-b.cost;
+      if(Math.abs(delta)>25)return delta;
+      return a.duration-b.duration;
+    });
     const best=candidates[0].route;
     const orderedPending=best.map(idx=>pending[idx-1][0]);
     const managed=currentStops().filter(s=>state.done[s[0]]).map(s=>s[0]);
