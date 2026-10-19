@@ -82,33 +82,28 @@ const DEFAULT_STOPS=[
 ["0802602280",9.92838709099999,-84.072010935],
 ["0901680620",9.91908912500003,-84.070271452]
 ];
-const FALLBACK_ORDER=[
-"0613900754",
-"0403410050",
-"0404400760",
-"0405500760",
-"0405400380",
-"0404300260",
-"0401100090",
-"0400900220",
-"0400900840",
-"1605500200",
-"0702500160",
-"0204700482",
-"0802602280",
-"0901680620",
-"4003000572",
-"1404200360"
-];
-const OLD_KEY="cnfl_notificaciones_20261019_v2";
-const KEY="cnfl_notificaciones_20261019_v3";
-const oldState=JSON.parse(localStorage.getItem(OLD_KEY)||'null');
-let state=JSON.parse(localStorage.getItem(KEY)||'null')||{
+const KEY="cnfl_notificaciones_20261019_v2";
+const LEGACY_NEW_KEY="cnfl_notificaciones_20261019_v3";
+
+// Prioridad absoluta: recuperar exactamente el progreso que ya existía
+// en la versión ?v=20261019c. No se cambia el orden ni la parada actual.
+const savedV2=JSON.parse(localStorage.getItem(KEY)||'null');
+const savedV3=JSON.parse(localStorage.getItem(LEGACY_NEW_KEY)||'null');
+
+let state=savedV2||savedV3||{
   index:0,
-  done:(oldState&&oldState.done)||{},
-  order:[...FALLBACK_ORDER],
-  meta:{baseOptimized:true}
+  done:{},
+  order:DEFAULT_STOPS.map(s=>s[0]),
+  meta:null
 };
+
+// Si el estado guardado era de 13 paradas, las 3 nuevas se agregan
+// sin alterar el progreso ni reordenar lo que ya llevaba el usuario.
+if(!Array.isArray(state.order)) state.order=DEFAULT_STOPS.map(s=>s[0]);
+for(const stop of DEFAULT_STOPS){
+  if(!state.order.includes(stop[0])) state.order.push(stop[0]);
+}
+if(!state.done||typeof state.done!=="object") state.done={};
 
 function byLoc(loc){return DEFAULT_STOPS.find(s=>s[0]===loc)}
 function currentStops(){
@@ -137,7 +132,7 @@ function render(){
     const km=Number.isFinite(state.meta.meters)?(" · "+(state.meta.meters/1000).toFixed(1)+" km aprox."):"";
     rs.textContent="Ruta vial desde tu ubicación · evita devolverse · "+when+km+".";
   } else {
-    rs.textContent="Orden base ya reorganizado para recorrer la zona de forma continua. Para ajustarlo a calles y a tu punto real de salida, tocá el botón.";
+    rs.textContent="Progreso recuperado. La app conserva tu orden y tu parada actual; solo reordena pendientes si tocás el botón.";
   }
 
   const jump=document.getElementById("jump");jump.innerHTML="";
