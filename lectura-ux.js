@@ -41,12 +41,21 @@
     const s = stats();
 
     if (!pending.length) {
-      container.innerHTML = `
-        <div class="done-card">
-          <i class="fa-solid fa-circle-check"></i>
-          <h2>Jornada completada</h2>
-          <p>${s.read} medidores visitados</p>
-        </div>`;
+      if (!readingOrders.length) {
+        container.innerHTML = `
+          <div class="done-card">
+            <i class="fa-solid fa-file-arrow-up"></i>
+            <h2>Sin jornada cargada</h2>
+            <p>Entrá a CARGAR para abrir una ruta de Demanda.</p>
+          </div>`;
+      } else {
+        container.innerHTML = `
+          <div class="done-card">
+            <i class="fa-solid fa-circle-check"></i>
+            <h2>Jornada completada</h2>
+            <p>${s.read} medidores visitados</p>
+          </div>`;
+      }
       nextContainer.innerHTML = '';
       return;
     }
