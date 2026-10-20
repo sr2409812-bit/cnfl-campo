@@ -395,6 +395,7 @@ function renderLoadView() {
   document.getElementById('loadGpsTotal').textContent = sets.all.length;
   document.getElementById('loadGpsMemory').textContent = sets.reusable.length;
   document.getElementById('loadGpsMissing').textContent = sets.missing.length;
+  renderLoadedReadingGroups();
   renderReadingRouteHistory();
 }
 
@@ -677,6 +678,76 @@ function importReadingGps() {
   );
 }
 
+function readingGroupSort(a,b) {
+  const ma = String(a || '').match(/(\d{4})-(\d+)/);
+  const mb = String(b || '').match(/(\d{4})-(\d+)/);
+  if (ma && mb) return Number(ma[1]) - Number(mb[1]) || Number(ma[2]) - Number(mb[2]);
+  if (ma) return -1;
+  if (mb) return 1;
+  return String(a || '').localeCompare(String(b || ''));
+}
+
+function renderLoadedReadingGroups() {
+  const el = document.getElementById('readingLoadedGroups');
+  const card = document.getElementById('readingGroupsCard');
+  if (!el) return;
+
+  if (READING_MODE !== 'residencial' || !readingOrders.length) {
+    el.innerHTML = '';
+    if (card) card.style.display = 'none';
+    return;
+  }
+
+  const groups = new Map();
+  for (const order of readingOrders) {
+    const key = String(order.sourceRoute || 'SIN RUTA');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(order);
+  }
+
+  const rows = [...groups.entries()].sort((a,b)=>readingGroupSort(a[0],b[0]));
+  if (card) card.style.display = 'block';
+
+  el.innerHTML = rows.map(([route, orders]) => {
+    const read = orders.filter(o => o.status === 'read' && String(o.lectura || '').trim()).length;
+    return '<div class="loaded-route-group">' +
+      '<div><strong>Ruta ' + escapeHtml(route) + '</strong>' +
+      '<span>' + orders.length + ' medidores · ' + read + ' lecturas</span></div>' +
+      '<button onclick="deleteLoadedReadingGroup(\'' + escapeHtml(route) + '\')">' +
+      '<i class="fa-solid fa-trash"></i> BORRAR</button></div>';
+  }).join('');
+}
+
+function deleteLoadedReadingGroup(routeLabel) {
+  const route = String(routeLabel || '');
+  const affected = readingOrders.filter(o => String(o.sourceRoute || 'SIN RUTA') === route);
+  if (!affected.length) return;
+
+  const withReadings = affected.filter(o => o.status === 'read' && String(o.lectura || '').trim()).length;
+  const warning = withReadings
+    ? ' También se quitarán ' + withReadings + ' lecturas guardadas de esa ruta.'
+    : '';
+
+  if (!confirm('¿Borrar la ruta ' + route + ' de esta jornada?' + warning + ' La memoria GPS NO se borra.')) return;
+
+  const removedLocs = new Set(affected.map(o => String(o.localizacion)));
+  readingOrders = readingOrders.filter(o => !removedLocs.has(String(o.localizacion)));
+
+  if (!readingOrders.length) {
+    clearActiveReadingRoute();
+  } else {
+    const routes = [...new Set(readingOrders.map(o => String(o.sourceRoute || '')).filter(Boolean))].sort(readingGroupSort);
+    readingOrders = readingOrders.map((o,index)=>({...o,sequence:index + 1,originalSequence:index + 1}));
+    readingRouteInfo.name = 'Lectura residencial · ' + routes.length + (routes.length === 1 ? ' ruta' : ' rutas');
+    readingRouteInfo.subtitle = routes.join(' · ');
+    readingRouteInfo.sourceRoutes = routes;
+    readingRouteMeta = null;
+    saveReadingState();
+    renderAll();
+  }
+
+  showReadingToast('Ruta ' + route + ' borrada. La memoria GPS se conserva.');
+}
 function renderReadingRouteHistory() {
   const el = document.getElementById('readingRouteHistory');
   if (!el) return;
