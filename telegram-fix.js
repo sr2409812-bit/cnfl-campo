@@ -2,32 +2,7 @@
 // Corrige el vínculo Waze -> Localización evitando confundir dígitos de latitud
 // con el número de Localización y agrega control de duplicados/faltantes.
 
-const CNFL_GEO_SEED_20260916 = {
-  "0505001520": { lat: 9.94128033700002, lon: -84.095279262, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001480": { lat: 9.94118448199998, lon: -84.095301602, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001415": { lat: 9.94121743800002, lon: -84.095442472, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001365": { lat: 9.94132678300002, lon: -84.095384137, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001280": { lat: 9.94120764199999, lon: -84.095332725, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001185": { lat: 9.941289434, lon: -84.095366664, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001136": { lat: 9.941518637, lon: -84.095676723, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001134": { lat: 9.94151280800003, lon: -84.095673286, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001120": { lat: 9.94147710999999, lon: -84.095668112, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001110": { lat: 9.94145474800001, lon: -84.095688523, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001104": { lat: 9.94144981400001, lon: -84.095707462, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505001080": { lat: 9.94148375100002, lon: -84.095748209, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505000420": { lat: 9.94179149600001, lon: -84.095613431, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0505000285": { lat: 9.94186836199998, lon: -84.095626182, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504700780": { lat: 9.93971996699997, lon: -84.096428085, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504700420": { lat: 9.940608123, lon: -84.096149604, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504700320": { lat: 9.94057842199999, lon: -84.096066345, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504500060": { lat: 9.93979156300003, lon: -84.094726752, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504401662": { lat: 9.94013559299998, lon: -84.094650618, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504400522": { lat: 9.94046141500002, lon: -84.093384002, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504400480": { lat: 9.94043256700002, lon: -84.093356886, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504400400": { lat: 9.94026055699999, lon: -84.093382863, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504400245": { lat: 9.94007706100001, lon: -84.093250014, circuito: "Circuito 907 BARRIO MEXICO" },
-  "0504400240": { lat: 9.93999018300002, lon: -84.093216791, circuito: "Circuito 907 BARRIO MEXICO" }
-};
+const CNFL_GEO_SEED_20260916 = {};
 
 function normalizeCnflLocalization(value) {
   let digits = String(value || '').replace(/\D/g, '');
@@ -132,16 +107,7 @@ function cnflGpsBadgeHtml(ord) {
 
 loadGeoCache = async function () {
   try {
-    let serverCache = {};
     let savedCache = {};
-
-    try {
-      const res = await fetch('resolved_cache.json?cb=' + Date.now(), { cache: 'no-store' });
-      if (res.ok) serverCache = await res.json();
-    } catch (e) {
-      console.warn('No se pudo refrescar resolved_cache.json:', e);
-    }
-
     try {
       const saved = localStorage.getItem('cnfl_geocache');
       if (saved) savedCache = JSON.parse(saved) || {};
@@ -150,26 +116,10 @@ loadGeoCache = async function () {
     }
 
     const merged = {};
-
-    for (const [loc, g] of Object.entries(CNFL_GEO_SEED_20260916)) {
-      const key = normalizeCnflLocalization(loc);
-      const migrated = cnflMigrateGeoEntry(key, g, 'seed');
-      if (migrated) merged[key] = migrated;
-    }
-
-    for (const [loc, g] of Object.entries(serverCache || {})) {
-      const key = normalizeCnflLocalization(loc);
-      const migrated = cnflMigrateGeoEntry(key, g, 'server');
-      if (migrated) merged[key] = migrated;
-    }
-
-    // La memoria local conserva coordenadas confirmadas o aprendidas en campo.
     for (const [loc, g] of Object.entries(savedCache || {})) {
       const key = normalizeCnflLocalization(loc);
       const migrated = cnflMigrateGeoEntry(key, g, g.source || 'legacy-memory');
-      if (!migrated) continue;
-      const localWins = ['ubiCNFL','campo-manual','sigel','user-confirmed','legacy-memory'].includes(migrated.source);
-      if (!merged[key] || localWins) merged[key] = migrated;
+      if (migrated) merged[key] = migrated;
     }
 
     geoCache = merged;
