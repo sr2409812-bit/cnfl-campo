@@ -1,11 +1,12 @@
 {
-  "name": "Ruta CNFL Campo",
+  "name": "CNFL Campo",
   "short_name": "CNFL Campo",
-  "description": "Sistema de gestión y optimización de ruta de desconexiones para cuadrillas CNFL",
-  "start_url": "./index.html",
+  "description": "Herramienta de campo para cortes, demanda, lectura residencial y notificaciones.",
+  "start_url": "./campo.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0a0d14",
-  "theme_color": "#0a0d14",
+  "background_color": "#F3F6F9",
+  "theme_color": "#00264D",
   "orientation": "portrait-primary",
   "icons": [
     {
