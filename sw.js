@@ -1,6 +1,11 @@
-const CACHE_NAME = 'cnfl-campo-v32';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'cnfl-campo-v33';
+
+const CORE_ASSETS = [
   './',
+  './campo.html',
+  './campo.css',
+  './campo-shell.css',
+  './campo-shell.js',
   './index.html',
   './style.css',
   './app.js',
@@ -14,66 +19,107 @@ const ASSETS_TO_CACHE = [
   './lectura.js',
   './lectura-pdf.js',
   './lectura-ux.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+  './lectura-residencial.html',
+  './notificaciones.html',
+  './backup.html',
+  './backup.js'
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v32] Pre-caching assets offline...');
+const OPTIONAL_ASSETS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+];
 
-      return cache.addAll(ASSETS_TO_CACHE).catch(err => console.warn('[SW] Cache addAll warning:', err));
-    }).then(() => self.skipWaiting())
-  );
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+
+    // Los archivos propios son críticos: se cachean uno por uno para que
+    // una falla aislada no deje toda la app sin modo offline.
+    for (const asset of CORE_ASSETS) {
+      try { await cache.add(asset); }
+      catch (err) { console.warn('[SW v33] No se pudo precachear', asset, err); }
+    }
+
+    // Dependencias externas son opcionales: no bloquean la instalación.
+    for (const asset of OPTIONAL_ASSETS) {
+      try { await cache.add(asset); }
+      catch (err) { console.warn('[SW v33] Dependencia externa no disponible', asset); }
+    }
+
+    await self.skipWaiting();
+  })());
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      );
-    }).then(() => self.clients.claim())
-  );
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.method === 'GET' && event.request.url.startsWith(self.location.origin)) {
-    event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+function sameOriginPath(request) {
+  try {
+    const url = new URL(request.url);
+    return url.origin === self.location.origin ? url.pathname : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+async function cachedIgnoringQuery(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const direct = await cache.match(request, {ignoreSearch:true});
+  if (direct) return direct;
+
+  const path = sameOriginPath(request);
+  if (!path) return null;
+  const scopePath = new URL(self.registration.scope).pathname;
+  const relative = './' + path.slice(scopePath.length);
+  return cache.match(relative, {ignoreSearch:true});
+}
+
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+
+  const sameOrigin = event.request.url.startsWith(self.location.origin);
+
+  if (sameOrigin) {
+    event.respondWith((async () => {
+      try {
+        const network = await fetch(event.request, {cache:'no-store'});
+        if (network && network.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, network.clone()).catch(()=>{});
+        }
+        return network;
+      } catch (_) {
+        const cached = await cachedIgnoringQuery(event.request);
+        if (cached) return cached;
+
+        // Nunca mandar Lectura/Demanda/Notificaciones a Cortes por error.
+        // Solo la raíz genérica cae al inicio unificado.
+        const acceptsHtml = (event.request.headers.get('accept') || '').includes('text/html');
+        if (acceptsHtml) {
+          const path = sameOriginPath(event.request);
+          const scopePath = new URL(self.registration.scope).pathname;
+          const relative = path.slice(scopePath.length);
+          if (!relative || relative === '/') {
+            return caches.match('./campo.html');
           }
-          return networkResponse;
-        })
-        .catch(() => {
-          return caches.match(event.request).then((cached) => {
-            if (cached) return cached;
-            if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
-              return caches.match('./index.html');
-            }
-          });
-        })
-    );
+        }
+        return new Response('Recurso no disponible sin conexión.', {status:503, statusText:'Offline'});
+      }
+    })());
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
-      return fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, networkResponse.clone());
-          });
-        }
-        return networkResponse;
-      });
-    })
-  );
+  event.respondWith((async () => {
+    const cached = await caches.match(event.request, {ignoreSearch:true});
+    if (cached) return cached;
+    try { return await fetch(event.request); }
+    catch (_) { return new Response('', {status:503, statusText:'Offline'}); }
+  })());
 });
