@@ -1,10 +1,9 @@
 // CNFL Campo — optimizador vial v5 para trabajo de campo
 // Reglas:
-// 1) Ruta inicial desde La Guaca.
+// 1) Ruta inicial desde el punto de salida configurado.
 // 2) En campo: recalcular SOLO pendientes desde la ubicación actual.
-// 3) Lectura: LIBRO 16 primero y LIBRO 40 después.
+// 3) Cortes se optimiza como una sola jornada, sin inferir grupos por prefijos.
 // 4) Matriz vial por calles; nunca reemplazar silenciosamente por distancia aérea.
-// 5) La transición 16 -> 40 influye en el final elegido para el libro 16.
 
 const CNFL_ROUTE_CONFIG_KEY = 'cnfl_route_config';
 const CNFL_DEFAULT_ROUTE_BASE = {
@@ -59,27 +58,8 @@ function cnflLocalizationDigits(order) {
   return String(order && order.localizacion || '').replace(/\D/g, '');
 }
 
-function cnflReadingBook(order) {
-  const loc = cnflLocalizationDigits(order);
-  if (loc.startsWith('16')) return '16';
-  if (loc.startsWith('40')) return '40';
-  return '';
-}
-
 function cnflBuildRouteGroups(orders) {
-  const tagged = orders.map(o => ({ order: o, book: cnflReadingBook(o) }));
-  const readingOnly = tagged.length > 0 && tagged.every(x => x.book === '16' || x.book === '40');
-
-  if (!readingOnly) {
-    return [{ key: 'GENERAL', label: 'RUTA GENERAL', orders: [...orders] }];
-  }
-
-  const groups = [];
-  const book16 = tagged.filter(x => x.book === '16').map(x => x.order);
-  const book40 = tagged.filter(x => x.book === '40').map(x => x.order);
-  if (book16.length) groups.push({ key: '16', label: 'LIBRO 16', orders: book16 });
-  if (book40.length) groups.push({ key: '40', label: 'LIBRO 40', orders: book40 });
-  return groups;
+  return [{ key: 'GENERAL', label: 'RUTA GENERAL', orders: [...(orders || [])] }];
 }
 
 function cnflRoadCoordinate(point) {
@@ -451,4 +431,4 @@ async function optimizePendingFromCurrentLocation() {
 // Para trabajo en campo, los botones visibles llaman optimizePendingFromCurrentLocation().
 optimizeCurrentRoute = optimizeInitialRoute;
 
-console.log('[CNFL] Optimizador vial v5 activo · pendientes desde ubicación actual · libros 16→40 · transición optimizada');
+console.log('[CNFL] Optimizador vial v6 activo · cortes pendientes por red vial');
