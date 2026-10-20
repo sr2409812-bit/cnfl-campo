@@ -478,3 +478,36 @@ button,a{-webkit-tap-highlight-color:transparent}
   .route-helpers>span{display:none}
   .btn-nearby{width:100%}
 }
+
+
+/* Captura rápida de lectura */
+.reading-entry{
+  margin-top:12px;
+  padding:12px;
+  border:2px solid var(--cnfl-blue);
+  background:#F7FAFD;
+}
+.reading-entry label{
+  display:block;
+  margin-bottom:6px;
+  color:var(--navy);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.8px;
+}
+.reading-entry input{
+  width:100%;
+  height:58px;
+  border:1px solid #91A7BC;
+  background:#fff;
+  color:var(--navy);
+  padding:0 12px;
+  outline:none;
+  font-family:"SFMono-Regular",Consolas,monospace;
+  font-size:26px;
+  font-weight:900;
+}
+.reading-entry input:focus{
+  border-color:var(--cnfl-orange);
+  box-shadow:0 0 0 2px rgba(255,106,19,.12);
+}
