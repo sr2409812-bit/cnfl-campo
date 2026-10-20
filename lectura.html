@@ -43,7 +43,7 @@
       <div class="stats-grid">
         <div><strong id="statTotal">59</strong><span>MEDIDORES</span></div>
         <div><strong id="statPending">59</strong><span>PENDIENTES</span></div>
-        <div><strong id="statRead">0</strong><span>VISITADOS</span></div>
+        <div><strong id="statRead">0</strong><span>LECTURAS</span></div>
       </div>
       <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
     </section>
@@ -148,7 +148,7 @@
         <h2 id="summaryRouteTitle">Ruta de lectura</h2>
         <div class="summary-grid">
           <div><strong id="sumTotal">59</strong><span>Total</span></div>
-          <div><strong id="sumRead">0</strong><span>Visitados</span></div>
+          <div><strong id="sumRead">0</strong><span>Lecturas</span></div>
           <div><strong id="sumPending">59</strong><span>Pendientes</span></div>
         </div>
       </div>
@@ -160,7 +160,9 @@
       </div>
 
       <div class="summary-actions">
-        <button class="btn-primary" onclick="copyReadingSummary()"><i class="fa-solid fa-copy"></i> COPIAR RESUMEN</button>
+        <button class="btn-primary" onclick="shareReadingReport()"><i class="fa-solid fa-share-nodes"></i> ENTREGAR / COMPARTIR REPORTE</button>
+        <button class="btn-secondary full" onclick="copyReadingSummary()"><i class="fa-solid fa-copy"></i> COPIAR REPORTE</button>
+        <button class="btn-secondary full" onclick="downloadReadingReport()"><i class="fa-solid fa-download"></i> DESCARGAR REPORTE</button>
         <button class="btn-danger-ghost" onclick="resetReadingDay()"><i class="fa-solid fa-arrow-rotate-left"></i> REINICIAR JORNADA</button>
       </div>
     </section>
@@ -182,8 +184,8 @@
   </nav>
 
   <div id="readingToast" class="toast"></div>
-  <script src="lectura.js?v=20261001-6"></script>
-  <script src="lectura-ux.js?v=20261001-1"></script>
+  <script src="lectura.js?v=20261020-1"></script>
+  <script src="lectura-ux.js?v=20261020-1"></script>
   <script src="lectura-pdf.js?v=20261001-1"></script>
   <script src="campo-shell.js?v=20261019-1"></script>
 </body>
