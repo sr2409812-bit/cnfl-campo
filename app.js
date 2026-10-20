@@ -305,7 +305,7 @@ async function forceReloadTodayOrders() {
       workOrders = await res.json();
       enrichOrdersWithCache();
       localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
-      archiveOrdersToHistory(workOrders, journeyDate);
+      archiveOrdersToHistory(workOrders, cnflLocalDateKey());
       setRouteFilter('pending', document.getElementById('btnFilterPending'));
       renderOrders();
       updateLiquidation();
