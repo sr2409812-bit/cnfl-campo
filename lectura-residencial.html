@@ -88,7 +88,7 @@
         <p>Podés seleccionar uno o varios PDFs. La app extrae Localización + Medidor y abre la jornada automáticamente.</p>
 
         <input id="readingPdfInput" type="file" accept=".pdf,application/pdf" multiple style="display:none" onchange="handleReadingPdfUpload(event)" />
-        <button class="btn-pdf-load" onclick="document.getElementById('readingPdfInput').click()">
+        <button class="btn-pdf-load" onclick="const s=document.getElementById('readingPdfStatus');s.style.display='block';s.className='pdf-status';s.textContent='Seleccioná uno o varios PDF…';document.getElementById('readingPdfInput').click()">
           <i class="fa-solid fa-file-pdf"></i>
           <span><strong>CARGAR PDFs DE HOY</strong><small>Uno o varios archivos · carga automática</small></span>
         </button>
