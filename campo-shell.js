@@ -1,6 +1,6 @@
 (function(){
   const path=(location.pathname.split('/').pop()||'index.html').toLowerCase();
-  const moduleName=path==='index.html'?'cortes':path==='lectura.html'?'demanda':path==='notificaciones.html'?'notificaciones':'';
+  const moduleName=path==='index.html'?'cortes':path==='lectura.html'?'demanda':path==='lectura-residencial.html'?'residencial':path==='notificaciones.html'?'notificaciones':'';
   document.body.classList.add('cnfl-unified');
   if(moduleName) document.body.classList.add('cnfl-module-'+moduleName);
 
@@ -20,7 +20,7 @@
     '<a href="campo.html"><i class="fa-solid fa-house"></i><span>Inicio</span></a>'+
     '<a href="index.html" data-module="cortes"><i class="fa-solid fa-bolt"></i><span>Cortes</span></a>'+
     '<a href="lectura.html" data-module="demanda"><i class="fa-solid fa-gauge-high"></i><span>Demanda</span></a>'+
-    '<a href="lectura-residencial.html"><i class="fa-solid fa-house-signal"></i><span>Lectura residencial</span></a>'+
+    '<a href="lectura-residencial.html" data-module="residencial"><i class="fa-solid fa-house-signal"></i><span>Lectura residencial</span></a>'+
     '<a href="notificaciones.html" data-module="notificaciones"><i class="fa-solid fa-file-signature"></i><span>Notificaciones</span></a>'+
     '<div class="drawer-spacer"></div>'+
     '<a href="backup.html"><i class="fa-solid fa-shield-halved"></i><span>Respaldo</span></a>';
@@ -39,7 +39,7 @@
 
   const chip=document.createElement('div');
   chip.className='cnfl-module-chip';
-  chip.textContent=moduleName==='cortes'?'CORTES / RECONEXIONES':moduleName==='demanda'?'LECTURA DE DEMANDA':moduleName==='notificaciones'?'NOTIFICACIONES':'CNFL CAMPO';
+  chip.textContent=moduleName==='cortes'?'CORTES / RECONEXIONES':moduleName==='demanda'?'LECTURA DE DEMANDA':moduleName==='residencial'?'LECTURA RESIDENCIAL':moduleName==='notificaciones'?'NOTIFICACIONES':'CNFL CAMPO';
   const firstMain=document.querySelector('main');
   if(firstMain) firstMain.parentNode.insertBefore(chip,firstMain);
 
