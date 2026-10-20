@@ -74,6 +74,7 @@ function saveReadingState() {
 }
 
 function migrateOldReadingState() {
+  if (READING_MODE === 'residencial') return null;
   const old = loadJson('cnfl_reading_orders_v1', null);
   if (!old || !Array.isArray(old.orders)) return null;
   return {
