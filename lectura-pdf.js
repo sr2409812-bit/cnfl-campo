@@ -27,7 +27,72 @@ function groupReadingPdfRows(items, tolerance = 2.8) {
   return rows.sort((a,b) => b.y - a.y);
 }
 
+
+function parseReadingPdfDirectText(fullText = '') {
+  const text = String(fullText || '');
+  const rows = [];
+  const seen = new Map();
+  const conflicts = [];
+
+  function add(localizacionRaw, medidorRaw) {
+    const locDigits = String(localizacionRaw || '').replace(/\D/g, '');
+    const medidor = String(medidorRaw || '').replace(/\D/g, '');
+    const localizacion = locDigits.length === 9 ? '0' + locDigits : locDigits;
+    if (!/^\d{10}$/.test(localizacion)) return;
+    if (!/^\d{4,8}$/.test(medidor)) return;
+
+    if (seen.has(localizacion)) {
+      if (seen.get(localizacion) !== medidor) {
+        conflicts.push(localizacion + ': ' + seen.get(localizacion) + ' / ' + medidor);
+      }
+      return;
+    }
+    seen.set(localizacion, medidor);
+    rows.push({localizacion, medidor});
+  }
+
+  // Formato LMR0085: "Localización: ##########   Medidor: ######"
+  const inspectionRe = /Localizaci[oó]n\s*:\s*(\d{9,10})\s+Medidor\s*:\s*(\d{4,8})/gi;
+  let m;
+  while ((m = inspectionRe.exec(text)) !== null) add(m[1], m[2]);
+
+  // Formato LMR0155 / "MEDIDORES SIN REGISTRO DE LECTURA":
+  // cada fila inicia con Localización + Medidor.
+  const tableRe = /^\s*(\d{9,10})\s+(\d{4,8})(?=\s|$)/gm;
+  while ((m = tableRe.exec(text)) !== null) add(m[1], m[2]);
+
+  if (conflicts.length) {
+    throw new Error('El PDF trae Localizaciones con medidores diferentes: ' + conflicts.slice(0,6).join(', '));
+  }
+
+  const expectedMatch =
+    text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
+
+  const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
+
+  if (rows.length && expectedCount && rows.length !== expectedCount) {
+    throw new Error(
+      'El PDF indica ' + expectedCount + ' medidores/inspecciones, pero pude validar ' +
+      rows.length + '. No lo cargué para evitar una lista incompleta.'
+    );
+  }
+
+  return {rows, expectedCount};
+}
+
 function parseReadingPdfLayout(layoutPages, fullText = '') {
+  const direct = parseReadingPdfDirectText(fullText);
+  if (direct.rows.length) {
+    return {
+      rows: direct.rows,
+      expectedCount: direct.expectedCount,
+      pagesWithHeaders: 0,
+      parser: 'direct-text'
+    };
+  }
+
   const found = [];
   const seen = new Map();
   const conflicts = [];
@@ -135,9 +200,13 @@ function parseReadingPdfLayout(layoutPages, fullText = '') {
 }
 
 function readingPdfSuggestedName(fileName, fullText) {
-  const text = String(fullText || '').replace(/\s+/g, ' ');
-  const routeMatch = text.match(/(?:Ruta|Recorrido)\s*[:#-]?\s*([A-Z0-9]{2,}(?:[-/]\d{1,3})?)/i);
-  if (routeMatch) return routeMatch[1];
+  const text = String(fullText || '').replace(/\r/g, '');
+  const exact = text.match(/RUTA\s+(\d{4}-\d+)\s+([^\n]+)/i);
+  if (exact) {
+    return (exact[1] + ' ' + exact[2]).replace(/\s+/g, ' ').trim();
+  }
+  const cycleRoute = text.match(/Ciclo\s+Lectura\s*:\s*(\d{4})[\s\S]{0,180}?Ruta\s+Lectura\s*:\s*(\d+)/i);
+  if (cycleRoute) return cycleRoute[1] + '-' + cycleRoute[2];
   return String(fileName || 'Ruta de lectura').replace(/\.pdf$/i, '').replace(/[_]+/g, ' ').trim();
 }
 
