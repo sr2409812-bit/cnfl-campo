@@ -169,8 +169,13 @@ function loadReadingState() {
     readingRouteInfo = saved.routeInfo || {...DEFAULT_ROUTE_INFO};
     readingRouteMeta = saved.routeMeta || null;
   } else {
-    readingOrders = DEFAULT_ORDERS.map(o => ({...o}));
-    readingRouteInfo = {...DEFAULT_ROUTE_INFO};
+    readingOrders = [];
+    readingRouteInfo = {
+      routeId:'reading-empty',
+      name:'Demanda',
+      subtitle:'Sin jornada cargada',
+      date:localDateKey()
+    };
     readingRouteMeta = null;
   }
 }
@@ -364,16 +369,22 @@ function markCurrentReading(status) {
 }
 
 function archiveReadingEvent(order) {
-  const history = loadJson(READING_HISTORY_KEY, []);
-  history.unshift({
+  const event = {
     routeId: readingRouteInfo.routeId,
     route: readingRouteInfo.name,
     localizacion: order.localizacion,
     medidor: order.medidor,
     status: order.status,
     at: order.readAt || new Date().toISOString()
-  });
+  };
+  const history = loadJson(READING_HISTORY_KEY, []);
+  history.unshift(event);
   localStorage.setItem(READING_HISTORY_KEY, JSON.stringify(history.slice(0, 1500)));
+
+  if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
+    const id = [event.routeId,event.localizacion,event.medidor,event.at].join('|');
+    window.CNFLStore.putRecord('reading-events', id, event).catch(() => {});
+  }
 }
 
 function renderList() {
@@ -522,6 +533,11 @@ function archiveCurrentRoute() {
   const filtered = history.filter(item => item?.routeInfo?.routeId !== readingRouteInfo.routeId);
   filtered.unshift(snapshot);
   localStorage.setItem(READING_ROUTE_HISTORY_KEY, JSON.stringify(filtered.slice(0, 20)));
+
+  if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
+    const id = String(readingRouteInfo.routeId || 'route') + '|' + snapshot.savedAt;
+    window.CNFLStore.putRecord('reading-routes', id, snapshot).catch(() => {});
+  }
 }
 
 function loadNewReadingRoute() {
@@ -1001,7 +1017,6 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
-  seedDefaultGeoMemory();
   loadReadingState();
   hydrateReadingGps();
   saveReadingState();
