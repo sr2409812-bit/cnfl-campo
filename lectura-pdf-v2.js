@@ -309,6 +309,32 @@ function readingPdfSuggestedName(fileName, fullText) {
   return String(fileName || 'Ruta de lectura').replace(/\.pdf$/i, '').replace(/[_]+/g, ' ').trim();
 }
 
+function readingPdfRouteCode(name, fullText) {
+  const text = String(fullText || '');
+  const m = text.match(/RUTA\s+(\d{4}-\d+)/i)
+    || text.match(/Ciclo\s+Lectura\s*:\s*(\d{4})[\s\S]{0,220}?Ruta\s+Lectura\s*:\s*(\d+)/i)
+    || String(name || '').match(/(\d{4})-(\d+)/);
+
+  if (!m) return readingPdfSuggestedName(name, fullText);
+
+  if (m.length >= 3 && !String(m[1]).includes('-')) {
+    return String(m[1]) + '-' + String(m[2]);
+  }
+  return String(m[1]);
+}
+
+function readingRouteSortKey(label) {
+  const m = String(label || '').match(/(\d{4})-(\d+)/);
+  if (!m) return [999999, 999999, String(label || '')];
+  return [Number(m[1]), Number(m[2]), String(label || '')];
+}
+
+function compareReadingRouteLabels(a,b) {
+  const ka = readingRouteSortKey(a);
+  const kb = readingRouteSortKey(b);
+  return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2]);
+}
+
 async function handleReadingPdfUpload(event) {
   const files = event && event.target && event.target.files ? Array.from(event.target.files) : [];
   if (!files.length) return;
@@ -327,9 +353,7 @@ async function handleReadingPdfUpload(event) {
     if (typeof pdfjsLib === 'undefined') throw new Error('El lector PDF no está disponible.');
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const merged = [];
-    const byLoc = new Map();
-    const names = [];
+    const batches = [];
 
     for (const file of files) {
       const buffer = await file.arrayBuffer();
@@ -346,27 +370,153 @@ async function handleReadingPdfUpload(event) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
         layoutPages.push(textContent.items || []);
-        fullText += (textContent.items || []).map(item => String(item.str || '').trim()).filter(Boolean).join('\n') + '\n';
+        fullText += (textContent.items || [])
+          .map(item => String(item.str || '').trim())
+          .filter(Boolean)
+          .join('\n') + '\n';
       }
 
       const parsed = parseReadingPdfLayout(layoutPages, fullText);
-      names.push(readingPdfSuggestedName(file.name, fullText));
+      const routeLabel = readingPdfRouteCode(file.name, fullText);
+      const routeName = readingPdfSuggestedName(file.name, fullText);
 
-      for (const row of parsed.rows) {
-        const old = byLoc.get(row.localizacion);
-        if (old && old.medidor !== row.medidor) {
-          throw new Error('Conflicto en Localización ' + row.localizacion + ': ' + old.medidor + ' / ' + row.medidor);
-        }
-        if (old) continue;
-        byLoc.set(row.localizacion, row);
-        merged.push(row);
-      }
+      batches.push({
+        fileName:file.name,
+        routeLabel,
+        routeName,
+        rows:parsed.rows.map((row,index)=>({
+          ...row,
+          sourceRoute:routeLabel,
+          sourceRouteName:routeName,
+          sourceFile:file.name,
+          routeSequence:index + 1
+        }))
+      });
     }
 
-    if (!merged.length) throw new Error('No se extrajo ningún medidor.');
+    batches.sort((a,b)=>compareReadingRouteLabels(a.routeLabel,b.routeLabel));
+
+    const batchRows = batches.flatMap(b=>b.rows);
+    if (!batchRows.length) throw new Error('No se extrajo ningún medidor.');
+
+    // Lectura residencial: todos los PDFs del día forman UNA sola jornada.
+    // Si cargás más PDFs después, se agregan a la misma jornada en vez de reemplazarla.
+    if (READING_MODE === 'residencial') {
+      const byLoc = new Map();
+      for (const row of readingOrders) byLoc.set(String(row.localizacion), row);
+
+      let added = 0;
+      let repeated = 0;
+
+      for (const row of batchRows) {
+        const old = byLoc.get(row.localizacion);
+        if (old) {
+          if (String(old.medidor) !== String(row.medidor)) {
+            throw new Error(
+              'Conflicto en Localización ' + row.localizacion +
+              ': ' + old.medidor + ' / ' + row.medidor
+            );
+          }
+          repeated++;
+          continue;
+        }
+
+        const item = {
+          id:'read-' + row.localizacion,
+          localizacion:row.localizacion,
+          medidor:row.medidor,
+          lectura:'',
+          status:'pending',
+          readAt:'',
+          deferCount:0,
+          sourceRoute:row.sourceRoute,
+          sourceRouteName:row.sourceRouteName,
+          sourceFile:row.sourceFile,
+          routeSequence:row.routeSequence,
+          sequence:0,
+          originalSequence:0
+        };
+        readingOrders.push(item);
+        byLoc.set(item.localizacion,item);
+        added++;
+      }
+
+      const completed = readingOrders.filter(o => o.status === 'read' && String(o.lectura || '').trim());
+      const pending = readingOrders
+        .filter(o => !(o.status === 'read' && String(o.lectura || '').trim()))
+        .sort((a,b)=>{
+          const routeCmp = compareReadingRouteLabels(a.sourceRoute || '', b.sourceRoute || '');
+          if (routeCmp) return routeCmp;
+          return Number(a.routeSequence || 0) - Number(b.routeSequence || 0);
+        });
+
+      readingOrders = [...completed, ...pending].map((o,index)=>({
+        ...o,
+        sequence:index + 1,
+        originalSequence:index + 1
+      }));
+
+      const routes = [...new Set(
+        readingOrders.map(o=>String(o.sourceRoute || '')).filter(Boolean)
+      )].sort(compareReadingRouteLabels);
+
+      if (!readingRouteInfo || !readingRouteInfo.routeId || readingRouteInfo.routeId === 'reading-empty') {
+        readingRouteInfo = {
+          routeId:'residential-' + Date.now(),
+          name:'Lectura residencial · jornada',
+          subtitle:'',
+          date:localDateKey(),
+          sourceRoutes:[]
+        };
+      }
+
+      readingRouteInfo.name = 'Lectura residencial · ' + routes.length + (routes.length === 1 ? ' ruta' : ' rutas');
+      readingRouteInfo.subtitle = routes.length ? routes.join(' · ') : 'Jornada residencial';
+      readingRouteInfo.date = readingRouteInfo.date || localDateKey();
+      readingRouteInfo.sourceRoutes = routes;
+      readingRouteMeta = null;
+
+      hydrateReadingGps();
+      saveReadingState();
+      renderAll();
+
+      if (dataEl) dataEl.value = readingOrders.map(r => r.localizacion + ' ' + r.medidor).join('\n');
+      if (nameEl) nameEl.value = readingRouteInfo.name;
+
+      if (statusEl) {
+        statusEl.className = 'pdf-status ok';
+        statusEl.innerHTML =
+          '<i class="fa-solid fa-check"></i> Jornada unificada: ' +
+          readingOrders.length + ' medidores en ' + routes.length + ' rutas.' +
+          (added ? ' Agregados ahora: ' + added + '.' : '') +
+          (repeated ? ' Repetidos omitidos: ' + repeated + '.' : '');
+      }
+
+      switchReadingTab('route', document.getElementById('tabRoute'));
+      showReadingToast(
+        'Jornada unificada · ' + readingOrders.length +
+        ' medidores · ' + routes.length + ' rutas'
+      );
+      return;
+    }
+
+    // Demanda: mantiene el comportamiento de una ruta por carga.
+    const byLoc = new Map();
+    const merged = [];
+    for (const row of batchRows) {
+      const old = byLoc.get(row.localizacion);
+      if (old && old.medidor !== row.medidor) {
+        throw new Error('Conflicto en Localización ' + row.localizacion + ': ' + old.medidor + ' / ' + row.medidor);
+      }
+      if (old) continue;
+      byLoc.set(row.localizacion,row);
+      merged.push(row);
+    }
 
     dataEl.value = merged.map(r => r.localizacion + ' ' + r.medidor).join('\n');
-    nameEl.value = files.length === 1 ? names[0] : (READING_MODE === 'residencial' ? 'Lectura residencial · ' + files.length + ' PDFs' : 'Demanda · ' + files.length + ' PDFs');
+    nameEl.value = files.length === 1
+      ? batches[0].routeName
+      : 'Demanda · ' + files.length + ' PDFs';
 
     if (statusEl) {
       statusEl.className = 'pdf-status ok';
@@ -374,13 +524,9 @@ async function handleReadingPdfUpload(event) {
     }
 
     loadNewReadingRoute();
-
-    if (typeof showReadingToast === 'function') {
-      showReadingToast('PDF listo · ' + merged.length + ' medidores cargados');
-    }
+    showReadingToast('PDF listo · ' + merged.length + ' medidores cargados');
   } catch (err) {
     console.error(err);
-    if (dataEl) dataEl.value = '';
     if (statusEl) {
       statusEl.className = 'pdf-status error';
       statusEl.textContent = err.message || 'No pude leer el PDF.';
