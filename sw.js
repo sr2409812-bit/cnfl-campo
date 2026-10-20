@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v33';
+const CACHE_NAME = 'cnfl-campo-v34';
 
 const CORE_ASSETS = [
   './',
@@ -6,6 +6,7 @@ const CORE_ASSETS = [
   './campo.css',
   './campo-shell.css',
   './campo-shell.js',
+  './data-store.js',
   './index.html',
   './style.css',
   './app.js',
@@ -39,13 +40,13 @@ self.addEventListener('install', event => {
     // una falla aislada no deje toda la app sin modo offline.
     for (const asset of CORE_ASSETS) {
       try { await cache.add(asset); }
-      catch (err) { console.warn('[SW v33] No se pudo precachear', asset, err); }
+      catch (err) { console.warn('[SW v34] No se pudo precachear', asset, err); }
     }
 
     // Dependencias externas son opcionales: no bloquean la instalación.
     for (const asset of OPTIONAL_ASSETS) {
       try { await cache.add(asset); }
-      catch (err) { console.warn('[SW v33] Dependencia externa no disponible', asset); }
+      catch (err) { console.warn('[SW v34] Dependencia externa no disponible', asset); }
     }
 
     await self.skipWaiting();
