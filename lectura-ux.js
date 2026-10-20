@@ -8,6 +8,7 @@
       return {
         ...o,
         status: o.status === 'read' ? 'read' : 'pending',
+        lectura: String(o.lectura ?? ''),
         deferCount: Number(o.deferCount || (wasDeferredLegacy ? 1 : 0)),
         sequence: Number(o.sequence || index + 1),
         originalSequence: Number(o.originalSequence || o.sequence || index + 1)
@@ -99,9 +100,17 @@
             </a>
           </div>
 
+          <div class="reading-entry">
+            <label for="currentReadingValue">LECTURA</label>
+            <input id="currentReadingValue" type="text" inputmode="decimal" autocomplete="off"
+              placeholder="Ingresá la lectura"
+              value="${escapeHtml(current.lectura || '')}"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();saveCurrentReading();}" />
+          </div>
+
           <div class="primary-action">
-            <button class="btn-primary" onclick="markCurrentReading('read')">
-              <i class="fa-solid fa-check"></i> MARCAR VISITADO
+            <button class="btn-primary" onclick="saveCurrentReading()">
+              <i class="fa-solid fa-floppy-disk"></i> GUARDAR LECTURA · SIGUIENTE
             </button>
           </div>
           <div class="secondary-actions">
@@ -123,21 +132,53 @@
       </div>` : '';
   };
 
-  markCurrentReading = function (status) {
-    if (status !== 'read') {
-      window.deferCurrentReading();
-      return;
-    }
+  function normalizeReadingValue(raw) {
+    const clean = String(raw ?? '').trim().replace(',', '.');
+    if (!clean) return null;
+    if (!/^\d+(?:\.\d+)?$/.test(clean)) return null;
+    const n = Number(clean);
+    if (!Number.isFinite(n) || n < 0) return null;
+    return clean;
+  }
 
+  window.saveCurrentReading = function () {
     const current = readingOrders.find(o => o.status !== 'read');
     if (!current) return;
 
+    const input = document.getElementById('currentReadingValue');
+    const value = normalizeReadingValue(input ? input.value : current.lectura);
+    if (value === null) {
+      alert('Ingresá una lectura numérica válida antes de guardar.');
+      if (input) input.focus();
+      return;
+    }
+
+    current.lectura = value;
     current.status = 'read';
     current.readAt = new Date().toISOString();
     archiveReadingEvent(current);
     saveReadingState();
+
+    if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
+      const id = [readingRouteInfo.routeId,current.localizacion,current.medidor,current.readAt].join('|');
+      window.CNFLStore.putRecord('meter-readings', id, {
+        routeId: readingRouteInfo.routeId,
+        route: readingRouteInfo.name,
+        date: readingRouteInfo.date || localDateKey(),
+        localizacion: current.localizacion,
+        medidor: current.medidor,
+        lectura: current.lectura,
+        at: current.readAt
+      }).catch(() => {});
+    }
+
     renderAll();
-    showReadingToast(`Medidor ${current.medidor} visitado · siguiente`);
+    showReadingToast(`Lectura ${value} guardada · siguiente medidor`);
+  };
+
+  markCurrentReading = function (status) {
+    if (status === 'read') return window.saveCurrentReading();
+    window.deferCurrentReading();
   };
 
   window.deferCurrentReading = function () {
@@ -189,6 +230,26 @@
     showReadingToast(`Medidor ${target.medidor} será el siguiente`);
   };
 
+  window.editSavedReading = function (localizacion) {
+    const idx = readingOrders.findIndex(o => o.localizacion === String(localizacion));
+    if (idx < 0) return;
+    const target = readingOrders[idx];
+    target.status = 'pending';
+    target.readAt = '';
+    readingOrders.splice(idx,1);
+    const firstPendingIndex = readingOrders.findIndex(o => o.status !== 'read');
+    readingOrders.splice(firstPendingIndex < 0 ? 0 : firstPendingIndex,0,target);
+    readingRouteMeta = null;
+    saveReadingState();
+    renderAll();
+    switchReadingTab('route', document.getElementById('tabRoute'));
+    setTimeout(() => {
+      const input = document.getElementById('currentReadingValue');
+      if (input) { input.focus(); input.select(); }
+    }, 50);
+    showReadingToast(`Editando lectura del medidor ${target.medidor}`);
+  };
+
   renderList = function () {
     const q = readingSearch.trim().toLowerCase();
     const rows = readingOrders.filter(o =>
@@ -199,8 +260,12 @@
       const visited = o.status === 'read';
       const deferred = !visited && Number(o.deferCount || 0) > 0;
       const label = visited ? 'VISITADO' : (deferred ? 'PENDIENTE · POSPUESTO' : 'PENDIENTE');
-      const click = visited ? '' : `onclick="setNextReading('${o.localizacion}')"`;
-      const hint = visited ? '' : '<span class="list-next-hint">HACER SIGUIENTE</span>';
+      const click = visited
+        ? `onclick="editSavedReading('${o.localizacion}')"`
+        : `onclick="setNextReading('${o.localizacion}')"`;
+      const hint = visited
+        ? `<span class="list-next-hint">LECTURA ${escapeHtml(o.lectura || '')} · EDITAR</span>`
+        : '<span class="list-next-hint">HACER SIGUIENTE</span>';
 
       return `
         <div class="reading-list-item ${visited ? 'read' : 'pending selectable'}" ${click}>
@@ -230,32 +295,69 @@
     document.getElementById('gpsMemoryCount').textContent = count;
   };
 
-  copyReadingSummary = function () {
+  function buildReadingReport() {
     const s = stats();
+    const now = new Date();
+    const date = now.toLocaleDateString('es-CR');
+    const time = now.toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit'});
     const lines = [
-      'CNFL CAMPO · LECTURA',
+      'CNFL CAMPO · REPORTE DE LECTURA',
       routeDisplayName(),
       readingRouteInfo.subtitle || '',
+      `Fecha: ${date} · Hora: ${time}`,
+      '',
       `Total: ${s.total}`,
-      `Visitados: ${s.read}`,
+      `Lecturas guardadas: ${s.read}`,
       `Pendientes: ${s.pending}`,
       '',
-      'PENDIENTES:'
+      'DETALLE'
     ];
 
-    const pending = readingOrders.filter(o => o.status !== 'read');
-    if (!pending.length) lines.push('Ninguno');
-    else pending.forEach(o => {
-      const suffix = Number(o.deferCount || 0) > 0 ? ' · pospuesto' : '';
-      lines.push(`${o.localizacion} · Medidor ${o.medidor}${suffix}`);
-    });
+    readingOrders.slice()
+      .sort((a,b) => Number(a.originalSequence || a.sequence || 0) - Number(b.originalSequence || b.sequence || 0))
+      .forEach((o,i) => {
+        const reading = o.status === 'read' && String(o.lectura || '').trim() ? String(o.lectura).trim() : 'PENDIENTE';
+        lines.push(`${String(i+1).padStart(2,'0')}. Localización ${o.localizacion} · Medidor ${o.medidor} · Lectura ${reading}`);
+      });
 
-    const text = lines.join('\n');
+    return lines.join('\n');
+  }
+
+  copyReadingSummary = function () {
+    const text = buildReadingReport();
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(() => showReadingToast('Resumen copiado.'));
+      navigator.clipboard.writeText(text).then(() => showReadingToast('Reporte copiado.'));
     } else {
-      prompt('Copia el resumen:', text);
+      prompt('Copia el reporte:', text);
     }
+  };
+
+  window.downloadReadingReport = function () {
+    const text = buildReadingReport();
+    const blob = new Blob([text],{type:'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    const safe = String(readingRouteInfo.name || 'lectura').replace(/[^a-z0-9_-]+/gi,'-');
+    a.href = URL.createObjectURL(blob);
+    a.download = `reporte-${safe}-${localDateKey()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    const url = a.href;
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url),1000);
+    showReadingToast('Reporte descargado.');
+  };
+
+  window.shareReadingReport = async function () {
+    const text = buildReadingReport();
+    if (navigator.share) {
+      try {
+        await navigator.share({title:'Reporte de lectura CNFL',text});
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+    copyReadingSummary();
   };
 
   resetReadingDay = function () {
