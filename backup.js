@@ -1,4 +1,5 @@
 let pendingBackup=null;
+function isCnflKey(k){return typeof k==='string'&&(k.startsWith('cnfl_')||k.startsWith('CNFL_'));}
 
 function cnflBackupKeys(){
   const out=[];
@@ -57,10 +58,19 @@ async function prepareRestore(ev){
 
 async function restoreBackup(){
   if(!pendingBackup)return;
-  const count=Object.keys(pendingBackup.items).length;
-  if(!confirm('Se restaurarán '+count+' grupos de datos y, si existe, la base histórica. Los valores con la misma clave serán reemplazados. ¿Continuar?')) return;
+  const merged={};
+  const kvRows=Array.isArray(pendingBackup.database&&pendingBackup.database.kv)?pendingBackup.database.kv:[];
+  kvRows.forEach(row=>{
+    if(row&&isCnflKey(row.key)&&row.value!==undefined&&row.value!==null) merged[row.key]=String(row.value);
+  });
+  Object.entries(pendingBackup.items||{}).forEach(([k,v])=>{
+    if(isCnflKey(k)) merged[k]=String(v);
+  });
 
-  Object.entries(pendingBackup.items).forEach(([k,v])=>localStorage.setItem(k,String(v)));
+  const count=Object.keys(merged).length;
+  if(!confirm('Se restaurarán '+count+' grupos de datos CNFL y, si existe, la base histórica. Los valores con la misma clave serán reemplazados. ¿Continuar?')) return;
+
+  Object.entries(merged).forEach(([k,v])=>localStorage.setItem(k,v));
 
   try{
     if(pendingBackup.database&&window.CNFLStore&&typeof window.CNFLStore.importDb==='function'){
