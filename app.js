@@ -92,7 +92,11 @@ function archiveOrdersToHistory(orders, fallbackDate) {
   const map = new Map(cnflHistoryLoad().map(o => [cnflHistoryKey(o), o]));
   for (const raw of orders) {
     const item = cnflCompactHistoryOrder(raw, fallbackDate);
-    map.set(cnflHistoryKey(item), item);
+    const key = cnflHistoryKey(item);
+    map.set(key, item);
+    if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
+      window.CNFLStore.putRecord('cuts-history', key, item).catch(() => {});
+    }
   }
 
   const finalItems = cnflHistoryPrune([...map.values()]);
@@ -603,7 +607,7 @@ function renderOrders() {
 
         <!-- Cliente y Monto -->
         <div class="client-header">
-          <div class="client-name">${cnflPdfBatchStale ? '⚠ NOMBRE NO VALIDADO — RECARGAR PDF' : (ord.cliente || ord.client || 'ABONADO CNFL')}</div>
+          <div class="client-name">${cnflPdfBatchStale ? '⚠ NOMBRE NO VALIDADO — RECARGAR PDF' : cnflEscapeHtml(ord.cliente || ord.client || 'ABONADO CNFL')}</div>
           ${cnflPdfBatchStale
             ? '<div class="monto-val">⚠ MONTO NO VALIDADO</div>'
             : (ord.monto ? `<div class="monto-val">₡${cnflFormatAmount(ord.monto)}</div>` : '')}
@@ -612,38 +616,38 @@ function renderOrders() {
         <!-- Dirección Oficial -->
         <div class="address-line">
           <i class="fa-solid fa-location-dot"></i>
-          <span>${ord.direccion || ord.address}</span>
+          <span>${cnflEscapeHtml(ord.direccion || ord.address || 'Sin dirección')}</span>
         </div>
 
         <!-- Metadatos Técnicos: Localización, NIS, Medidor -->
         <div class="tech-meta-grid">
           <div class="meta-chip">
             <span>LOCALIZACIÓN</span>
-            <strong>${ord.localizacion || 'N/D'}</strong>
+            <strong>${cnflEscapeHtml(ord.localizacion || 'N/D')}</strong>
           </div>
           <div class="meta-chip">
             <span>NIS / CUENTA</span>
-            <strong>${ord.nis}</strong>
+            <strong>${cnflEscapeHtml(ord.nis || 'N/D')}</strong>
           </div>
           <div class="meta-chip">
             <span># MEDIDOR</span>
-            <strong>${ord.medidor || ord.meter}</strong>
+            <strong>${cnflEscapeHtml(ord.medidor || ord.meter || 'N/D')}</strong>
           </div>
         </div>
 
         <!-- Línea de Circuito Eléctrico -->
         <div class="circuit-line">
-          <span class="circuit-tag"><i class="fa-solid fa-bolt"></i> ${ord.circuito || 'Circuito CNFL'}</span>
-          ${ord.orden ? `<span style="color:var(--text-muted);font-family:var(--font-mono)">Ord: ${ord.orden}</span>` : ''}
+          <span class="circuit-tag"><i class="fa-solid fa-bolt"></i> ${cnflEscapeHtml(ord.circuito || 'Circuito CNFL')}</span>
+          ${ord.orden ? `<span style="color:var(--text-muted);font-family:var(--font-mono)">Ord: ${cnflEscapeHtml(ord.orden)}</span>` : ''}
         </div>
 
         <!-- Resumen de Datos Registrados -->
         ${hasFieldData ? `
           <div class="record-summary-row">
-            ${ord.lectura ? `<span class="record-badge">Lect: ${ord.lectura} kWh</span>` : ''}
-            ${ord.sello_instalado ? `<span class="record-badge">Sello Inst: ${ord.sello_instalado}</span>` : ''}
-            ${ord.sello_retirado ? `<span class="record-badge">Sello Ret: ${ord.sello_retirado}</span>` : ''}
-            ${ord.observaciones ? `<span class="record-badge">Obs: ${ord.observaciones}</span>` : ''}
+            ${ord.lectura ? `<span class="record-badge">Lect: ${cnflEscapeHtml(ord.lectura)} kWh</span>` : ''}
+            ${ord.sello_instalado ? `<span class="record-badge">Sello Inst: ${cnflEscapeHtml(ord.sello_instalado)}</span>` : ''}
+            ${ord.sello_retirado ? `<span class="record-badge">Sello Ret: ${cnflEscapeHtml(ord.sello_retirado)}</span>` : ''}
+            ${ord.observaciones ? `<span class="record-badge">Obs: ${cnflEscapeHtml(ord.observaciones)}</span>` : ''}
           </div>
         ` : ''}
 
@@ -696,20 +700,20 @@ function renderOrders() {
             <div class="form-inputs-row">
               <div class="form-field">
                 <label>Lectura (kWh)</label>
-                <input type="number" inputmode="numeric" placeholder="kWh..." value="${ord.lectura || ''}" oninput="updateFieldRecord('${cardId}', 'lectura', this.value)" />
+                <input type="number" inputmode="numeric" placeholder="kWh..." value="${cnflEscapeHtml(ord.lectura || '')}" oninput="updateFieldRecord('${cardId}', 'lectura', this.value)" />
               </div>
               <div class="form-field">
                 <label>Sello Instalado</label>
-                <input type="text" placeholder="Ej: S-9921" value="${ord.sello_instalado || ''}" oninput="updateFieldRecord('${cardId}', 'sello_instalado', this.value)" />
+                <input type="text" placeholder="Ej: S-9921" value="${cnflEscapeHtml(ord.sello_instalado || '')}" oninput="updateFieldRecord('${cardId}', 'sello_instalado', this.value)" />
               </div>
               <div class="form-field">
                 <label>Sello Retirado</label>
-                <input type="text" placeholder="Ej: S-4120" value="${ord.sello_retirado || ''}" oninput="updateFieldRecord('${cardId}', 'sello_retirado', this.value)" />
+                <input type="text" placeholder="Ej: S-4120" value="${cnflEscapeHtml(ord.sello_retirado || '')}" oninput="updateFieldRecord('${cardId}', 'sello_retirado', this.value)" />
               </div>
             </div>
             <div class="obs-full-row">
               <label>Observaciones de Cuadrilla</label>
-              <input type="text" id="obs-input-${cardId}" placeholder="Detalles o incidencias..." value="${ord.observaciones || ''}" oninput="updateFieldRecord('${cardId}', 'observaciones', this.value)" />
+              <input type="text" id="obs-input-${cardId}" placeholder="Detalles o incidencias..." value="${cnflEscapeHtml(ord.observaciones || '')}" oninput="updateFieldRecord('${cardId}', 'observaciones', this.value)" />
             </div>
             <!-- Tags Técnicos (Sin emojis) -->
             <div class="technical-tag-list">
@@ -1854,14 +1858,11 @@ async function handleHistoryPdfUpload(event) {
 }
 
 function loadDemoOrders() {
-  workOrders = [
-    { id: 'demo-1', nis: '356663', orden: '74438946', localizacion: '0100402700', medidor: '848228', monto: '6500.00', plan: 'TG - COMERCIAL', cliente: 'ZENG ZENG XIAOHUAN', direccion: 'C.5-7 AV.CENTRAL, SOTANO GALERIAS RAMIREZ VALIDO', circuito: 'Circuito 1903 SUB_URUCA_3A', lat: 9.933611, lon: -84.075945, status: 'pending', lectura: '', sello_instalado: '', sello_retirado: '', observaciones: '' },
-    { id: 'demo-2', nis: '283989', orden: '74438947', localizacion: '0100402744', medidor: '847386', monto: '3420.00', plan: 'TG - COMERCIAL', cliente: 'GOMEZ GOMEZ HELDA MARGARITA', direccion: 'SN JOSE, C-5 -7, AV CTRAL, RAMIREZ VALIDO, LOCAL 132-A', circuito: 'Circuito 1903 SUB_URUCA_3A', lat: 9.933611, lon: -84.075946, status: 'pending', lectura: '', sello_instalado: '', sello_retirado: '', observaciones: '' }
-  ];
-  localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
-  setRouteFilter('pending', document.getElementById('btnFilterPending'));
+  workOrders = [];
+  localStorage.setItem('cnfl_work_orders', JSON.stringify([]));
   renderOrders();
-  showToast('Modo demostración activo.');
+  updateLiquidation();
+  showToast('No se cargaron órdenes: revisa la conexión o carga el PDF oficial.');
 }
 
 // =========================================================
