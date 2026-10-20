@@ -21,7 +21,7 @@
     let count=0;
     for(let i=0;i<localStorage.length;i++){
       const key=localStorage.key(i);
-      if(!key||!key.startsWith('cnfl_'))continue;
+      if(!key||!(key.startsWith('cnfl_')||key.startsWith('CNFL_')))continue;
       store.put({key,value:localStorage.getItem(key),updatedAt:new Date().toISOString()});
       count++;
     }
