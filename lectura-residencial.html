@@ -2,52 +2,191 @@
 <html lang="es">
 <head>
   <meta name="robots" content="noindex,nofollow,noarchive" />
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CNFL Campo · Lectura residencial</title>
-<meta name="theme-color" content="#00264D">
-<link rel="stylesheet" href="campo.css?v=20261019-1">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<style>
-.rs{max-width:720px;margin:auto;padding:18px 14px 90px}.rs-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}.rs-card h2{margin:4px 0 8px}.rs-card p{color:var(--muted);line-height:1.45}.upload{display:block;border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;cursor:pointer}.upload i{font-size:30px;color:var(--blue);display:block;margin-bottom:8px}.file-list{margin-top:10px}.file-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #EDF1F4}.file-row:last-child{border-bottom:0}.file-row span{flex:1}.note{background:#FFF6EF;border-left:4px solid var(--orange);padding:12px;border-radius:8px;font-size:13px;line-height:1.45}.disabled{opacity:.55}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>CNFL Campo · Lectura residencial</title>
+  <meta name="theme-color" content="#0033A0" />
+  <link rel="stylesheet" href="lectura.css?v=20261020-1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="campo-shell.css?v=20261019-1" />
   <script src="data-store.js?v=20261019-1"></script>
 </head>
 <body>
-<header class="topbar">
-  <a href="campo.html" class="menu-btn" style="display:grid;place-items:center;text-decoration:none"><i class="fa-solid fa-arrow-left"></i></a>
-  <div class="brand"><div class="brand-mark"><i class="fa-solid fa-house-signal"></i></div><div><div class="brand-name">CNFL <span>CAMPO</span></div><div class="brand-sub">LECTURA RESIDENCIAL</div></div></div>
-</header>
-<main class="rs">
-  <section class="rs-card">
-    <div class="eyebrow">NUEVA JORNADA</div>
-    <h2>Cargá todos los PDFs</h2>
-    <p>Podés seleccionar varios documentos a la vez. Con los PDFs reales de mañana, este módulo validará el formato antes de extraer datos.</p>
-    <label class="upload">
-      <input id="pdfs" type="file" accept=".pdf,application/pdf" multiple hidden onchange="showFiles(event)">
-      <i class="fa-solid fa-file-pdf"></i>
-      <strong>SELECCIONAR PDFs</strong>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">Uno o varios archivos</div>
-    </label>
-    <div id="fileList" class="file-list"></div>
-  </section>
-  <section class="rs-card">
-    <div class="eyebrow">FLUJO</div>
-    <div class="note">PDFs → validar extracción → reutilizar GPS en memoria → pedir solo GPS faltante → optimizar por calles y zonas → trabajar parada por parada → guardar historial.</div>
-  </section>
-  <section class="rs-card disabled">
-    <div class="eyebrow">PARSER</div>
-    <h2>Se activa con el formato real</h2>
-    <p>No voy a asumir columnas ni estructura antes de ver los documentos. Así evitamos cargar una ruta incompleta o asociar un medidor incorrecto.</p>
-  </section>
-</main>
-<script>
-function showFiles(ev){
-  const files=[...(ev.target.files||[])];
-  document.getElementById('fileList').innerHTML=files.length
-    ? files.map((f,i)=>'<div class="file-row"><i class="fa-solid fa-file-pdf" style="color:#B42318"></i><span>'+(i+1)+'. '+f.name+'</span><small>'+Math.round(f.size/1024)+' KB</small></div>').join('')
-    : '';
-}
-</script>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><i class="fa-solid fa-bolt"></i></div>
+      <div>
+        <div class="brand-name">CNFL <span>CAMPO</span></div>
+        <div class="brand-sub">LECTURA RESIDENCIAL</div>
+      </div>
+    </div>
+    <div id="onlineBadge" class="online-badge">EN LÍNEA</div>
+  </header>
+
+  <nav class="mode-switch" aria-label="Tipo de trabajo">
+    <a class="mode-btn" href="index.html"><i class="fa-solid fa-bolt"></i><span>CORTES</span></a>
+    <a class="mode-btn active" href="lectura.html"><i class="fa-solid fa-gauge-high"></i><span>LECTURA</span></a>
+  </nav>
+
+  <main class="shell">
+    <section class="route-head">
+      <div class="route-title-row">
+        <div>
+          <div class="eyebrow">JORNADA ACTIVA</div>
+          <h1 id="activeRouteTitle">Lectura residencial</h1>
+          <p id="activeRouteSubtitle">Cargá los PDFs de hoy</p>
+        </div>
+        <div class="route-date" id="activeRouteDate">--<br><strong>----</strong></div>
+      </div>
+
+      <div class="stats-grid">
+        <div><strong id="statTotal">59</strong><span>MEDIDORES</span></div>
+        <div><strong id="statPending">59</strong><span>PENDIENTES</span></div>
+        <div><strong id="statRead">0</strong><span>LECTURAS</span></div>
+      </div>
+      <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+    </section>
+
+    <section id="view-route" class="view active">
+      <div class="route-toolbar">
+        <div>
+          <strong id="routeEngineLabel">Secuencia del listado</strong>
+          <span id="routeEngineSub">Podés ordenarla por calles desde tu ubicación.</span>
+        </div>
+        <button class="btn-outline" onclick="optimizeReadingRouteFromHere()">
+          <i class="fa-solid fa-location-crosshairs"></i> DESDE AQUÍ
+        </button>
+      </div>
+
+      <div class="route-helpers">
+        <button class="btn-nearby" onclick="showNearbyReadings()">
+          <i class="fa-solid fa-location-dot"></i> PENDIENTES CERCA DE MÍ
+        </button>
+        <span>Solo muestra opciones; vos elegís si cambiás el siguiente.</span>
+      </div>
+      <div id="nearbyReadingPanel" class="nearby-panel"></div>
+
+      <div id="currentReadingCard"></div>
+      <div id="nextReadingCard"></div>
+    </section>
+
+    <section id="view-list" class="view">
+      <div class="list-tools">
+        <div class="search-field">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="readingSearch" type="text" placeholder="Buscar medidor o Localización" oninput="setReadingSearch(this.value)" />
+        </div>
+      </div>
+      <div id="readingList"></div>
+    </section>
+
+    <section id="view-load" class="view">
+      <div class="summary-card">
+        <div class="eyebrow">NUEVA JORNADA RESIDENCIAL</div>
+        <h2>Cargar PDFs de lectura</h2>
+        <p>Podés seleccionar uno o varios PDFs. La app extrae Localización + Medidor y abre la jornada automáticamente.</p>
+
+        <input id="readingPdfInput" type="file" accept=".pdf,application/pdf" multiple style="display:none" onchange="handleReadingPdfUpload(event)" />
+        <button class="btn-pdf-load" onclick="document.getElementById('readingPdfInput').click()">
+          <i class="fa-solid fa-file-pdf"></i>
+          <span><strong>CARGAR PDFs DE HOY</strong><small>Uno o varios archivos · carga automática</small></span>
+        </button>
+        <div id="readingPdfStatus" class="pdf-status" style="display:none"></div>
+
+        <div class="load-divider"><span>O PEGAR MANUALMENTE</span></div>
+
+        <div class="load-fields">
+          <label>
+            <span>NOMBRE DE LA JORNADA</span>
+            <input id="newRouteName" type="text" placeholder="Ej: Lectura residencial 20-10" />
+          </label>
+          <label>
+            <span>LOCALIZACIÓN + MEDIDOR</span>
+            <textarea id="newRouteData" rows="8" placeholder="0101000050 925995&#10;0101200320 706602&#10;0101301020 942027"></textarea>
+          </label>
+        </div>
+
+        <button class="btn-primary" onclick="loadNewReadingRoute()">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> CARGAR RUTA
+        </button>
+      </div>
+
+      <div class="summary-card">
+        <div class="eyebrow">GPS DE LA RUTA ACTIVA</div>
+        <div class="gps-load-stats">
+          <div><strong id="loadGpsTotal">0</strong><span>Total</span></div>
+          <div><strong id="loadGpsMemory">0</strong><span>En memoria</span></div>
+          <div><strong id="loadGpsMissing">0</strong><span>Faltan</span></div>
+        </div>
+
+        <button class="btn-secondary full" onclick="copyReadingMissingGps()">
+          <i class="fa-solid fa-copy"></i> COPIAR LOCALIZACIONES FALTANTES
+        </button>
+
+        <label class="gps-paste">
+          <span>PEGAR RESPUESTAS DE TELEGRAM / COORDENADAS</span>
+          <textarea id="readingGpsInput" rows="6" placeholder="Pega aquí las respuestas de @ubiCNFL o:&#10;0101000050 9.93270699,-84.07115632"></textarea>
+        </label>
+
+        <button class="btn-primary" onclick="importReadingGps()">
+          <i class="fa-solid fa-location-dot"></i> GUARDAR GPS
+        </button>
+      </div>
+
+      <div class="summary-card">
+        <div class="eyebrow">RUTAS RECIENTES</div>
+        <h2>Memoria de lectura</h2>
+        <p>Podés volver a consultar una jornada anterior sin perder la memoria GPS.</p>
+        <div id="readingRouteHistory" class="route-history"></div>
+      </div>
+    </section>
+
+    <section id="view-summary" class="view">
+      <div class="summary-card">
+        <div class="eyebrow">RESUMEN DE JORNADA</div>
+        <h2 id="summaryRouteTitle">Lectura residencial</h2>
+        <div class="summary-grid">
+          <div><strong id="sumTotal">59</strong><span>Total</span></div>
+          <div><strong id="sumRead">0</strong><span>Lecturas</span></div>
+          <div><strong id="sumPending">59</strong><span>Pendientes</span></div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="eyebrow">MEMORIA GPS COMPARTIDA</div>
+        <h2><span id="gpsMemoryCount">0</span> Localizaciones</h2>
+        <p>Las coordenadas quedan disponibles para futuras jornadas de lectura o cortes en este dispositivo.</p>
+      </div>
+
+      <div class="summary-actions">
+        <button class="btn-primary" onclick="shareReadingReport()"><i class="fa-solid fa-share-nodes"></i> ENTREGAR / COMPARTIR REPORTE</button>
+        <button class="btn-secondary full" onclick="copyReadingSummary()"><i class="fa-solid fa-copy"></i> COPIAR REPORTE</button>
+        <button class="btn-secondary full" onclick="downloadReadingReport()"><i class="fa-solid fa-download"></i> DESCARGAR REPORTE</button>
+        <button class="btn-danger-ghost" onclick="resetReadingDay()"><i class="fa-solid fa-arrow-rotate-left"></i> REINICIAR JORNADA</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button id="tabRoute" class="nav-btn active" onclick="switchReadingTab('route', this)">
+      <i class="fa-solid fa-route"></i><span>RUTA</span>
+    </button>
+    <button id="tabList" class="nav-btn" onclick="switchReadingTab('list', this)">
+      <i class="fa-solid fa-list-check"></i><span>LISTA</span>
+    </button>
+    <button id="tabLoad" class="nav-btn" onclick="switchReadingTab('load', this)">
+      <i class="fa-solid fa-upload"></i><span>CARGAR</span>
+    </button>
+    <button id="tabSummary" class="nav-btn" onclick="switchReadingTab('summary', this)">
+      <i class="fa-solid fa-chart-column"></i><span>RESUMEN</span>
+    </button>
+  </nav>
+
+  <div id="readingToast" class="toast"></div>
+  <script src="lectura.js?v=20261020-3"></script>
+  <script src="lectura-ux.js?v=20261020-3"></script>
+  <script src="lectura-pdf.js?v=20261020-3"></script>
+  <script src="campo-shell.js?v=20261019-1"></script>
 </body>
 </html>
