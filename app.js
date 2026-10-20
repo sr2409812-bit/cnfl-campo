@@ -213,17 +213,10 @@ function registerServiceWorker() {
 async function loadGeoCache() {
   try {
     const saved = localStorage.getItem('cnfl_geocache');
-    if (saved) {
-      geoCache = JSON.parse(saved);
-    } else {
-      const res = await fetch('resolved_cache.json');
-      if (res.ok) {
-        geoCache = await res.json();
-        localStorage.setItem('cnfl_geocache', JSON.stringify(geoCache));
-      }
-    }
+    geoCache = saved ? (JSON.parse(saved) || {}) : {};
   } catch (e) {
-    console.warn('Caché no disponible:', e);
+    geoCache = {};
+    console.warn('Caché GPS local no disponible:', e);
   }
 }
 
