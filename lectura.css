@@ -511,3 +511,28 @@ button,a{-webkit-tap-highlight-color:transparent}
   border-color:var(--cnfl-orange);
   box-shadow:0 0 0 2px rgba(255,106,19,.12);
 }
+
+
+/* Gestión de rutas cargadas */
+.history-route-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.history-route-actions button{
+  min-width:64px;
+}
+.history-route-actions .history-delete{
+  border-color:#D7A6A0;
+  color:#B42318;
+}
+.btn-delete-route{
+  width:100%;
+  min-height:44px;
+  margin-top:10px;
+  border:1px solid #D7A6A0;
+  background:#FFF;
+  color:#B42318;
+  font-size:10px;
+  font-weight:900;
+}
