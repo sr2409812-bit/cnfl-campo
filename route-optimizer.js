@@ -66,6 +66,10 @@ function cnflRoadCoordinate(point) {
   return `${Number(point.lon)},${Number(point.lat)}`;
 }
 
+function cnflFiniteLeg(value) {
+  return value !== null && value !== undefined && Number.isFinite(Number(value));
+}
+
 async function cnflFetchRoadMatrix(startPoint, orders, lookaheadOrders = []) {
   let lookahead = [...lookaheadOrders];
 
@@ -103,7 +107,7 @@ async function cnflFetchRoadMatrix(startPoint, orders, lookaheadOrders = []) {
   const groupEnd = orders.length;
   for (let i = 0; i <= groupEnd; i++) {
     for (let j = 0; j <= groupEnd; j++) {
-      if (i !== j && !Number.isFinite(Number(data.durations[i][j]))) {
+      if (i !== j && !cnflFiniteLeg(data.durations[i][j])) {
         throw new Error('Hay una o más paradas sin conexión vial calculable');
       }
     }
@@ -132,8 +136,10 @@ function cnflNearestNeighborRoad(matrix, allowedIndices, forcedFirst = null) {
     let best = null;
     let bestCost = Infinity;
     for (const idx of remaining) {
-      const cost = Number(matrix[current][idx]);
-      if (Number.isFinite(cost) && cost < bestCost) {
+      const raw = matrix[current][idx];
+      if (!cnflFiniteLeg(raw)) continue;
+      const cost = Number(raw);
+      if (cost < bestCost) {
         best = idx;
         bestCost = cost;
       }
@@ -152,8 +158,9 @@ function cnflRouteCost(orderIndices, matrix, lookaheadIndices = []) {
   let total = 0;
 
   for (const next of orderIndices) {
-    const leg = Number(matrix[current][next]);
-    if (!Number.isFinite(leg)) return Infinity;
+    const raw = matrix[current][next];
+    if (!cnflFiniteLeg(raw)) return Infinity;
+    const leg = Number(raw);
     total += leg;
     current = next;
   }
@@ -162,8 +169,8 @@ function cnflRouteCost(orderIndices, matrix, lookaheadIndices = []) {
   if (lookaheadIndices.length && orderIndices.length) {
     let transition = Infinity;
     for (const idx of lookaheadIndices) {
-      const leg = Number(matrix[current][idx]);
-      if (Number.isFinite(leg)) transition = Math.min(transition, leg);
+      const raw = matrix[current][idx];
+      if (cnflFiniteLeg(raw)) transition = Math.min(transition, Number(raw));
     }
     if (Number.isFinite(transition)) total += transition;
   }
@@ -228,9 +235,9 @@ function cnflRoadDistanceForRoute(routeIndices, distanceMatrix) {
   let current = 0;
   let total = 0;
   for (const next of routeIndices) {
-    const leg = Number(distanceMatrix[current][next]);
-    if (!Number.isFinite(leg)) return null;
-    total += leg;
+    const raw = distanceMatrix[current][next];
+    if (!cnflFiniteLeg(raw)) return null;
+    total += Number(raw);
     current = next;
   }
   return total;
@@ -240,9 +247,9 @@ function cnflRoadDurationForRoute(routeIndices, durationMatrix) {
   let current = 0;
   let total = 0;
   for (const next of routeIndices) {
-    const leg = Number(durationMatrix[current][next]);
-    if (!Number.isFinite(leg)) return null;
-    total += leg;
+    const raw = durationMatrix[current][next];
+    if (!cnflFiniteLeg(raw)) return null;
+    total += Number(raw);
     current = next;
   }
   return total;
