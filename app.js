@@ -1556,12 +1556,12 @@ function parseCnflPdfText(rawText) {
             id: `ord-${ordNum}`,
             orden: ordNum,
             localizacion: (pageLocs[i] || '').trim(),
-            medidor: (pageMeds[i] || 'N/D').trim(),
-            monto: (pageMontos[i] || '0.00').trim(),
+            medidor: (pageMeds[i] || '').trim(),
+            monto: (pageMontos[i] || '').trim(),
             nis: (pageNis[i] || '').trim(),
             plan,
-            direccion: dirLines[i] || 'San José Central',
-            cliente: nomLines[i] || 'Abonado CNFL',
+            direccion: dirLines[i] || '',
+            cliente: nomLines[i] || '',
             tipo: plan.toUpperCase().includes('COMERCIAL') ? 'corta_comercial' : 'corta_residencial',
             status: 'pending',
             lectura: '',
@@ -1599,33 +1599,9 @@ function parseCnflPdfText(rawText) {
     }
   }
 
-  // Método 3: Fallback por líneas si no cuadró en bloque
-  if (orders.length === 0) {
-    const lines = clean.split('\n');
-    for (const line of lines) {
-      const nisM = line.match(/\b\d{6,8}\b/);
-      const locM = line.match(/\b\d{10}\b/);
-      const ordM = line.match(/\b744\d{5}\b/);
-      if (nisM && locM) {
-        orders.push({
-          id: `ord-${ordM ? ordM[0] : locM[0]}`,
-          orden: ordM ? ordM[0] : '',
-          nis: nisM[0],
-          localizacion: locM[0],
-          medidor: (line.match(/[M-]?\d{6,8}/) || ['N/D'])[0],
-          monto: '0.00',
-          direccion: line.substring(0, 45).trim(),
-          cliente: 'Abonado CNFL',
-          tipo: 'corta',
-          status: 'pending',
-          lectura: '',
-          sello_instalado: '',
-          sello_retirado: '',
-          observaciones: ''
-        });
-      }
-    }
-  }
+  // Modo seguro: no inferir campos críticos por longitud o posición en una línea.
+  // Si los formatos oficiales anteriores no coinciden, se devuelve vacío y se bloquea la carga.
+
 
   return orders;
 }
@@ -1638,25 +1614,14 @@ async function processRawOrders() {
   }
 
   const parsed = parseCnflPdfText(raw);
-  if (parsed.length > 0) {
-    workOrders = parsed;
-  } else {
-    const lines = raw.split('\n').filter(l => l.trim().length > 0);
-    workOrders = lines.map((line, idx) => ({
-      id: `ord-manual-${idx + 1}`,
-      nis: (line.match(/\b\d{6,8}\b/) || [`${1000000 + idx}`])[0],
-      medidor: (line.match(/\b\d{5,8}\b/) || [`${800000 + idx}`])[0],
-      localizacion: (line.match(/\b\d{10}\b/) || [''])[0],
-      tipo: 'corta',
-      cliente: line.split('-')[0].trim() || `Abonado #${idx + 1}`,
-      direccion: line.trim(),
-      status: 'pending',
-      lectura: '',
-      sello_instalado: '',
-      sello_retirado: '',
-      observaciones: ''
-    }));
+  if (!parsed.length) {
+    alert(
+      'No cargué el texto porque no coincide con un formato oficial que pueda validar con seguridad.\n\n' +
+      'Usá el PDF oficial. No voy a inventar NISE, Medidor, Orden, Monto, Dirección o Nombre a partir de números sueltos.'
+    );
+    return;
   }
+  workOrders = parsed;
 
   const validation = validateCnflOrders(workOrders);
   if (!validation.ok) {
