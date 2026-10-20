@@ -300,6 +300,7 @@ function archiveReadingEvent(order) {
     route: readingRouteInfo.name,
     localizacion: order.localizacion,
     medidor: order.medidor,
+    lectura: String(order.lectura || ''),
     status: order.status,
     at: order.readAt || new Date().toISOString()
   };
@@ -434,6 +435,7 @@ function parseReadingRouteText(raw) {
       localizacion: loc,
       medidor: meter,
       status: 'pending',
+      lectura: '',
       sequence: rows.length + 1,
       originalSequence: rows.length + 1,
       readAt: ''
