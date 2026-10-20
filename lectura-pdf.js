@@ -142,8 +142,8 @@ function readingPdfSuggestedName(fileName, fullText) {
 }
 
 async function handleReadingPdfUpload(event) {
-  const file = event && event.target && event.target.files ? event.target.files[0] : null;
-  if (!file) return;
+  const files = event && event.target && event.target.files ? Array.from(event.target.files) : [];
+  if (!files.length) return;
 
   const statusEl = document.getElementById('readingPdfStatus');
   const dataEl = document.getElementById('newRouteData');
@@ -152,45 +152,63 @@ async function handleReadingPdfUpload(event) {
   if (statusEl) {
     statusEl.style.display = 'block';
     statusEl.className = 'pdf-status';
-    statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Leyendo Secuencia de Visita y Medidor...';
+    statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Leyendo ' + files.length + ' PDF(s)...';
   }
 
   try {
     if (typeof pdfjsLib === 'undefined') throw new Error('El lector PDF no está disponible.');
-
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const buffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({
-      data: buffer,
-      cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-      cMapPacked: true
-    }).promise;
+    const merged = [];
+    const byLoc = new Map();
+    const names = [];
 
-    const layoutPages = [];
-    let fullText = '';
+    for (const file of files) {
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({
+        data: buffer,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true
+      }).promise;
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      layoutPages.push(textContent.items || []);
-      fullText += (textContent.items || []).map(item => String(item.str || '').trim()).filter(Boolean).join('\n') + '\n';
+      const layoutPages = [];
+      let fullText = '';
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        layoutPages.push(textContent.items || []);
+        fullText += (textContent.items || []).map(item => String(item.str || '').trim()).filter(Boolean).join('\n') + '\n';
+      }
+
+      const parsed = parseReadingPdfLayout(layoutPages, fullText);
+      names.push(readingPdfSuggestedName(file.name, fullText));
+
+      for (const row of parsed.rows) {
+        const old = byLoc.get(row.localizacion);
+        if (old && old.medidor !== row.medidor) {
+          throw new Error('Conflicto en Localización ' + row.localizacion + ': ' + old.medidor + ' / ' + row.medidor);
+        }
+        if (old) continue;
+        byLoc.set(row.localizacion, row);
+        merged.push(row);
+      }
     }
 
-    const parsed = parseReadingPdfLayout(layoutPages, fullText);
-    dataEl.value = parsed.rows.map(r => r.localizacion + ' ' + r.medidor).join('\n');
+    if (!merged.length) throw new Error('No se extrajo ningún medidor.');
 
-    if (!String(nameEl.value || '').trim()) {
-      nameEl.value = readingPdfSuggestedName(file.name, fullText);
-    }
+    dataEl.value = merged.map(r => r.localizacion + ' ' + r.medidor).join('\n');
+    nameEl.value = files.length === 1 ? names[0] : (READING_MODE === 'residencial' ? 'Lectura residencial · ' + files.length + ' PDFs' : 'Demanda · ' + files.length + ' PDFs');
 
     if (statusEl) {
       statusEl.className = 'pdf-status ok';
-      statusEl.innerHTML = '<i class="fa-solid fa-check"></i> ' + parsed.rows.length + ' medidores extraídos. Revisá el nombre y tocá “Cargar ruta”.';
+      statusEl.innerHTML = '<i class="fa-solid fa-check"></i> ' + merged.length + ' medidores extraídos. Cargando jornada...';
     }
 
+    loadNewReadingRoute();
+
     if (typeof showReadingToast === 'function') {
-      showReadingToast('PDF listo · ' + parsed.rows.length + ' Localizaciones + Medidores');
+      showReadingToast('PDF listo · ' + merged.length + ' medidores cargados');
     }
   } catch (err) {
     console.error(err);
