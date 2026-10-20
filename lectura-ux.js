@@ -72,7 +72,7 @@
     container.innerHTML = `
       <article class="reading-card">
         <div class="card-kicker">
-          <span>MEDIDOR ACTUAL</span>
+          <span>${READING_MODE === 'residencial' && current.sourceRoute ? 'RUTA ' + escapeHtml(current.sourceRoute) : 'MEDIDOR ACTUAL'}</span>
           <span>${s.read + 1} / ${s.total}</span>
         </div>
         <div class="reading-main">
@@ -318,7 +318,8 @@
       .sort((a,b) => Number(a.originalSequence || a.sequence || 0) - Number(b.originalSequence || b.sequence || 0))
       .forEach((o,i) => {
         const reading = o.status === 'read' && String(o.lectura || '').trim() ? String(o.lectura).trim() : 'PENDIENTE';
-        lines.push(`${String(i+1).padStart(2,'0')}. Localización ${o.localizacion} · Medidor ${o.medidor} · Lectura ${reading}`);
+        const routePart = READING_MODE === 'residencial' && o.sourceRoute ? `Ruta ${o.sourceRoute} · ` : '';
+        lines.push(`${String(i+1).padStart(2,'0')}. ${routePart}Localización ${o.localizacion} · Medidor ${o.medidor} · Lectura ${reading}`);
       });
 
     return lines.join('\n');
