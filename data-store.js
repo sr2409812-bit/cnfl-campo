@@ -33,7 +33,41 @@
     tx.objectStore('records').put({pk:namespace+'|'+id,namespace,id,data,updatedAt:new Date().toISOString()});
     await done(tx);return true;
   }
-  window.CNFLStore={ready,snapshot,putRecord};
+  async function getAll(storeName){
+    const db=await ready;if(!db)return [];
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction(storeName,'readonly');
+      const req=tx.objectStore(storeName).getAll();
+      req.onsuccess=()=>resolve(req.result||[]);
+      req.onerror=()=>reject(req.error);
+    });
+  }
+  async function exportDb(){
+    const [kv,records]=await Promise.all([getAll('kv'),getAll('records')]);
+    return {name:DB,version:VERSION,exportedAt:new Date().toISOString(),kv,records};
+  }
+  async function importDb(payload){
+    const db=await ready;if(!db)return {kv:0,records:0};
+    const out={kv:0,records:0};
+    for(const name of ['kv','records']){
+      const rows=Array.isArray(payload&&payload[name])?payload[name]:[];
+      if(!rows.length)continue;
+      const tx=db.transaction(name,'readwrite'),store=tx.objectStore(name);
+      rows.forEach(row=>{store.put(row);out[name]++;});
+      await done(tx);
+    }
+    return out;
+  }
+  async function counts(){
+    const db=await ready;if(!db)return {available:false,kv:0,records:0};
+    const countStore=name=>new Promise((resolve,reject)=>{
+      const tx=db.transaction(name,'readonly'),req=tx.objectStore(name).count();
+      req.onsuccess=()=>resolve(req.result||0);req.onerror=()=>reject(req.error);
+    });
+    const [kv,records]=await Promise.all([countStore('kv'),countStore('records')]);
+    return {available:true,kv,records};
+  }
+  window.CNFLStore={ready,snapshot,putRecord,exportDb,importDb,counts};
   ready.then(db=>{
     if(!db)return;
     snapshot().catch(()=>{});
