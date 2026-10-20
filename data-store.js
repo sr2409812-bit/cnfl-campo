@@ -58,6 +58,17 @@
     }
     return out;
   }
+  async function deleteRecordsByPrefix(namespace,prefix){
+    const db=await ready;if(!db)return 0;
+    const all=await getAll('records');
+    const targets=all.filter(r=>r&&r.namespace===String(namespace)&&String(r.id||'').startsWith(String(prefix||'')));
+    if(!targets.length)return 0;
+    const tx=db.transaction('records','readwrite'),store=tx.objectStore('records');
+    targets.forEach(r=>store.delete(r.pk));
+    await done(tx);
+    return targets.length;
+  }
+
   async function counts(){
     const db=await ready;if(!db)return {available:false,kv:0,records:0};
     const countStore=name=>new Promise((resolve,reject)=>{
@@ -67,7 +78,7 @@
     const [kv,records]=await Promise.all([countStore('kv'),countStore('records')]);
     return {available:true,kv,records};
   }
-  window.CNFLStore={ready,snapshot,putRecord,exportDb,importDb,counts};
+  window.CNFLStore={ready,snapshot,putRecord,exportDb,importDb,deleteRecordsByPrefix,counts};
   ready.then(db=>{
     if(!db)return;
     snapshot().catch(()=>{});
