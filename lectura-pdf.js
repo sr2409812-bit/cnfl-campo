@@ -28,6 +28,95 @@ function groupReadingPdfRows(items, tolerance = 2.8) {
 }
 
 
+
+function parseReadingPdfRowPairs(layoutPages, fullText = '') {
+  const found = [];
+  const seen = new Map();
+  const conflicts = [];
+
+  function add(locRaw, medRaw) {
+    const locDigits = String(locRaw || '').replace(/\D/g, '');
+    const medidor = String(medRaw || '').replace(/\D/g, '');
+    const localizacion = locDigits.length === 9 ? '0' + locDigits : locDigits;
+    if (!/^\d{10}$/.test(localizacion)) return;
+    if (!/^\d{4,8}$/.test(medidor)) return;
+
+    if (seen.has(localizacion)) {
+      if (seen.get(localizacion) !== medidor) {
+        conflicts.push(localizacion + ': ' + seen.get(localizacion) + ' / ' + medidor);
+      }
+      return;
+    }
+
+    seen.set(localizacion, medidor);
+    found.push({ localizacion, medidor });
+  }
+
+  for (const rawItems of layoutPages || []) {
+    const items = (rawItems || []).map(readingPdfItemXY).filter(i => i.text);
+    const rows = groupReadingPdfRows(items, 4.2);
+
+    for (const row of rows) {
+      const line = row.items.map(i => String(i.text || '').trim()).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+      if (!line) continue;
+
+      // LMR0085: "Localización: ########## Medidor: ###### ..."
+      let m = line.match(/Localizaci[oó]n\s*:?\s*(\d{9,10})[\s\S]*?Medidor\s*:?\s*(\d{4,8})/i);
+      if (m) {
+        add(m[1], m[2]);
+        continue;
+      }
+
+      // LMR0155 / tabla: la fila inicia con Localización + Medidor.
+      m = line.match(/^(\d{9,10})\s+(\d{4,8})(?=\s|$)/);
+      if (m) {
+        add(m[1], m[2]);
+        continue;
+      }
+
+      // Último respaldo geométrico: localización a la izquierda y medidor cercano a la derecha.
+      const tokens = [];
+      for (const item of row.items) {
+        for (const match of String(item.text || '').matchAll(/\d+/g)) {
+          tokens.push({ digits: match[0], x: item.x });
+        }
+      }
+
+      const locs = tokens.filter(t => t.digits.length === 9 || t.digits.length === 10);
+      for (const locToken of locs) {
+        const meter = tokens
+          .filter(t => t !== locToken && t.x >= locToken.x && t.digits.length >= 4 && t.digits.length <= 8)
+          .sort((a,b) => a.x - b.x)[0];
+        if (meter) {
+          add(locToken.digits, meter.digits);
+          break;
+        }
+      }
+    }
+  }
+
+  if (conflicts.length) {
+    throw new Error('El PDF trae Localizaciones con medidores diferentes: ' + conflicts.slice(0,6).join(', '));
+  }
+
+  const text = String(fullText || '');
+  const expectedMatch =
+    text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
+
+  const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
+
+  if (found.length && expectedCount && found.length !== expectedCount) {
+    throw new Error(
+      'El PDF indica ' + expectedCount + ' medidores/inspecciones, pero pude validar ' +
+      found.length + '. No lo cargué para evitar una lista incompleta.'
+    );
+  }
+
+  return { rows: found, expectedCount };
+}
+
 function parseReadingPdfDirectText(fullText = '') {
   const text = String(fullText || '');
   const rows = [];
@@ -83,6 +172,16 @@ function parseReadingPdfDirectText(fullText = '') {
 }
 
 function parseReadingPdfLayout(layoutPages, fullText = '') {
+  const rowPairs = parseReadingPdfRowPairs(layoutPages, fullText);
+  if (rowPairs.rows.length) {
+    return {
+      rows: rowPairs.rows,
+      expectedCount: rowPairs.expectedCount,
+      pagesWithHeaders: 0,
+      parser: 'row-layout'
+    };
+  }
+
   const direct = parseReadingPdfDirectText(fullText);
   if (direct.rows.length) {
     return {
@@ -179,7 +278,7 @@ function parseReadingPdfLayout(layoutPages, fullText = '') {
   }
 
   if (!pagesWithHeaders) {
-    throw new Error('No encontré las columnas “Secuencia de Visita” y “Medidor” en el PDF.');
+    throw new Error('No encontré pares válidos de Localización + Medidor en este PDF.');
   }
   if (conflicts.length) {
     throw new Error('El PDF trae Localizaciones con medidores diferentes: ' + conflicts.slice(0,6).join(', '));
@@ -193,7 +292,7 @@ function parseReadingPdfLayout(layoutPages, fullText = '') {
     throw new Error('El PDF indica ' + expectedCount + ' medidores, pero pude validar ' + found.length + '. No lo cargué para evitar una lista incompleta.');
   }
   if (!found.length) {
-    throw new Error('No pude extraer pares válidos de Secuencia de Visita + Medidor.');
+    throw new Error('No pude extraer pares válidos de Localización + Medidor.');
   }
 
   return { rows: found, expectedCount, pagesWithHeaders };
