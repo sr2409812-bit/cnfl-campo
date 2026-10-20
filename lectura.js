@@ -1,11 +1,12 @@
-const READING_KEY = 'cnfl_reading_orders_v2';
-const READING_HISTORY_KEY = 'cnfl_reading_history_v1';
-const READING_ROUTE_HISTORY_KEY = 'cnfl_reading_routes_v1';
+const READING_MODE = /lectura-residencial\.html$/i.test(location.pathname) ? 'residencial' : 'demanda';
+const READING_KEY = READING_MODE === 'residencial' ? 'cnfl_residential_reading_v1' : 'cnfl_reading_orders_v2';
+const READING_HISTORY_KEY = READING_MODE === 'residencial' ? 'cnfl_residential_history_v1' : 'cnfl_reading_history_v1';
+const READING_ROUTE_HISTORY_KEY = READING_MODE === 'residencial' ? 'cnfl_residential_routes_v1' : 'cnfl_reading_routes_v1';
 const GEO_KEY = 'cnfl_geocache';
 
 const DEFAULT_ROUTE_INFO = {
   routeId: 'reading-empty',
-  name: 'Demanda',
+  name: READING_MODE === 'residencial' ? 'Lectura residencial' : 'Demanda',
   subtitle: 'Sin jornada cargada',
   date: ''
 };
@@ -98,7 +99,7 @@ function loadReadingState() {
     readingOrders = [];
     readingRouteInfo = {
       routeId:'reading-empty',
-      name:'Demanda',
+      name:READING_MODE === 'residencial' ? 'Lectura residencial' : 'Demanda',
       subtitle:'Sin jornada cargada',
       date:localDateKey()
     };
@@ -310,7 +311,7 @@ function archiveReadingEvent(order) {
 
   if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
     const id = [event.routeId,event.localizacion,event.medidor,event.at].join('|');
-    window.CNFLStore.putRecord('reading-events', id, event).catch(() => {});
+    window.CNFLStore.putRecord(READING_MODE === 'residencial' ? 'residential-reading-events' : 'reading-events', id, event).catch(() => {});
   }
 }
 
@@ -468,7 +469,7 @@ function archiveCurrentRoute() {
 
   if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
     const id = String(readingRouteInfo.routeId || 'route') + '|' + snapshot.savedAt;
-    window.CNFLStore.putRecord('reading-routes', id, snapshot).catch(() => {});
+    window.CNFLStore.putRecord(READING_MODE === 'residencial' ? 'residential-reading-routes' : 'reading-routes', id, snapshot).catch(() => {});
   }
 }
 
@@ -494,7 +495,7 @@ function loadNewReadingRoute() {
     readingRouteInfo = {
       routeId:`reading-${Date.now()}`,
       name,
-      subtitle:'Lectura de medidores',
+      subtitle:READING_MODE === 'residencial' ? 'Lectura residencial' : 'Lectura de demanda',
       date:localDateKey()
     };
     readingOrders = parsed.rows;
