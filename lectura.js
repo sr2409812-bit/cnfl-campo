@@ -339,15 +339,19 @@ function setReadingSearch(value) {
 
 function renderSummary() {
   const s = stats();
-  document.getElementById('sumRead').textContent = s.read;
-  document.getElementById('sumUnread').textContent = s.unread;
-  document.getElementById('sumPending').textContent = s.pending;
+  const totalEl = document.getElementById('sumTotal');
+  const readEl = document.getElementById('sumRead');
+  const pendingEl = document.getElementById('sumPending');
+  if (totalEl) totalEl.textContent = s.total;
+  if (readEl) readEl.textContent = s.read;
+  if (pendingEl) pendingEl.textContent = s.pending;
 
   const cache = loadJson(GEO_KEY, {});
   const count = Object.values(cache).filter(g =>
     g && Number.isFinite(Number(g.lat)) && Number.isFinite(Number(g.lon)) && g.status !== 'conflict'
   ).length;
-  document.getElementById('gpsMemoryCount').textContent = count;
+  const gpsEl = document.getElementById('gpsMemoryCount');
+  if (gpsEl) gpsEl.textContent = count;
 }
 
 function renderRouteMeta() {
