@@ -5,10 +5,11 @@
   function normalizeReadingStatuses() {
     readingOrders = readingOrders.map((o, index) => {
       const wasDeferredLegacy = o.status === 'unread';
+      const lectura = String(o.lectura ?? '').trim();
       return {
         ...o,
-        status: o.status === 'read' ? 'read' : 'pending',
-        lectura: String(o.lectura ?? ''),
+        status: o.status === 'read' && lectura ? 'read' : 'pending',
+        lectura,
         deferCount: Number(o.deferCount || (wasDeferredLegacy ? 1 : 0)),
         sequence: Number(o.sequence || index + 1),
         originalSequence: Number(o.originalSequence || o.sequence || index + 1)
