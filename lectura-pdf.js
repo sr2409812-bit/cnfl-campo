@@ -37,7 +37,7 @@ function parseReadingPdfLayout(layoutPages, fullText = '') {
     const items = (rawItems || []).map(readingPdfItemXY).filter(i => i.text);
     const seqHeaders = items.filter(i => {
       const n = normalizeReadingPdfText(i.text);
-      return n.includes('secuencia') || n === 'visita';
+      return n.includes('secuencia') || n === 'visita' || n.includes('localizacion');
     });
     const medHeaders = items.filter(i => normalizeReadingPdfText(i.text).includes('medidor'));
 
