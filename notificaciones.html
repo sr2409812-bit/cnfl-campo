@@ -169,7 +169,19 @@ function nextPending(from){
   }
   return from;
 }
-function markDone(){const stops=currentStops();state.done[stops[state.index][0]]=true;state.index=nextPending(state.index);save();render()}
+function markDone(){
+  const stops=currentStops();
+  const loc=stops[state.index][0];
+  const at=new Date().toISOString();
+  state.done[loc]=true;
+  if(window.CNFLStore&&typeof window.CNFLStore.putRecord==="function"){
+    const day=at.slice(0,10);
+    window.CNFLStore.putRecord("notification-visits",day+"|"+loc+"|"+at,{localizacion:loc,status:"gestionada",at,routeKey:KEY}).catch(()=>{});
+  }
+  state.index=nextPending(state.index);
+  save();
+  render();
+}
 function nextStop(){const n=currentStops().length;state.index=(state.index+1)%n;save();render()}
 function prevStop(){const n=currentStops().length;state.index=(state.index-1+n)%n;save();render()}
 function jumpTo(v){state.index=Number(v);save();render()}
