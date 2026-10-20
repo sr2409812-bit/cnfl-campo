@@ -845,35 +845,115 @@ function getCurrentPositionPromise() {
 
 function routeCost(route, matrix) {
   if (!route.length) return 0;
-  let total = Number(matrix[0][route[0]]) || 0;
+  const first = matrix?.[0]?.[route[0]];
+  if (first === null || !Number.isFinite(Number(first))) return Infinity;
+  let total = Number(first);
+
   for (let i = 0; i < route.length - 1; i++) {
-    total += Number(matrix[route[i]][route[i + 1]]) || 0;
+    const raw = matrix?.[route[i]]?.[route[i + 1]];
+    if (raw === null || !Number.isFinite(Number(raw))) return Infinity;
+    total += Number(raw);
   }
   return total;
 }
 
-function improve2Opt(route, matrix) {
+function readingMatrixUsable(matrix, size) {
+  return Array.isArray(matrix) &&
+    matrix.length === size &&
+    matrix.every(row => Array.isArray(row) && row.length === size);
+}
+
+function nearestReadingRoute(matrix, indices, forcedFirst = null) {
+  const left = new Set(indices);
+  const route = [];
+  let current = 0;
+
+  if (forcedFirst !== null && left.has(forcedFirst)) {
+    const v = matrix?.[0]?.[forcedFirst];
+    if (v !== null && Number.isFinite(Number(v))) {
+      route.push(forcedFirst);
+      left.delete(forcedFirst);
+      current = forcedFirst;
+    }
+  }
+
+  while (left.size) {
+    let best = null;
+    let bestCost = Infinity;
+    for (const idx of left) {
+      const raw = matrix?.[current]?.[idx];
+      if (raw === null || !Number.isFinite(Number(raw))) continue;
+      const cost = Number(raw);
+      if (cost < bestCost) {
+        best = idx;
+        bestCost = cost;
+      }
+    }
+    if (best === null) throw new Error('Hay una parada sin conexión vial calculable.');
+    route.push(best);
+    left.delete(best);
+    current = best;
+  }
+  return route;
+}
+
+function improveReadingRoute(route, matrix) {
   let best = route.slice();
   let bestCost = routeCost(best, matrix);
 
-  for (let pass = 0; pass < 4; pass++) {
-    let improved = false;
-    for (let i = 0; i < best.length - 2; i++) {
-      for (let j = i + 1; j < best.length - 1; j++) {
-        const candidate = best.slice();
-        const reversed = candidate.slice(i, j + 1).reverse();
-        candidate.splice(i, reversed.length, ...reversed);
+  for (let pass = 0; pass < 24; pass++) {
+    let winner = null;
+    let winnerCost = bestCost;
+
+    // 2-opt: elimina cruces/regresos.
+    for (let i = 0; i < best.length - 1; i++) {
+      for (let j = i + 1; j < best.length; j++) {
+        const candidate = [
+          ...best.slice(0, i),
+          ...best.slice(i, j + 1).reverse(),
+          ...best.slice(j + 1)
+        ];
         const cost = routeCost(candidate, matrix);
-        if (cost + 1 < bestCost) {
-          best = candidate;
-          bestCost = cost;
-          improved = true;
+        if (cost + 0.5 < winnerCost) {
+          winner = candidate;
+          winnerCost = cost;
         }
       }
     }
-    if (!improved) break;
+
+    // Relocate: mueve una parada mal colocada.
+    for (let i = 0; i < best.length; i++) {
+      const reduced = best.slice();
+      const moved = reduced.splice(i, 1)[0];
+      for (let j = 0; j <= reduced.length; j++) {
+        const candidate = [...reduced.slice(0, j), moved, ...reduced.slice(j)];
+        const cost = routeCost(candidate, matrix);
+        if (cost + 0.5 < winnerCost) {
+          winner = candidate;
+          winnerCost = cost;
+        }
+      }
+    }
+
+    // Swap: corrige pares cruzados.
+    for (let i = 0; i < best.length - 1; i++) {
+      for (let j = i + 1; j < best.length; j++) {
+        const candidate = best.slice();
+        [candidate[i], candidate[j]] = [candidate[j], candidate[i]];
+        const cost = routeCost(candidate, matrix);
+        if (cost + 0.5 < winnerCost) {
+          winner = candidate;
+          winnerCost = cost;
+        }
+      }
+    }
+
+    if (!winner) break;
+    best = winner;
+    bestCost = winnerCost;
   }
-  return best;
+
+  return {route:best,cost:bestCost};
 }
 
 async function optimizeReadingRouteFromHere() {
@@ -912,27 +992,49 @@ async function optimizeReadingRouteFromHere() {
     if (!data.durations || data.code !== 'Ok') throw new Error('El motor vial no devolvió una matriz válida.');
 
     const n = pending.length;
-    const unvisited = new Set(Array.from({length:n}, (_,i) => i + 1));
-    const route = [];
-    let current = 0;
-
-    while (unvisited.size) {
-      let best = null;
-      let bestTime = Infinity;
-      for (const idx of unvisited) {
-        const t = Number(data.durations[current][idx]);
-        if (Number.isFinite(t) && t < bestTime) {
-          bestTime = t;
-          best = idx;
-        }
-      }
-      if (best === null) throw new Error('No existe conexión vial para una de las paradas.');
-      route.push(best);
-      unvisited.delete(best);
-      current = best;
+    const size = n + 1;
+    if (!readingMatrixUsable(data.durations, size)) {
+      throw new Error('La matriz vial de tiempos está incompleta.');
     }
 
-    const improved = improve2Opt(route,data.durations);
+    // Para reducir vueltas se prioriza distancia real por calles.
+    // Si OSRM no devuelve distancias completas, se usa tiempo vial.
+    const objective = readingMatrixUsable(data.distances, size)
+      ? data.distances
+      : data.durations;
+
+    const indices = Array.from({length:n}, (_,i) => i + 1);
+    const candidates = [];
+
+    const base = improveReadingRoute(nearestReadingRoute(objective, indices), objective);
+    base.duration = routeCost(base.route, data.durations);
+    candidates.push(base);
+
+    // Jornadas pequeñas: probar cada primera parada.
+    // Jornadas grandes: probar las 12 mejores candidatas iniciales.
+    const seeds = n <= 24
+      ? indices
+      : indices
+          .slice()
+          .sort((a,b) => Number(objective[0][a]) - Number(objective[0][b]))
+          .slice(0,12);
+
+    for (const first of seeds) {
+      const candidate = improveReadingRoute(
+        nearestReadingRoute(objective, indices, first),
+        objective
+      );
+      candidate.duration = routeCost(candidate.route, data.durations);
+      candidates.push(candidate);
+    }
+
+    candidates.sort((a,b) => {
+      const delta = a.cost - b.cost;
+      if (Math.abs(delta) > 25) return delta;
+      return a.duration - b.duration;
+    });
+
+    const improved = candidates[0].route;
     const optimizedPending = improved.map(matrixIndex => pending[matrixIndex - 1]);
     const finished = readingOrders.filter(o => o.status !== 'pending');
 
