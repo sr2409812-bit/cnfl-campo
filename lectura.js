@@ -696,11 +696,63 @@ function renderReadingRouteHistory() {
           <strong>${escapeHtml(routeDisplayName(info))}</strong>
           <span>${escapeHtml(info.date || '')} · ${s.total} medidores · ${s.read} leídos</span>
         </div>
-        <button onclick="restoreReadingRoute('${escapeHtml(info.routeId || '')}')">ABRIR</button>
+        <div class="history-route-actions">
+          <button onclick="restoreReadingRoute('${escapeHtml(info.routeId || '')}')">ABRIR</button>
+          <button class="history-delete" onclick="deleteReadingRoute('${escapeHtml(info.routeId || '')}')">BORRAR</button>
+        </div>
       </div>`;
   }).join('');
 }
 
+function cleanupReadingRouteRecords(routeId) {
+  if (!routeId || !window.CNFLStore || typeof window.CNFLStore.deleteRecordsByPrefix !== 'function') return;
+  const routeNamespace = READING_MODE === 'residencial' ? 'residential-reading-routes' : 'reading-routes';
+  const eventNamespace = READING_MODE === 'residencial' ? 'residential-reading-events' : 'reading-events';
+  window.CNFLStore.deleteRecordsByPrefix(routeNamespace, String(routeId) + '|').catch(() => {});
+  window.CNFLStore.deleteRecordsByPrefix(eventNamespace, String(routeId) + '|').catch(() => {});
+  window.CNFLStore.deleteRecordsByPrefix('meter-readings', String(routeId) + '|').catch(() => {});
+}
+
+function clearActiveReadingRoute() {
+  const oldRouteId = readingRouteInfo && readingRouteInfo.routeId ? String(readingRouteInfo.routeId) : '';
+  readingOrders = [];
+  readingRouteMeta = null;
+  readingRouteInfo = {...DEFAULT_ROUTE_INFO, date: localDateKey()};
+  saveReadingState();
+  renderAll();
+  switchReadingTab('load', document.getElementById('tabLoad'));
+  return oldRouteId;
+}
+
+function deleteReadingRoute(routeId) {
+  const id = String(routeId || '');
+  if (!id) return;
+  const history = loadJson(READING_ROUTE_HISTORY_KEY, []);
+  const target = history.find(item => item && item.routeInfo && item.routeInfo.routeId === id);
+  const label = target ? routeDisplayName(target.routeInfo) : 'esta ruta';
+  if (!confirm('¿Borrar ' + label + '? Se eliminará la ruta guardada y sus lecturas asociadas en este dispositivo.')) return;
+  const filtered = history.filter(item => !(item && item.routeInfo && item.routeInfo.routeId === id));
+  localStorage.setItem(READING_ROUTE_HISTORY_KEY, JSON.stringify(filtered));
+  if (readingRouteInfo && readingRouteInfo.routeId === id) clearActiveReadingRoute();
+  else renderReadingRouteHistory();
+  cleanupReadingRouteRecords(id);
+  showReadingToast('Ruta borrada.');
+}
+
+function deleteCurrentReadingRoute() {
+  if (!readingOrders.length) {
+    showReadingToast('No hay una jornada activa para borrar.');
+    return;
+  }
+  const id = String((readingRouteInfo && readingRouteInfo.routeId) || '');
+  const label = routeDisplayName();
+  if (!confirm('¿Borrar la jornada activa ' + label + '? Se eliminarán sus lecturas. La memoria GPS NO se borra.')) return;
+  const history = loadJson(READING_ROUTE_HISTORY_KEY, []);
+  localStorage.setItem(READING_ROUTE_HISTORY_KEY, JSON.stringify(history.filter(item => !(item && item.routeInfo && item.routeInfo.routeId === id))));
+  clearActiveReadingRoute();
+  cleanupReadingRouteRecords(id);
+  showReadingToast('Jornada activa borrada. La memoria GPS se conserva.');
+}
 function restoreReadingRoute(routeId) {
   const history = loadJson(READING_ROUTE_HISTORY_KEY, []);
   const target = history.find(item => item?.routeInfo?.routeId === routeId);
