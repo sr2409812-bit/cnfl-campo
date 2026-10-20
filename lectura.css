@@ -536,3 +536,35 @@ button,a{-webkit-tap-highlight-color:transparent}
   font-size:10px;
   font-weight:900;
 }
+
+
+/* Rutas agrupadas dentro de la jornada residencial */
+.loaded-route-group{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+  padding:10px 0;
+  border-top:1px solid var(--line);
+}
+.loaded-route-group:first-child{border-top:0}
+.loaded-route-group strong{
+  display:block;
+  color:var(--navy);
+  font-size:12px;
+}
+.loaded-route-group span{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+}
+.loaded-route-group button{
+  min-height:36px;
+  border:1px solid #D7A6A0;
+  background:#fff;
+  color:#B42318;
+  font-size:9px;
+  font-weight:900;
+  padding:0 10px;
+}
