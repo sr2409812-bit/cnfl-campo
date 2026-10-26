@@ -87,6 +87,20 @@
             </div>
           </div>
 
+          <div class="reading-entry reading-entry-priority">
+            <label for="currentReadingValue"><i class="fa-solid fa-gauge-high"></i> LECTURA ACTUAL</label>
+            <input id="currentReadingValue" type="text" inputmode="decimal" autocomplete="off"
+              placeholder="Ingresá la lectura"
+              value="${escapeHtml(current.lectura || '')}"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();saveCurrentReading();}" />
+          </div>
+
+          <div class="primary-action reading-save-priority">
+            <button class="btn-primary" onclick="saveCurrentReading()">
+              <i class="fa-solid fa-floppy-disk"></i> GUARDAR LECTURA · SIGUIENTE
+            </button>
+          </div>
+
           <div class="gps-line">
             <span class="gps-status ${gps.cls}"><i class="fa-solid fa-location-dot"></i> ${gps.text}</span>
             <span class="circuit">${escapeHtml(current.circuito || '')}</span>
@@ -99,20 +113,6 @@
             <a class="nav-link ${gpsOk ? '' : 'disabled'}" href="${maps}" target="_blank" rel="noopener">
               <i class="fa-solid fa-map-location-dot"></i> MAPS
             </a>
-          </div>
-
-          <div class="reading-entry">
-            <label for="currentReadingValue">LECTURA</label>
-            <input id="currentReadingValue" type="text" inputmode="decimal" autocomplete="off"
-              placeholder="Ingresá la lectura"
-              value="${escapeHtml(current.lectura || '')}"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();saveCurrentReading();}" />
-          </div>
-
-          <div class="primary-action">
-            <button class="btn-primary" onclick="saveCurrentReading()">
-              <i class="fa-solid fa-floppy-disk"></i> GUARDAR LECTURA · SIGUIENTE
-            </button>
           </div>
           <div class="secondary-actions">
             <button class="btn-secondary" onclick="deferCurrentReading()">
