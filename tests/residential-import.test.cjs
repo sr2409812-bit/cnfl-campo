@@ -5,7 +5,7 @@ const vm = require('node:vm');
 
 function setup(existing = []) {
   const elements = Object.fromEntries(['readingPdfStatus', 'newRouteData', 'newRouteName', 'readingPdfReview', 'tabRoute']
-    .map(id => [id, {hidden:true, style:{}, className:'', innerHTML:'', textContent:'', value:''}]));
+    .map(id => [id, {hidden:true, style:{}, className:'', innerHTML:'', textContent:'', value:'', scrollIntoView() {}}]));
   const memory = new Map();
   const alerts = [];
   const context = vm.createContext({
