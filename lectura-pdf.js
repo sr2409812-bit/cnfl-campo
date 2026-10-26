@@ -412,6 +412,94 @@ function parseNearestGeometryPairs(layoutPages, fullText = '') {
   return {rows, expectedCount};
 }
 
+
+function parseReadingPdfLabeledLayout(layoutPages, fullText = '') {
+  const rows = [];
+  const seen = new Map();
+  const conflicts = [];
+
+  function digits(value) {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  function add(locRaw, meterRaw) {
+    let loc = digits(locRaw);
+    const meter = digits(meterRaw);
+    if (loc.length === 9) loc = '0' + loc;
+    if (!/^\d{10}$/.test(loc) || !/^\d{4,8}$/.test(meter)) return;
+
+    if (seen.has(loc)) {
+      if (seen.get(loc) !== meter) conflicts.push(loc + ': ' + seen.get(loc) + ' / ' + meter);
+      return;
+    }
+    seen.set(loc, meter);
+    rows.push({localizacion: loc, medidor: meter});
+  }
+
+  for (const rawItems of layoutPages || []) {
+    const items = (rawItems || []).map(readingPdfItemXY).filter(i => i.text);
+    const locLabels = items.filter(i => {
+      const n = normalizeReadingPdfText(i.text);
+      return n.startsWith('localizacion') && n.includes(':');
+    });
+    const medLabels = items.filter(i => normalizeReadingPdfText(i.text).startsWith('medidor'));
+
+    for (const locLabel of locLabels) {
+      const locCandidates = items
+        .filter(i => {
+          const d = digits(i.text);
+          return (d.length === 9 || d.length === 10) &&
+            Math.abs(i.y - locLabel.y) <= 5 &&
+            i.x > locLabel.x &&
+            i.x - locLabel.x < 190;
+        })
+        .sort((a,b) => (a.x - locLabel.x) - (b.x - locLabel.x));
+
+      if (!locCandidates.length) continue;
+
+      const medLabel = medLabels
+        .filter(i => Math.abs(i.y - locLabel.y) <= 6 && i.x > locLabel.x)
+        .sort((a,b) => Math.abs(a.y - locLabel.y) - Math.abs(b.y - locLabel.y))[0];
+
+      if (!medLabel) continue;
+
+      const meterCandidates = items
+        .filter(i => {
+          const d = digits(i.text);
+          return d.length >= 4 && d.length <= 8 &&
+            Math.abs(i.y - medLabel.y) <= 5 &&
+            i.x > medLabel.x &&
+            i.x - medLabel.x < 170;
+        })
+        .sort((a,b) => (a.x - medLabel.x) - (b.x - medLabel.x));
+
+      if (!meterCandidates.length) continue;
+      add(locCandidates[0].text, meterCandidates[0].text);
+    }
+  }
+
+  if (conflicts.length) {
+    throw new Error('El PDF trae Localizaciones con medidores diferentes: ' + conflicts.slice(0,6).join(', '));
+  }
+
+  const text = String(fullText || '');
+  const expectedMatch =
+    text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
+
+  const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
+
+  if (rows.length && expectedCount && rows.length !== expectedCount) {
+    throw new Error(
+      'El PDF indica ' + expectedCount + ' medidores/inspecciones, pero pude validar ' +
+      rows.length + '. No lo cargué para evitar una lista incompleta.'
+    );
+  }
+
+  return {rows, expectedCount};
+}
+
 function parseReadingPdfLayout(layoutPages, fullText = '') {
   // Primero: pares por geometría real de fila. Este método reconoce los
   // LMR0085 y LMR0155 entregados para la jornada residencial.
