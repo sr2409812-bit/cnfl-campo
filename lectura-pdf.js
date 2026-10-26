@@ -74,24 +74,7 @@ function parseReadingPdfRowPairs(layoutPages, fullText = '') {
         continue;
       }
 
-      // Último respaldo geométrico: localización a la izquierda y medidor cercano a la derecha.
-      const tokens = [];
-      for (const item of row.items) {
-        for (const match of String(item.text || '').matchAll(/\d+/g)) {
-          tokens.push({ digits: match[0], x: item.x });
-        }
-      }
-
-      const locs = tokens.filter(t => t.digits.length === 9 || t.digits.length === 10);
-      for (const locToken of locs) {
-        const meter = tokens
-          .filter(t => t !== locToken && t.x >= locToken.x && t.digits.length >= 4 && t.digits.length <= 8)
-          .sort((a,b) => a.x - b.x)[0];
-        if (meter) {
-          add(locToken.digits, meter.digits);
-          break;
-        }
-      }
+      // Sin respaldo numérico genérico: si no aparece Medidor explícitamente, no se adivina.
     }
   }
 
@@ -141,7 +124,7 @@ function parseReadingPdfDirectText(fullText = '') {
   }
 
   // Formato LMR0085: "Localización: ##########   Medidor: ######"
-  const inspectionRe = /Localizaci[oó]n\s*:\s*(\d{9,10})\s+Medidor\s*:\s*(\d{4,8})/gi;
+  const inspectionRe = /Localizaci[oó]n\s*:?\s*(\d{9,10})[\s\S]{0,80}?Medidor\s*:?\s*(\d{4,8})/gi;
   let m;
   while ((m = inspectionRe.exec(text)) !== null) add(m[1], m[2]);
 
@@ -400,13 +383,16 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
 }
 
 function parseReadingPdfLayout(layoutPages, fullText = '') {
-  const rowPairs = parseReadingPdfRowPairs(layoutPages, fullText);
-  if (rowPairs.rows.length) {
+  // Primero: extracción estricta por etiquetas/columnas reales.
+  // LMR0085: Localización: ... Medidor: ...
+  // LMR0155: columnas Localización | Medidor | Contrato.
+  const explicit = parseReadingPdfExplicitLayout(layoutPages, fullText);
+  if (explicit.rows.length) {
     return {
-      rows: rowPairs.rows,
-      expectedCount: rowPairs.expectedCount,
+      rows: explicit.rows,
+      expectedCount: explicit.expectedCount,
       pagesWithHeaders: 0,
-      parser: 'row-layout'
+      parser: 'explicit-medidor-column'
     };
   }
 
@@ -416,10 +402,17 @@ function parseReadingPdfLayout(layoutPages, fullText = '') {
       rows: direct.rows,
       expectedCount: direct.expectedCount,
       pagesWithHeaders: 0,
-      parser: 'direct-text'
+      parser: 'direct-explicit-labels'
     };
   }
 
+  if (typeof READING_MODE !== 'undefined' && READING_MODE === 'residencial') {
+    throw new Error(
+      'No pude validar la columna/campo Medidor. La app no usará Contrato ni otros números como Medidor.'
+    );
+  }
+
+  // Demanda mantiene su parser geométrico propio para formatos antiguos.
   const found = [];
   const seen = new Map();
   const conflicts = [];
@@ -520,7 +513,7 @@ function parseReadingPdfLayout(layoutPages, fullText = '') {
     throw new Error('El PDF indica ' + expectedCount + ' medidores, pero pude validar ' + found.length + '. No lo cargué para evitar una lista incompleta.');
   }
   if (!found.length) {
-    throw new Error('No pude extraer pares válidos de Localización + Medidor.');
+    throw new Error('No pude extraer Localización + Medidor sin ambigüedad. No se cargó ningún Contrato como Medidor.');
   }
 
   return { rows: found, expectedCount, pagesWithHeaders };
