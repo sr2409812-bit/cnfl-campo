@@ -196,6 +196,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadGeoCache();
   await initOrders();
   renderOrders();
+  const linkedLoc = new URLSearchParams(location.search).get('loc');
+  if (linkedLoc && /^\d{1,20}$/.test(linkedLoc)) {
+    const linkedOrder = workOrders.find(o => String(o.localizacion || '').replace(/\D/g, '') === linkedLoc);
+    if (linkedOrder && linkedOrder.status !== 'pending') {
+      setRouteFilter('all', document.getElementById('btnFilterAll'));
+    }
+    const search = document.getElementById('orderSearchInput');
+    if (search) search.value = linkedLoc;
+    handleSearch(linkedLoc);
+  }
   updateLiquidation();
 });
 

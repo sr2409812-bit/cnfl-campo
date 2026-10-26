@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v43';
+const CACHE_NAME = 'cnfl-campo-v44';
 
 const CORE_ASSETS = [
   './',
@@ -30,6 +30,9 @@ const CORE_ASSETS = [
   './mapa.css',
   './mapa.js',
   './mapa-data.js',
+  './hoy.html',
+  './hoy.css',
+  './hoy.js',
   './notification-stops.js',
   './notificaciones.html',
   './backup.html',
