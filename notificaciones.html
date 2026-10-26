@@ -41,6 +41,7 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
   </div>
   <button id="optBtn" class="optimize" onclick="optimizeFromHere()">ORDENAR RUTA · EVITAR DEVOLVERSE</button>
   <div id="routeStatus" class="routeStatus">Podés empezar en cualquier parada o dejar que la app ordene los pendientes desde donde estás.</div>
+  <a href="mapa.html?tipo=notificaciones" class="btn maps" style="margin-top:10px">VER NOTIFICACIONES EN EL MAPA</a>
 </div>
 
 <div class="card">
@@ -68,25 +69,9 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
 </div>
 </main>
 
+<script src="notification-stops.js?v=20261026-map1"></script>
 <script>
-const DEFAULT_STOPS=[
-["0204700482",9.93763714400001,-84.07619557],
-["0400900220",9.94112500400001,-84.083548325],
-["0404300260",9.94303067499999,-84.086886331],
-["0405500760",9.94351119599997,-84.088102447],
-["0401100090",9.94083630699998,-84.085209817],
-["0400900840",9.94061293800002,-84.083627658],
-["0404400760",9.94282414000003,-84.08844463],
-["0403410050",9.94362336299997,-84.089636584],
-["0405400380",9.94389604700001,-84.08644295],
-["0613900754",9.94250627100001,-84.110821085],
-["1404200360",9.92160052200001,-84.092106829],
-["1605500200",9.94015393299998,-84.084416301],
-["4003000572",9.91695747300002,-84.088931966],
-["0702500160",9.93228400499999,-84.082658725],
-["0802602280",9.92838709099999,-84.072010935],
-["0901680620",9.91908912500003,-84.070271452]
-];
+const DEFAULT_STOPS=window.CNFL_NOTIFICATION_STOPS;
 const KEY="cnfl_notificaciones_20261019_v2";
 const LEGACY_NEW_KEY="cnfl_notificaciones_20261019_v3";
 
@@ -109,6 +94,8 @@ for(const stop of DEFAULT_STOPS){
   if(!state.order.includes(stop[0])) state.order.push(stop[0]);
 }
 if(!state.done||typeof state.done!=="object") state.done={};
+const linkedLoc=new URLSearchParams(location.search).get('loc');
+if(linkedLoc && state.order.includes(linkedLoc)) state.index=state.order.indexOf(linkedLoc);
 
 function byLoc(loc){return DEFAULT_STOPS.find(s=>s[0]===loc)}
 function currentStops(){

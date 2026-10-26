@@ -1,7 +1,7 @@
 {
   "name": "CNFL Campo",
   "short_name": "CNFL Campo",
-  "description": "Herramienta de campo para cortes, demanda, lectura residencial y notificaciones.",
+  "description": "Herramienta de campo para cortes, lecturas, notificaciones y mapa general.",
   "start_url": "./campo.html",
   "scope": "./",
   "display": "standalone",
