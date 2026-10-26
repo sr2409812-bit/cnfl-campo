@@ -158,6 +158,16 @@
     current.status = 'read';
     current.readAt = new Date().toISOString();
     archiveReadingEvent(current);
+
+    const completed = readingOrders.every(o =>
+      o.status === 'read' && String(o.lectura || '').trim()
+    );
+    if (completed) {
+      readingRouteInfo.completedAt = new Date().toISOString();
+    } else if (readingRouteInfo && readingRouteInfo.completedAt) {
+      delete readingRouteInfo.completedAt;
+    }
+
     saveReadingState();
 
     if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
@@ -237,6 +247,7 @@
     const target = readingOrders[idx];
     target.status = 'pending';
     target.readAt = '';
+    if (readingRouteInfo && readingRouteInfo.completedAt) delete readingRouteInfo.completedAt;
     readingOrders.splice(idx,1);
     const firstPendingIndex = readingOrders.findIndex(o => o.status !== 'read');
     readingOrders.splice(firstPendingIndex < 0 ? 0 : firstPendingIndex,0,target);
