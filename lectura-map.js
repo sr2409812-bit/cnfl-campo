@@ -116,7 +116,7 @@
       }).addTo(userLayer);
     }
     updateMapInfo();
-    if(!currentBounds().some(Boolean)) map.setView([userPos.lat,userPos.lon],17);
+    if(!rowsNow().some(validPoint)) map.setView([userPos.lat,userPos.lon],17);
   }
 
   function startWatch(){
