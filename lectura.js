@@ -722,10 +722,10 @@ function renderLoadedReadingGroups() {
   if (card) card.style.display = 'block';
 
   el.innerHTML = rows.map(([route, orders]) => {
-    const read = orders.filter(o => o.status === 'read' && String(o.lectura || '').trim()).length;
+    const read = orders.filter(o => o.status === 'read').length;
     return '<div class="loaded-route-group">' +
       '<div><strong>Ruta ' + escapeHtml(route) + '</strong>' +
-      '<span>' + orders.length + ' medidores · ' + read + ' lecturas</span></div>' +
+      '<span>' + orders.length + ' medidores · ' + read + ' visitados</span></div>' +
       '<button onclick="deleteLoadedReadingGroup(\'' + escapeHtml(route) + '\')">' +
       '<i class="fa-solid fa-trash"></i> BORRAR</button></div>';
   }).join('');
@@ -736,9 +736,9 @@ function deleteLoadedReadingGroup(routeLabel) {
   const affected = readingOrders.filter(o => String(o.sourceRoute || 'SIN RUTA') === route);
   if (!affected.length) return;
 
-  const withReadings = affected.filter(o => o.status === 'read' && String(o.lectura || '').trim()).length;
-  const warning = withReadings
-    ? ' También se quitarán ' + withReadings + ' lecturas guardadas de esa ruta.'
+  const withVisits = affected.filter(o => o.status === 'read').length;
+  const warning = withVisits
+    ? ' También se quitarán ' + withVisits + ' visitas marcadas de esa ruta.'
     : '';
 
   if (!confirm('¿Borrar la ruta ' + route + ' de esta jornada?' + warning + ' La memoria GPS NO se borra.')) return;
@@ -814,7 +814,7 @@ function deleteReadingRoute(routeId) {
   const history = loadJson(READING_ROUTE_HISTORY_KEY, []);
   const target = history.find(item => item && item.routeInfo && item.routeInfo.routeId === id);
   const label = target ? routeDisplayName(target.routeInfo) : 'esta ruta';
-  if (!confirm('¿Borrar ' + label + '? Se eliminará la ruta guardada y sus lecturas asociadas en este dispositivo.')) return;
+  if (!confirm('¿Borrar ' + label + '? Se eliminará la ruta guardada y su progreso asociado en este dispositivo.')) return;
   const filtered = history.filter(item => !(item && item.routeInfo && item.routeInfo.routeId === id));
   localStorage.setItem(READING_ROUTE_HISTORY_KEY, JSON.stringify(filtered));
   if (readingRouteInfo && readingRouteInfo.routeId === id) clearActiveReadingRoute();
@@ -830,7 +830,7 @@ function deleteCurrentReadingRoute() {
   }
   const id = String((readingRouteInfo && readingRouteInfo.routeId) || '');
   const label = routeDisplayName();
-  if (!confirm('¿Borrar la jornada activa ' + label + '? Se eliminarán sus lecturas. La memoria GPS NO se borra.')) return;
+  if (!confirm('¿Borrar la jornada activa ' + label + '? Se eliminará su progreso. La memoria GPS NO se borra.')) return;
   const history = loadJson(READING_ROUTE_HISTORY_KEY, []);
   localStorage.setItem(READING_ROUTE_HISTORY_KEY, JSON.stringify(history.filter(item => !(item && item.routeInfo && item.routeInfo.routeId === id))));
   clearActiveReadingRoute();
