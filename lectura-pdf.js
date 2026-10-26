@@ -331,8 +331,93 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
   return {rows, expectedCount, detected};
 }
 
+
+function parseNearestGeometryPairs(layoutPages, fullText = '') {
+  const rows = [];
+  const seen = new Map();
+  const conflicts = [];
+
+  function add(locRaw, medRaw) {
+    let loc = String(locRaw || '').replace(/\D/g, '');
+    const med = String(medRaw || '').replace(/\D/g, '');
+    if (loc.length === 9) loc = '0' + loc;
+    if (!/^\d{10}$/.test(loc) || !/^\d{4,8}$/.test(med)) return;
+
+    if (seen.has(loc)) {
+      if (seen.get(loc) !== med) conflicts.push(loc + ': ' + seen.get(loc) + ' / ' + med);
+      return;
+    }
+    seen.set(loc, med);
+    rows.push({localizacion:loc, medidor:med});
+  }
+
+  for (const rawItems of layoutPages || []) {
+    const items = (rawItems || []).map(readingPdfItemXY).filter(i => i.text);
+    const visualRows = groupReadingPdfRows(items, 4.5);
+
+    for (const row of visualRows) {
+      const tokens = [];
+      for (const item of row.items) {
+        for (const raw of (String(item.text || '').match(/\d+/g) || [])) {
+          tokens.push({digits:raw, x:Number(item.x || 0)});
+        }
+      }
+
+      const locs = tokens.filter(t => t.digits.length === 9 || t.digits.length === 10);
+      for (const locToken of locs) {
+        const localizacion = locToken.digits.length === 9 ? '0' + locToken.digits : locToken.digits;
+
+        // En los formatos LMR0085 y LMR0155 el Medidor está a la derecha de
+        // Localización en la misma fila visual. Contrato está más lejos.
+        const meter = tokens
+          .filter(t =>
+            t !== locToken &&
+            t.x > locToken.x &&
+            t.digits.length >= 4 &&
+            t.digits.length <= 8
+          )
+          .sort((a,b) => (a.x - locToken.x) - (b.x - locToken.x))[0];
+
+        if (meter) add(localizacion, meter.digits);
+      }
+    }
+  }
+
+  if (conflicts.length) {
+    throw new Error('El PDF trae Localizaciones con Medidores diferentes: ' + conflicts.slice(0,6).join(', '));
+  }
+
+  const text = String(fullText || '');
+  const expectedMatch =
+    text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
+  const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
+
+  if (rows.length && expectedCount && rows.length !== expectedCount) {
+    throw new Error(
+      'El PDF indica ' + expectedCount + ' medidores/inspecciones, pero validé ' +
+      rows.length + '. No cargué nada para evitar una lista incompleta.'
+    );
+  }
+
+  return {rows, expectedCount};
+}
+
 function parseReadingPdfLayout(layoutPages, fullText = '') {
-  // Primero: extracción estricta por etiquetas/columnas reales.
+  // Primero: pares por geometría real de fila. Este método reconoce los
+  // LMR0085 y LMR0155 entregados para la jornada residencial.
+  const nearestPairs = parseNearestGeometryPairs(layoutPages, fullText);
+  if (nearestPairs.rows.length) {
+    return {
+      rows: nearestPairs.rows,
+      expectedCount: nearestPairs.expectedCount,
+      pagesWithHeaders: 0,
+      parser: 'nearest-row-geometry'
+    };
+  }
+
+  // Segundo: extracción estricta por etiquetas/columnas reales.
   // LMR0085: Localización: ... Medidor: ...
   // LMR0155: columnas Localización | Medidor | Contrato.
   const explicit = parseReadingPdfExplicitLayout(layoutPages, fullText);
@@ -533,16 +618,18 @@ async function handleReadingPdfUpload(event) {
       }
 
       const parsed = parseReadingPdfLayout(layoutPages, fullText);
-      names.push(readingPdfSuggestedName(file.name, fullText));
+      const sourceRoute = readingPdfSuggestedName(file.name, fullText);
+      names.push(sourceRoute);
 
       for (const row of parsed.rows) {
+        const enriched = {...row, sourceRoute, sourceFile:file.name};
         const old = byLoc.get(row.localizacion);
         if (old && old.medidor !== row.medidor) {
           throw new Error('Conflicto en Localización ' + row.localizacion + ': ' + old.medidor + ' / ' + row.medidor);
         }
         if (old) continue;
-        byLoc.set(row.localizacion, row);
-        merged.push(row);
+        byLoc.set(row.localizacion, enriched);
+        merged.push(enriched);
       }
     }
 
@@ -553,13 +640,70 @@ async function handleReadingPdfUpload(event) {
 
     if (statusEl) {
       statusEl.className = 'pdf-status ok';
-      statusEl.innerHTML = '<i class="fa-solid fa-check"></i> ' + merged.length + ' Localizaciones + Medidores validados. CONTRATO IGNORADO. Cargando jornada...';
+      statusEl.innerHTML = '<i class="fa-solid fa-check"></i> ' + merged.length + ' Localizaciones + Medidores validados. Cargando jornada...';
     }
 
-    loadNewReadingRoute();
+    if (READING_MODE === 'residencial') {
+      const existing = new Map(readingOrders.map(o => [String(o.localizacion), o]));
+      let added = 0;
 
-    if (typeof showReadingToast === 'function') {
-      showReadingToast('PDF listo · ' + merged.length + ' medidores cargados');
+      for (const row of merged) {
+        const old = existing.get(String(row.localizacion));
+        if (old) {
+          if (String(old.medidor) !== String(row.medidor)) {
+            throw new Error('La Localización ' + row.localizacion + ' ya está cargada con otro Medidor.');
+          }
+          continue;
+        }
+        readingOrders.push({
+          id:'read-' + row.localizacion,
+          localizacion:row.localizacion,
+          medidor:row.medidor,
+          sourceRoute:row.sourceRoute || '',
+          sourceFile:row.sourceFile || '',
+          status:'pending',
+          sequence:readingOrders.length + 1,
+          originalSequence:readingOrders.length + 1,
+          readAt:''
+        });
+        existing.set(String(row.localizacion), row);
+        added++;
+      }
+
+      const routes = [...new Set(readingOrders.map(o => String(o.sourceRoute || '')).filter(Boolean))]
+        .sort(readingGroupSort);
+
+      if (!readingRouteInfo || !readingRouteInfo.routeId || readingRouteInfo.routeId === 'reading-empty') {
+        readingRouteInfo = {
+          routeId:'reading-' + Date.now(),
+          name:'Lectura residencial · ' + routes.length + (routes.length === 1 ? ' ruta' : ' rutas'),
+          subtitle:routes.join(' · '),
+          sourceRoutes:routes,
+          date:localDateKey()
+        };
+      } else {
+        readingRouteInfo.name = 'Lectura residencial · ' + routes.length + (routes.length === 1 ? ' ruta' : ' rutas');
+        readingRouteInfo.subtitle = routes.join(' · ');
+        readingRouteInfo.sourceRoutes = routes;
+      }
+
+      readingRouteMeta = null;
+      hydrateReadingGps();
+      saveReadingState();
+      renderAll();
+
+      nameEl.value = '';
+      dataEl.value = '';
+      switchReadingTab('route', document.getElementById('tabRoute'));
+
+      if (typeof showReadingToast === 'function') {
+        showReadingToast(added + ' medidores agregados · ' + routes.length + (routes.length === 1 ? ' ruta' : ' rutas'));
+      }
+    } else {
+      loadNewReadingRoute();
+      if (typeof showReadingToast === 'function') {
+        showReadingToast('PDF listo · ' + merged.length + ' medidores cargados');
+      }
     }
   } catch (err) {
     console.error(err);
