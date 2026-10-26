@@ -171,6 +171,88 @@ function parseReadingPdfDirectText(fullText = '') {
   return {rows, expectedCount};
 }
 
+
+function parseInspectionBlocksByGeometry(layoutPages) {
+  const rows = [];
+  const seen = new Map();
+  const conflicts = [];
+
+  function normDigits(v) {
+    return String(v || '').replace(/\D/g, '');
+  }
+
+  function nearestValue(items, label, minLen, maxLen) {
+    const candidates = items
+      .map(i => ({...i, digits:normDigits(i.text)}))
+      .filter(i =>
+        i.digits.length >= minLen &&
+        i.digits.length <= maxLen &&
+        i.x > label.x &&
+        Math.abs(i.y - label.y) <= 10 &&
+        (i.x - label.x) <= 170
+      )
+      .sort((a,b) => {
+        const ay = Math.abs(a.y - label.y);
+        const by = Math.abs(b.y - label.y);
+        if (ay !== by) return ay - by;
+        return (a.x - label.x) - (b.x - label.x);
+      });
+    return candidates[0] || null;
+  }
+
+  for (const rawItems of layoutPages || []) {
+    const items = (rawItems || []).map(readingPdfItemXY).filter(i => i.text);
+
+    const locLabels = items.filter(i => {
+      const n = normalizeReadingPdfText(i.text);
+      return n === 'localizacion:' || n === 'localizacion';
+    });
+    const medLabels = items.filter(i => {
+      const n = normalizeReadingPdfText(i.text);
+      return n === 'medidor:' || n === 'medidor';
+    });
+
+    // LMR0085: cada inspección trae sus propias etiquetas Localización:/Medidor:.
+    // Solo usamos este modo cuando hay etiquetas repetidas en la página.
+    if (locLabels.length < 1 || medLabels.length < 1) continue;
+
+    for (const locLabel of locLabels) {
+      const locItem = nearestValue(items, locLabel, 9, 10);
+      if (!locItem) continue;
+
+      const medLabel = medLabels
+        .filter(m => Math.abs(m.y - locLabel.y) <= 14)
+        .sort((a,b) => Math.abs(a.y - locLabel.y) - Math.abs(b.y - locLabel.y))[0];
+      if (!medLabel) continue;
+
+      const medItem = nearestValue(items, medLabel, 4, 8);
+      if (!medItem) continue;
+
+      const locDigits = normDigits(locItem.text);
+      const localizacion = locDigits.length === 9 ? '0' + locDigits : locDigits;
+      const medidor = normDigits(medItem.text);
+
+      if (!/^\d{10}$/.test(localizacion) || !/^\d{4,8}$/.test(medidor)) continue;
+
+      if (seen.has(localizacion)) {
+        if (seen.get(localizacion) !== medidor) {
+          conflicts.push(localizacion + ': ' + seen.get(localizacion) + ' / ' + medidor);
+        }
+        continue;
+      }
+
+      seen.set(localizacion, medidor);
+      rows.push({localizacion, medidor});
+    }
+  }
+
+  if (conflicts.length) {
+    throw new Error('El PDF trae Localizaciones con medidores diferentes: ' + conflicts.slice(0,6).join(', '));
+  }
+
+  return rows;
+}
+
 function parseReadingPdfLayout(layoutPages, fullText = '') {
   const rowPairs = parseReadingPdfRowPairs(layoutPages, fullText);
   if (rowPairs.rows.length) {
