@@ -371,15 +371,29 @@ async function handleReadingPdfUpload(event) {
 
       let added = 0;
       let repeated = 0;
+      let corrected = 0;
 
       for (const row of batchRows) {
         const old = byLoc.get(row.localizacion);
         if (old) {
           if (String(old.medidor) !== String(row.medidor)) {
-            throw new Error(
-              'Conflicto en Localización ' + row.localizacion +
-              ': ' + old.medidor + ' / ' + row.medidor
-            );
+            const hasSavedReading = old.status === 'read' && String(old.lectura || '').trim();
+            if (hasSavedReading) {
+              throw new Error(
+                'La Localización ' + row.localizacion +
+                ' ya tiene una lectura guardada con Medidor ' + old.medidor +
+                '. Borrá esa ruta antes de reemplazarla por el Medidor ' + row.medidor + '.'
+              );
+            }
+
+            // Corrige automáticamente una carga anterior equivocada (por ejemplo, Contrato tomado como Medidor).
+            old.medidor = row.medidor;
+            old.sourceRoute = row.sourceRoute;
+            old.sourceRouteName = row.sourceRouteName;
+            old.sourceFile = row.sourceFile;
+            old.routeSequence = row.routeSequence;
+            corrected++;
+            continue;
           }
           repeated++;
           continue;
@@ -453,6 +467,7 @@ async function handleReadingPdfUpload(event) {
           '<i class="fa-solid fa-check"></i> Jornada unificada: ' +
           readingOrders.length + ' medidores en ' + routes.length + ' rutas.' +
           (added ? ' Agregados ahora: ' + added + '.' : '') +
+          (corrected ? ' Medidores corregidos: ' + corrected + '.' : '') +
           (repeated ? ' Repetidos omitidos: ' + repeated + '.' : '');
       }
 
