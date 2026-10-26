@@ -630,3 +630,70 @@ button,a{-webkit-tap-highlight-color:transparent}
 .bottom-nav{
   z-index:900!important;
 }
+
+
+/* FIX 2026-10-26: Leaflet queda estrictamente encerrado en la pestaña MAPA */
+#view-map{
+  isolation:isolate;
+  overflow:hidden;
+  contain:layout paint;
+}
+#view-map:not(.active){
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  height:0!important;
+  min-height:0!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:hidden!important;
+}
+#view-map:not(.active) .reading-live-map,
+#view-map:not(.active) .leaflet-container,
+#view-map:not(.active) .leaflet-pane,
+#view-map:not(.active) .leaflet-control-container{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+#view-map.active{
+  display:block;
+  position:relative;
+  z-index:0;
+}
+#view-map.active .map-card{
+  position:relative;
+  z-index:0;
+  overflow:hidden;
+  isolation:isolate;
+  contain:layout paint;
+}
+#view-map.active .reading-live-map{
+  position:relative!important;
+  z-index:0!important;
+  isolation:isolate!important;
+  contain:strict;
+  overflow:hidden!important;
+  transform:translateZ(0);
+}
+#view-map.active .leaflet-map-pane,
+#view-map.active .leaflet-control-container{
+  position:absolute;
+}
+#view-load,
+#view-summary,
+#view-list,
+#view-route{
+  position:relative;
+  z-index:1;
+  background:var(--page);
+}
+.bottom-nav{
+  z-index:2000!important;
+}
+.topbar{
+  z-index:2100!important;
+}
+.cnfl-module-chip{
+  z-index:2050!important;
+}
