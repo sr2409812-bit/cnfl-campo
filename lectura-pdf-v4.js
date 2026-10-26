@@ -474,7 +474,7 @@ async function handleReadingPdfUpload(event) {
     // Si cargás más PDFs después, se agregan a la misma jornada en vez de reemplazarla.
     if (READING_MODE === 'residencial') {
       if (readingOrders.length && readingRouteInfo.date && readingRouteInfo.date !== localDateKey()) {
-        throw new Error('Hay una jornada de otra fecha abierta. Guardá su control y cerrala antes de cargar los PDFs de hoy.');
+        throw new Error('Hay una jornada de otra fecha abierta. Tocá CERRAR JORNADA Y ABRIR NUEVA en Rutas recientes antes de cargar los PDFs de hoy.');
       }
       const incoming = new Map();
       for (const row of batchRows) {
