@@ -2,10 +2,35 @@
   let map=null,pointsLayer=null,userLayer=null,watchId=null,userPos=null;
   let lastPointsSignature='';
   let resizeObserver=null;
+  let lastKnownRows=[];
 
   function mapBox(){return document.getElementById('readingLiveMap');}
   function rowsNow(){
-    try{return Array.isArray(readingOrders)?readingOrders:[];}catch(_){return [];}
+    try{
+      const active=Array.isArray(readingOrders)?readingOrders:[];
+      const routeId=String((readingRouteInfo&&readingRouteInfo.routeId)||'');
+
+      if(active.length){
+        lastKnownRows=active.map(o=>({...o}));
+        return active;
+      }
+
+      // Si la jornada acaba de completarse/cambiar de vista, recupera su último
+      // snapshot guardado para que los puntos leídos no desaparezcan del mapa.
+      if(routeId && routeId!=='reading-empty' && typeof loadJson==='function'){
+        const history=loadJson(READING_ROUTE_HISTORY_KEY,[]);
+        const saved=history.find(item=>item&&item.routeInfo&&String(item.routeInfo.routeId)===routeId);
+        if(saved&&Array.isArray(saved.orders)&&saved.orders.length){
+          lastKnownRows=saved.orders.map(o=>({...o}));
+          return saved.orders;
+        }
+      }
+
+      if(!routeId || routeId==='reading-empty') lastKnownRows=[];
+      return lastKnownRows;
+    }catch(_){
+      return lastKnownRows;
+    }
   }
   function distanceMeters(lat1,lon1,lat2,lon2){
     const R=6371000,toRad=n=>n*Math.PI/180;
@@ -39,6 +64,7 @@
     }
 
     let text=pending.length+' pendientes con GPS · '+done.length+' leídos';
+    if(!pending.length && done.length) text='Ruta completada · '+done.length+' puntos leídos conservados en el mapa';
     if(missing) text+=' · '+missing+' sin GPS';
     if(userPos){
       text+=' · '+nearby+' pendientes a 300 m';
