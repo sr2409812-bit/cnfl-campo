@@ -20,6 +20,7 @@ main{max-width:680px;margin:auto;padding:14px 14px 100px}
 button,a.btn{border:0;border-radius:8px;padding:14px 12px;font-weight:800;font-size:15px;text-align:center;text-decoration:none;display:block;cursor:pointer}
 button:disabled{opacity:.55;cursor:wait}.waze{background:#22b8f0;color:#06273a}.maps{background:var(--blue);color:#fff}
 .done{background:var(--ok);color:#fff;grid-column:1/-1}.next{background:var(--orange);color:#fff}.secondary{background:#e9edf2;color:#243244}
+.undo{background:#FFF1E8;color:#803A12;grid-column:1/-1}.undo[hidden]{display:none}
 .optimize{background:#111827;color:#fff;width:100%;margin-top:10px}.routeStatus{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4}
 select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;background:#fff;font-size:16px}
 .row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #edf0f3}.row:last-child{border-bottom:0}.row .n{width:34px;color:var(--muted);font-size:13px}.row .l{flex:1;font-weight:700}
@@ -52,6 +53,7 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
     <a id="waze" class="btn waze" target="_blank" rel="noopener">ABRIR WAZE</a>
     <a id="maps" class="btn maps" target="_blank" rel="noopener">ABRIR MAPS</a>
     <button class="done" onclick="markDone()">GESTIONADA · SIGUIENTE</button>
+    <button id="undoLast" class="undo" onclick="undoLastVisit()" hidden>DESHACER ÚLTIMA GESTIÓN</button>
     <button class="secondary" onclick="prevStop()">ANTERIOR</button>
     <button class="next" onclick="nextStop()">SIGUIENTE</button>
   </div>
@@ -117,6 +119,9 @@ function render(){
   const doneCount=DEFAULT_STOPS.filter(s=>state.done[s[0]]).length;
   document.getElementById("doneCount").textContent=doneCount;
   document.getElementById("pendingCount").textContent=DEFAULT_STOPS.length-doneCount;
+  const undo=document.getElementById('undoLast');
+  undo.hidden=!(state.lastAction && state.done[state.lastAction.loc]);
+  if(!undo.hidden) undo.textContent='DESHACER · '+state.lastAction.loc;
 
   const rs=document.getElementById("routeStatus");
   if(state.meta&&state.meta.optimizedAt){
@@ -161,7 +166,9 @@ function nextPending(from){
 function markDone(){
   const stops=currentStops();
   const loc=stops[state.index][0];
+  if(state.done[loc]){state.index=nextPending(state.index);save();render();return;}
   const at=new Date().toISOString();
+  state.lastAction={loc,index:state.index,at};
   state.done[loc]=true;
   if(window.CNFLStore&&typeof window.CNFLStore.putRecord==="function"){
     const day=at.slice(0,10);
@@ -170,6 +177,18 @@ function markDone(){
   state.index=nextPending(state.index);
   save();
   render();
+}
+function undoLastVisit(){
+  const action=state.lastAction;
+  if(!action || !state.done[action.loc]) return;
+  delete state.done[action.loc];
+  state.index=Math.max(0,currentStops().findIndex(stop=>stop[0]===action.loc));
+  state.lastAction=null;
+  if(window.CNFLStore && typeof window.CNFLStore.putRecord==='function'){
+    const at=new Date().toISOString();
+    window.CNFLStore.putRecord('notification-visits',at.slice(0,10)+'|'+action.loc+'|'+at,{localizacion:action.loc,status:'deshecha',at,routeKey:KEY}).catch(()=>{});
+  }
+  save();render();
 }
 function nextStop(){const n=currentStops().length;state.index=(state.index+1)%n;save();render()}
 function prevStop(){const n=currentStops().length;state.index=(state.index-1+n)%n;save();render()}

@@ -48,3 +48,13 @@ test('zero and empty coordinates are not interpreted as real locations',()=>{
   const rows=collect({cnfl_work_orders:[{localizacion:'3333333333',lat:null,lon:null}]});
   assert.equal(rows[0].lat,null);
 });
+
+test('legacy unread reading stays pending and links open its own work',()=>{
+  const rows=collect({
+    cnfl_work_orders:[{localizacion:'0123456789',status:'pending'}],
+    cnfl_reading_orders_v2:{orders:[{localizacion:'1234567890',medidor:'77',status:'unread'}]}
+  });
+  assert.equal(rows[1].done,false);
+  assert.equal(rows[0].href,'index.html?loc=0123456789');
+  assert.equal(rows[1].href,'lectura.html?loc=1234567890');
+});

@@ -1478,6 +1478,18 @@ document.addEventListener('DOMContentLoaded', () => {
   saveReadingState();
   renderAll();
 
+  const linkedLoc = new URLSearchParams(location.search).get('loc');
+  if (linkedLoc && /^\d{1,20}$/.test(linkedLoc)) {
+    const target = readingOrders.find(o => String(o.localizacion) === linkedLoc);
+    if (target && target.status !== 'read' && typeof window.setNextReading === 'function') {
+      window.setNextReading(linkedLoc);
+    } else if (target) {
+      switchReadingTab('list', document.getElementById('tabList'));
+      const search = document.getElementById('readingSearch');
+      if (search) { search.value = linkedLoc; setReadingSearch(linkedLoc); }
+    }
+  }
+
   const sets = readingGpsSets();
   showReadingToast(
     `${routeDisplayName()} · ${readingOrders.length} medidores · ${sets.reusable.length} GPS en memoria`

@@ -1,6 +1,6 @@
 (function(){
   const path=(location.pathname.split('/').pop()||'index.html').toLowerCase();
-  const moduleName=path==='index.html'?'cortes':path==='lectura.html'?'demanda':path==='lectura-residencial.html'?'residencial':path==='notificaciones.html'?'notificaciones':path==='mapa.html'?'mapa':path==='backup.html'?'respaldo':'';
+  const moduleName=path==='index.html'?'cortes':path==='lectura.html'?'demanda':path==='lectura-residencial.html'?'residencial':path==='notificaciones.html'?'notificaciones':path==='mapa.html'?'mapa':path==='hoy.html'?'hoy':path==='backup.html'?'respaldo':'';
 
   document.body.classList.add('cnfl-unified');
   if(moduleName) document.body.classList.add('cnfl-module-'+moduleName);
@@ -35,6 +35,7 @@
       '</div>'+
       '<div class="drawer-label">TIPO DE TRABAJO</div>'+
       '<a href="campo.html" data-module="inicio"><i class="fa-solid fa-house"></i><span>Inicio</span></a>'+
+      '<a href="hoy.html" data-module="hoy"><i class="fa-solid fa-list-check"></i><span>Hoy · pendientes</span></a>'+
       '<a href="index.html" data-module="cortes"><i class="fa-solid fa-bolt"></i><span>Cortes</span></a>'+
       '<a href="lectura.html" data-module="demanda"><i class="fa-solid fa-gauge-high"></i><span>Lectura de demanda</span></a>'+
       '<a href="lectura-residencial.html" data-module="residencial"><i class="fa-solid fa-house-signal"></i><span>Lectura residencial</span></a>'+
@@ -81,6 +82,7 @@
       moduleName==='residencial'?'LECTURA RESIDENCIAL':
       moduleName==='notificaciones'?'NOTIFICACIONES':
       moduleName==='mapa'?'MAPA GENERAL':
+      moduleName==='hoy'?'HOY · PENDIENTES':
       moduleName==='respaldo'?'RESPALDO':'CNFL CAMPO';
     const firstMain=document.querySelector('main');
     if(firstMain) firstMain.parentNode.insertBefore(chip,firstMain);
