@@ -1013,6 +1013,197 @@ function improveReadingRoute(route, matrix) {
   return {route:best,cost:bestCost};
 }
 
+
+function readingGeoPoint(index, start, pending) {
+  return index === 0 ? start : pending[index - 1];
+}
+
+function readingAirDistance(a, b) {
+  const toRad = v => Number(v) * Math.PI / 180;
+  const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+  const dLat = lat2 - lat1;
+  const dLon = toRad(b.lon) - toRad(a.lon);
+  const h = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function geoNearestReadingRoute(start, pending) {
+  const left = new Set(Array.from({length:pending.length}, (_,i) => i + 1));
+  const route = [];
+  let current = 0;
+  while (left.size) {
+    const from = readingGeoPoint(current, start, pending);
+    let best = null;
+    let bestDistance = Infinity;
+    for (const idx of left) {
+      const d = readingAirDistance(from, readingGeoPoint(idx, start, pending));
+      if (d < bestDistance) {
+        best = idx;
+        bestDistance = d;
+      }
+    }
+    route.push(best);
+    left.delete(best);
+    current = best;
+  }
+  return route;
+}
+
+function readingOrientation(a, b, c) {
+  const ax = Number(a.lon), ay = Number(a.lat);
+  const bx = Number(b.lon), by = Number(b.lat);
+  const cx = Number(c.lon), cy = Number(c.lat);
+  return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+}
+
+function readingSegmentsCross(a, b, c, d) {
+  const o1 = readingOrientation(a,b,c);
+  const o2 = readingOrientation(a,b,d);
+  const o3 = readingOrientation(c,d,a);
+  const o4 = readingOrientation(c,d,b);
+  return ((o1 > 0 && o2 < 0) || (o1 < 0 && o2 > 0)) &&
+         ((o3 > 0 && o4 < 0) || (o3 < 0 && o4 > 0));
+}
+
+function readingTurnAngle(a, b, c) {
+  const v1x = Number(a.lon) - Number(b.lon);
+  const v1y = Number(a.lat) - Number(b.lat);
+  const v2x = Number(c.lon) - Number(b.lon);
+  const v2y = Number(c.lat) - Number(b.lat);
+  const n1 = Math.hypot(v1x,v1y), n2 = Math.hypot(v2x,v2y);
+  if (!n1 || !n2) return 0;
+  const cos = Math.max(-1, Math.min(1, (v1x*v2x + v1y*v2y) / (n1*n2)));
+  // 180 = seguir recto; 0 = devolverse.
+  return Math.acos(cos) * 180 / Math.PI;
+}
+
+function routeShapeStats(route, start, pending) {
+  const path = [0, ...route];
+  let crossings = 0;
+  let backtracks = 0;
+  let airMeters = 0;
+
+  for (let i = 0; i < path.length - 1; i++) {
+    airMeters += readingAirDistance(
+      readingGeoPoint(path[i], start, pending),
+      readingGeoPoint(path[i + 1], start, pending)
+    );
+  }
+
+  for (let i = 0; i < path.length - 3; i++) {
+    const a = readingGeoPoint(path[i], start, pending);
+    const b = readingGeoPoint(path[i + 1], start, pending);
+    for (let j = i + 2; j < path.length - 1; j++) {
+      const c = readingGeoPoint(path[j], start, pending);
+      const d = readingGeoPoint(path[j + 1], start, pending);
+      if (readingSegmentsCross(a,b,c,d)) crossings++;
+    }
+  }
+
+  for (let i = 1; i < path.length - 1; i++) {
+    const angle = readingTurnAngle(
+      readingGeoPoint(path[i - 1], start, pending),
+      readingGeoPoint(path[i], start, pending),
+      readingGeoPoint(path[i + 1], start, pending)
+    );
+    if (angle < 55) backtracks++;
+  }
+
+  return {crossings, backtracks, airMeters};
+}
+
+function uncrossReadingRoute(route, start, pending) {
+  let best = route.slice();
+
+  // Geometric 2-opt: each accepted reversal removes at least one visual crossing.
+  for (let pass = 0; pass < 20; pass++) {
+    const path = [0, ...best];
+    let changed = false;
+
+    outer:
+    for (let i = 0; i < path.length - 3; i++) {
+      const a = readingGeoPoint(path[i], start, pending);
+      const b = readingGeoPoint(path[i + 1], start, pending);
+
+      for (let j = i + 2; j < path.length - 1; j++) {
+        const c = readingGeoPoint(path[j], start, pending);
+        const d = readingGeoPoint(path[j + 1], start, pending);
+
+        if (!readingSegmentsCross(a,b,c,d)) continue;
+
+        best = [
+          ...best.slice(0, i),
+          ...best.slice(i, j).reverse(),
+          ...best.slice(j)
+        ];
+        changed = true;
+        break outer;
+      }
+    }
+
+    if (!changed) break;
+  }
+
+  return best;
+}
+
+function cleanReadingRouteWithinBudget(route, matrix, start, pending, maxCost) {
+  let best = route.slice();
+  let bestStats = routeShapeStats(best, start, pending);
+  let bestCost = routeCost(best, matrix);
+
+  for (let pass = 0; pass < 12 && bestStats.crossings > 0; pass++) {
+    const path = [0, ...best];
+    let winner = null;
+
+    for (let i = 0; i < path.length - 3; i++) {
+      const a = readingGeoPoint(path[i], start, pending);
+      const b = readingGeoPoint(path[i + 1], start, pending);
+
+      for (let j = i + 2; j < path.length - 1; j++) {
+        const c = readingGeoPoint(path[j], start, pending);
+        const d = readingGeoPoint(path[j + 1], start, pending);
+        if (!readingSegmentsCross(a,b,c,d)) continue;
+
+        const candidate = [
+          ...best.slice(0, i),
+          ...best.slice(i, j).reverse(),
+          ...best.slice(j)
+        ];
+        const cost = routeCost(candidate, matrix);
+        if (!Number.isFinite(cost) || cost > maxCost) continue;
+
+        const stats = routeShapeStats(candidate, start, pending);
+        if (stats.crossings >= bestStats.crossings) continue;
+
+        if (!winner ||
+            stats.crossings < winner.stats.crossings ||
+            (stats.crossings === winner.stats.crossings && cost < winner.cost)) {
+          winner = {route:candidate, cost, stats};
+        }
+      }
+    }
+
+    if (!winner) break;
+    best = winner.route;
+    bestCost = winner.cost;
+    bestStats = winner.stats;
+  }
+
+  return {route:best, cost:bestCost, stats:bestStats};
+}
+
+function dedupeReadingCandidates(candidates) {
+  const seen = new Set();
+  return candidates.filter(c => {
+    const key = c.route.join(',');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function optimizeReadingRouteFromHere() {
   const pending = readingOrders.filter(o => o.status === 'pending');
   if (pending.length < 2) {
@@ -1085,13 +1276,77 @@ async function optimizeReadingRouteFromHere() {
       candidates.push(candidate);
     }
 
-    candidates.sort((a,b) => {
+    // Candidato geográfico: une los puntos como una sola línea limpia
+    // antes de compararlo contra la distancia real por calles.
+    const geoRoute = uncrossReadingRoute(
+      geoNearestReadingRoute(start, pending),
+      start,
+      pending
+    );
+    const geoCost = routeCost(geoRoute, objective);
+    if (Number.isFinite(geoCost)) {
+      candidates.push({
+        route: geoRoute,
+        cost: geoCost,
+        duration: routeCost(geoRoute, data.durations)
+      });
+    }
+
+    let uniqueCandidates = dedupeReadingCandidates(candidates)
+      .filter(c => Number.isFinite(c.cost));
+
+    uniqueCandidates.sort((a,b) => a.cost - b.cost);
+    const bestRoadCost = uniqueCandidates[0].cost;
+
+    // Permitimos una pequeña diferencia de distancia si con eso la ruta
+    // queda mucho más continua y sin cruces visuales.
+    const cleanBudget = bestRoadCost * 1.08;
+
+    const cleaned = uniqueCandidates
+      .slice(0, Math.min(6, uniqueCandidates.length))
+      .map(c => {
+        const r = cleanReadingRouteWithinBudget(
+          c.route,
+          objective,
+          start,
+          pending,
+          cleanBudget
+        );
+        return {
+          route: r.route,
+          cost: r.cost,
+          duration: routeCost(r.route, data.durations),
+          shape: r.stats
+        };
+      });
+
+    uniqueCandidates = dedupeReadingCandidates([
+      ...uniqueCandidates.map(c => ({
+        ...c,
+        shape: routeShapeStats(c.route, start, pending)
+      })),
+      ...cleaned
+    ]).filter(c => Number.isFinite(c.cost));
+
+    const nearBest = uniqueCandidates.filter(c => c.cost <= cleanBudget);
+    const pool = nearBest.length ? nearBest : uniqueCandidates;
+
+    pool.sort((a,b) => {
+      const ac = a.shape?.crossings ?? Infinity;
+      const bc = b.shape?.crossings ?? Infinity;
+      if (ac !== bc) return ac - bc;
+
+      const ab = a.shape?.backtracks ?? Infinity;
+      const bb = b.shape?.backtracks ?? Infinity;
+      if (ab !== bb) return ab - bb;
+
       const delta = a.cost - b.cost;
       if (Math.abs(delta) > 25) return delta;
-      return a.duration - b.duration;
+      return (a.duration || Infinity) - (b.duration || Infinity);
     });
 
-    const improved = candidates[0].route;
+    const chosen = pool[0];
+    const improved = chosen.route;
     const optimizedPending = improved.map(matrixIndex => pending[matrixIndex - 1]);
     const finished = readingOrders.filter(o => o.status !== 'pending');
 
@@ -1112,12 +1367,21 @@ async function optimizeReadingRouteFromHere() {
       startLat:start.lat,
       startLon:start.lon,
       pending:n,
-      totalMeters
+      totalMeters,
+      crossings: chosen.shape?.crossings ?? 0,
+      backtracks: chosen.shape?.backtracks ?? 0,
+      roadCostDeltaPct: bestRoadCost > 0
+        ? Number((((chosen.cost / bestRoadCost) - 1) * 100).toFixed(1))
+        : 0
     };
 
     saveReadingState();
     renderAll();
-    showReadingToast('Ruta reordenada por calles desde tu ubicación.');
+    showReadingToast(
+      'Ruta limpia calculada · ' +
+      (readingRouteMeta.crossings || 0) + ' cruces · ' +
+      (readingRouteMeta.roadCostDeltaPct || 0) + '% vs. mínima distancia'
+    );
   } catch (err) {
     console.error(err);
     alert('No cambié la ruta. ' + (err.message || 'No fue posible calcular la red vial.'));
