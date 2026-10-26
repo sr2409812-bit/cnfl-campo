@@ -350,9 +350,65 @@ function compareReadingRouteLabels(a,b) {
   return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2]);
 }
 
+let pendingResidentialImport = null;
+
+function cancelResidentialPdfImport() {
+  pendingResidentialImport = null;
+  const review = document.getElementById('readingPdfReview');
+  if (review) { review.hidden = true; review.innerHTML = ''; }
+  const status = document.getElementById('readingPdfStatus');
+  if (status) { status.className = 'pdf-status'; status.textContent = 'Carga cancelada. Tu jornada no cambió.'; }
+}
+
+function confirmResidentialPdfImport() {
+  const staged = pendingResidentialImport;
+  if (!staged) return;
+  // A second tab may have changed the active jornada while the preview was open.
+  const current = localStorage.getItem(READING_KEY);
+  if (current !== staged.previousState) {
+    cancelResidentialPdfImport();
+    alert('La jornada cambió en otra pestaña. Volvé a seleccionar los PDFs.');
+    return;
+  }
+  const oldOrders = readingOrders;
+  const oldInfo = readingRouteInfo;
+  const oldMeta = readingRouteMeta;
+  const oldHistory = localStorage.getItem(READING_ROUTE_HISTORY_KEY);
+  try {
+    readingOrders = staged.orders;
+    readingRouteInfo = staged.info;
+    readingRouteMeta = null;
+    hydrateReadingGps();
+    saveReadingState();
+  } catch (err) {
+    readingOrders = oldOrders;
+    readingRouteInfo = oldInfo;
+    readingRouteMeta = oldMeta;
+    try {
+      if (staged.previousState === null) localStorage.removeItem(READING_KEY);
+      else localStorage.setItem(READING_KEY, staged.previousState);
+      if (oldHistory === null) localStorage.removeItem(READING_ROUTE_HISTORY_KEY);
+      else localStorage.setItem(READING_ROUTE_HISTORY_KEY, oldHistory);
+    } catch (_) { /* keep the in-memory route and report the storage failure */ }
+    const status = document.getElementById('readingPdfStatus');
+    if (status) { status.className = 'pdf-status error'; status.textContent = 'No se pudo guardar. La jornada anterior sigue activa.'; }
+    alert('No se pudo guardar la jornada en este dispositivo. Revisá el espacio disponible.');
+    return;
+  }
+  pendingResidentialImport = null;
+  const review = document.getElementById('readingPdfReview');
+  if (review) { review.hidden = true; review.innerHTML = ''; }
+  const status = document.getElementById('readingPdfStatus');
+  if (status) { status.className = 'pdf-status ok'; status.textContent = staged.summary + ' Guardado en este dispositivo.'; }
+  renderAll();
+  switchReadingTab('route', document.getElementById('tabRoute'));
+  showReadingToast(staged.summary);
+}
+
 async function handleReadingPdfUpload(event) {
   const files = event && event.target && event.target.files ? Array.from(event.target.files) : [];
   if (!files.length) return;
+  cancelResidentialPdfImport();
 
   const statusEl = document.getElementById('readingPdfStatus');
   const dataEl = document.getElementById('newRouteData');
@@ -417,8 +473,20 @@ async function handleReadingPdfUpload(event) {
     // Lectura residencial: todos los PDFs del día forman UNA sola jornada.
     // Si cargás más PDFs después, se agregan a la misma jornada en vez de reemplazarla.
     if (READING_MODE === 'residencial') {
+      if (readingOrders.length && readingRouteInfo.date && readingRouteInfo.date !== localDateKey()) {
+        throw new Error('Hay una jornada de otra fecha abierta. Guardá su control y cerrala antes de cargar los PDFs de hoy.');
+      }
+      const incoming = new Map();
+      for (const row of batchRows) {
+        const previous = incoming.get(row.localizacion);
+        if (previous && String(previous.medidor) !== String(row.medidor)) {
+          throw new Error('Los PDFs traen medidores distintos para la Localización ' + row.localizacion + '. Revisá los archivos antes de guardar.');
+        }
+        incoming.set(row.localizacion, row);
+      }
+      const stagedOrders = readingOrders.map(o => ({...o}));
       const byLoc = new Map();
-      for (const row of readingOrders) byLoc.set(String(row.localizacion), row);
+      for (const row of stagedOrders) byLoc.set(String(row.localizacion), row);
 
       let added = 0;
       let repeated = 0;
@@ -428,7 +496,7 @@ async function handleReadingPdfUpload(event) {
         const old = byLoc.get(row.localizacion);
         if (old) {
           if (String(old.medidor) !== String(row.medidor)) {
-            const hasSavedReading = old.status === 'read' && String(old.lectura || '').trim();
+            const hasSavedReading = old.status === 'read';
             if (hasSavedReading) {
               throw new Error(
                 'La Localización ' + row.localizacion +
@@ -465,32 +533,33 @@ async function handleReadingPdfUpload(event) {
           sequence:0,
           originalSequence:0
         };
-        readingOrders.push(item);
+        stagedOrders.push(item);
         byLoc.set(item.localizacion,item);
         added++;
       }
 
-      const completed = readingOrders.filter(o => o.status === 'read' && String(o.lectura || '').trim());
-      const pending = readingOrders
-        .filter(o => !(o.status === 'read' && String(o.lectura || '').trim()))
+       const completed = stagedOrders.filter(o => o.status === 'read');
+       const pending = stagedOrders
+         .filter(o => o.status !== 'read')
         .sort((a,b)=>{
           const routeCmp = compareReadingRouteLabels(a.sourceRoute || '', b.sourceRoute || '');
           if (routeCmp) return routeCmp;
           return Number(a.routeSequence || 0) - Number(b.routeSequence || 0);
         });
 
-      readingOrders = [...completed, ...pending].map((o,index)=>({
+       const nextOrders = [...completed, ...pending].map((o,index)=>({
         ...o,
         sequence:index + 1,
         originalSequence:index + 1
       }));
 
       const routes = [...new Set(
-        readingOrders.map(o=>String(o.sourceRoute || '')).filter(Boolean)
+         nextOrders.map(o=>String(o.sourceRoute || '')).filter(Boolean)
       )].sort(compareReadingRouteLabels);
 
-      if (!readingRouteInfo || !readingRouteInfo.routeId || readingRouteInfo.routeId === 'reading-empty') {
-        readingRouteInfo = {
+       let nextInfo = {...readingRouteInfo};
+       if (!nextInfo.routeId || nextInfo.routeId === 'reading-empty') {
+         nextInfo = {
           routeId:'residential-' + Date.now(),
           name:'Lectura residencial · jornada',
           subtitle:'',
@@ -499,34 +568,27 @@ async function handleReadingPdfUpload(event) {
         };
       }
 
-      readingRouteInfo.name = 'Lectura residencial · ' + routes.length + (routes.length === 1 ? ' ruta' : ' rutas');
-      readingRouteInfo.subtitle = routes.length ? routes.join(' · ') : 'Jornada residencial';
-      readingRouteInfo.date = readingRouteInfo.date || localDateKey();
-      readingRouteInfo.sourceRoutes = routes;
-      readingRouteMeta = null;
+       nextInfo.name = 'Lectura residencial · ' + routes.length + (routes.length === 1 ? ' ruta' : ' rutas');
+       nextInfo.subtitle = routes.length ? routes.join(' · ') : 'Jornada residencial';
+       nextInfo.date = nextInfo.date || localDateKey();
+       nextInfo.sourceRoutes = routes;
 
-      hydrateReadingGps();
-      saveReadingState();
-      renderAll();
-
-      if (dataEl) dataEl.value = readingOrders.map(r => r.localizacion + ' ' + r.medidor).join('\n');
-      if (nameEl) nameEl.value = readingRouteInfo.name;
+       const summary = nextOrders.length + ' medidores · ' + routes.length + ' rutas · ' + added + ' nuevos · ' + repeated + ' repetidos · ' + corrected + ' corregidos';
+       pendingResidentialImport = {orders:nextOrders, info:nextInfo, summary, previousState:localStorage.getItem(READING_KEY)};
+       const review = document.getElementById('readingPdfReview');
+       if (review) {
+         review.hidden = false;
+         review.innerHTML = '<h3>Revisá antes de guardar</h3><p>' + escapeHtml(summary) + '</p>' +
+           '<ul>' + batches.map(b => '<li>' + escapeHtml(b.fileName) + ' · ' + b.rows.length + ' medidores</li>').join('') + '</ul>' +
+           (corrected ? '<p class="review-warning">' + corrected + ' medidor(es) existente(s) cambiarán de número. Revisá los PDFs.</p>' : '') +
+           '<div class="review-actions"><button class="btn-primary" type="button" onclick="confirmResidentialPdfImport()">AGREGAR A JORNADA</button>' +
+           '<button class="btn-secondary" type="button" onclick="cancelResidentialPdfImport()">CANCELAR</button></div>';
+       }
 
       if (statusEl) {
         statusEl.className = 'pdf-status ok';
-        statusEl.innerHTML =
-          '<i class="fa-solid fa-check"></i> Jornada unificada: ' +
-          readingOrders.length + ' medidores en ' + routes.length + ' rutas.' +
-          (added ? ' Agregados ahora: ' + added + '.' : '') +
-          (corrected ? ' Medidores corregidos: ' + corrected + '.' : '') +
-          (repeated ? ' Repetidos omitidos: ' + repeated + '.' : '');
+         statusEl.textContent = 'PDFs leídos. Revisá el resumen y tocá AGREGAR A JORNADA para guardar.';
       }
-
-      switchReadingTab('route', document.getElementById('tabRoute'));
-      showReadingToast(
-        'Jornada unificada · ' + readingOrders.length +
-        ' medidores · ' + routes.length + ' rutas'
-      );
       return;
     }
 

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CNFL Campo · Lectura residencial</title>
   <meta name="theme-color" content="#0033A0" />
-  <link rel="stylesheet" href="lectura.css?v=20261026-1" />
+  <link rel="stylesheet" href="lectura.css?v=20261026-review1" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -88,14 +88,15 @@
       <div class="summary-card">
         <div class="eyebrow">NUEVA JORNADA RESIDENCIAL</div>
         <h2>Cargar PDFs de lectura</h2>
-        <p>Podés seleccionar uno o varios PDFs. La app extrae Localización + Medidor y abre la jornada automáticamente.</p>
+        <p>Seleccioná los PDFs, revisá las rutas y confirmá antes de agregarlas a la jornada. Lo ya visitado se conserva.</p>
 
         <input id="readingPdfInput" type="file" accept=".pdf,application/pdf" multiple style="display:none" onchange="handleReadingPdfUpload(event)" />
         <button class="btn-pdf-load" onclick="const s=document.getElementById('readingPdfStatus');s.style.display='block';s.className='pdf-status';s.textContent='Seleccioná uno o varios PDF…';document.getElementById('readingPdfInput').click()">
           <i class="fa-solid fa-file-pdf"></i>
-          <span><strong>CARGAR PDFs DE HOY</strong><small>Uno o varios archivos · carga automática</small></span>
+          <span><strong>SELECCIONAR PDFs</strong><small>Uno o varios archivos · revisar antes de guardar</small></span>
         </button>
-        <div id="readingPdfStatus" class="pdf-status" style="display:none"></div><div id="residentialBuild" style="margin-top:6px;font-size:9px;color:#687386">Versión 20261026-4 · Parser v4</div>
+        <div id="readingPdfStatus" class="pdf-status" style="display:none" role="status" aria-live="polite"></div>
+        <div id="readingPdfReview" class="pdf-review" hidden></div>
 
         <div class="load-divider"><span>O PEGAR MANUALMENTE</span></div>
 
@@ -218,8 +219,8 @@
 
   <div id="readingToast" class="toast"></div>
   <script src="lectura.js?v=20261026-1"></script>
-  <script src="lectura-ux.js?v=20261026-1"></script>
-  <script src="lectura-pdf-v4.js?v=20261026-parserfix6"></script>
+  <script src="lectura-ux.js?v=20261026-review1"></script>
+  <script src="lectura-pdf-v4.js?v=20261026-review1"></script>
   <script src="lectura-map.js?v=20261026-mapfix5"></script>
   <script src="campo-shell.js?v=20261026-1"></script>
 </body>
