@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CNFL Campo · Lectura residencial</title>
   <meta name="theme-color" content="#0033A0" />
-  <link rel="stylesheet" href="lectura.css?v=20261026-review1" />
+  <link rel="stylesheet" href="lectura.css?v=20261026-mobile1" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -89,6 +89,7 @@
         <div class="eyebrow">NUEVA JORNADA RESIDENCIAL</div>
         <h2>Cargar PDFs de lectura</h2>
         <p>Seleccioná los PDFs, revisá las rutas y confirmá antes de agregarlas a la jornada. Lo ya visitado se conserva.</p>
+        <button id="startNewReadingDayButton" class="btn-secondary full new-day-action" type="button" onclick="startNewReadingDay()" style="display:none"><i class="fa-solid fa-calendar-plus"></i> CERRAR JORNADA Y ABRIR NUEVA</button>
 
         <input id="readingPdfInput" type="file" accept=".pdf,application/pdf" multiple style="display:none" onchange="handleReadingPdfUpload(event)" />
         <button class="btn-pdf-load" onclick="const s=document.getElementById('readingPdfStatus');s.style.display='block';s.className='pdf-status';s.textContent='Seleccioná uno o varios PDF…';document.getElementById('readingPdfInput').click()">
@@ -150,7 +151,6 @@
         <h2>Memoria de lectura</h2>
         <p>Podés volver a consultar una jornada anterior sin perder la memoria GPS.</p>
         <div id="readingRouteHistory" class="route-history"></div>
-        <button class="btn-secondary full" onclick="startNewReadingDay()"><i class="fa-solid fa-calendar-plus"></i> CERRAR JORNADA Y ABRIR NUEVA</button>
         <button class="btn-delete-route" onclick="deleteCurrentReadingRoute()"><i class="fa-solid fa-trash"></i> BORRAR JORNADA ACTIVA</button>
       </div>
     </section>
@@ -219,9 +219,9 @@
   </nav>
 
   <div id="readingToast" class="toast"></div>
-  <script src="lectura.js?v=20261026-review2"></script>
+  <script src="lectura.js?v=20261026-mobile1"></script>
   <script src="lectura-ux.js?v=20261026-review1"></script>
-  <script src="lectura-pdf-v4.js?v=20261026-review1"></script>
+  <script src="lectura-pdf-v4.js?v=20261026-mobile1"></script>
   <script src="lectura-map.js?v=20261026-mapfix5"></script>
   <script src="campo-shell.js?v=20261026-1"></script>
 </body>
