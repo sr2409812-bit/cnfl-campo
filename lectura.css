@@ -672,9 +672,9 @@ button,a{-webkit-tap-highlight-color:transparent}
   position:relative!important;
   z-index:0!important;
   isolation:isolate!important;
-  contain:strict;
+  contain:layout paint!important;
   overflow:hidden!important;
-  transform:translateZ(0);
+  transform:none!important;
 }
 #view-map.active .leaflet-map-pane,
 #view-map.active .leaflet-control-container{
@@ -696,4 +696,38 @@ button,a{-webkit-tap-highlight-color:transparent}
 }
 .cnfl-module-chip{
   z-index:2050!important;
+}
+
+
+/* FIX 2026-10-26 MAPA v3: el mapa solo existe visualmente dentro de su pestaña */
+.view:not(.active){
+  display:none!important;
+}
+#view-map:not(.active){
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  height:0!important;
+  min-height:0!important;
+  max-height:0!important;
+  overflow:hidden!important;
+  padding:0!important;
+  margin:0!important;
+}
+#view-map:not(.active) *{
+  pointer-events:none!important;
+}
+#view-map.active{
+  overflow:visible!important;
+}
+#view-map.active .map-card{
+  overflow:hidden!important;
+  clip-path:inset(0 round 2px);
+}
+#view-map.active .leaflet-container,
+#view-map.active .leaflet-map-pane,
+#view-map.active .leaflet-pane,
+#view-map.active .leaflet-control-container{
+  max-width:100%!important;
 }
