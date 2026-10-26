@@ -225,7 +225,7 @@ function renderCurrent() {
       <div class="done-card">
         <i class="fa-solid fa-circle-check"></i>
         <h2>Jornada completada</h2>
-        <p>${s.read} leídos · ${s.unread} no leídos</p>
+        <p>${s.read} visitados · ${s.unread} no visitados</p>
       </div>`;
     nextContainer.innerHTML = '';
     return;
@@ -272,12 +272,12 @@ function renderCurrent() {
 
         <div class="primary-action">
           <button class="btn-primary" onclick="markCurrentReading('read')">
-            <i class="fa-solid fa-check"></i> MARCAR LEÍDO
+            <i class="fa-solid fa-check"></i> MARCAR VISITADO
           </button>
         </div>
         <div class="secondary-actions">
           <button class="btn-secondary" onclick="markCurrentReading('unread')">
-            <i class="fa-solid fa-xmark"></i> NO LEÍDO
+            <i class="fa-solid fa-xmark"></i> NO VISITADO
           </button>
         </div>
       </div>
@@ -303,8 +303,8 @@ function markCurrentReading(status) {
   saveReadingState();
   renderAll();
   showReadingToast(status === 'read'
-    ? `Medidor ${current.medidor} leído · siguiente`
-    : `Medidor ${current.medidor} marcado no leído`);
+    ? `Medidor ${current.medidor} visitado · siguiente`
+    : `Medidor ${current.medidor} queda pendiente`);
 }
 
 function archiveReadingEvent(order) {
@@ -334,7 +334,7 @@ function renderList() {
   );
 
   document.getElementById('readingList').innerHTML = rows.map(o => {
-    const label = o.status === 'read' ? 'LEÍDO' : (o.status === 'unread' ? 'NO LEÍDO' : 'PENDIENTE');
+    const label = o.status === 'read' ? 'VISITADO' : (o.status === 'unread' ? 'NO VISITADO' : 'PENDIENTE');
     return `
       <div class="reading-list-item ${o.status}">
         <div class="list-id">
@@ -778,7 +778,7 @@ function renderReadingRouteHistory() {
       <div class="history-route-item">
         <div>
           <strong>${escapeHtml(routeDisplayName(info))}</strong>
-          <span>${escapeHtml(info.date || '')} · ${s.total} medidores · ${s.read} leídos</span>
+          <span>${escapeHtml(info.date || '')} · ${s.total} medidores · ${s.read} visitados</span>
         </div>
         <div class="history-route-actions">
           <button onclick="restoreReadingRoute('${escapeHtml(info.routeId || '')}')">ABRIR</button>
@@ -1411,11 +1411,11 @@ function copyReadingSummary() {
     routeDisplayName(),
     readingRouteInfo.subtitle || '',
     `Total: ${s.total}`,
-    `Leídos: ${s.read}`,
-    `No leídos: ${s.unread}`,
+    `Visitados: ${s.read}`,
+    `No visitados: ${s.unread}`,
     `Pendientes: ${s.pending}`,
     '',
-    'NO LEÍDOS:'
+    'NO VISITADOS:'
   ];
 
   const unread = readingOrders.filter(o => o.status === 'unread');
