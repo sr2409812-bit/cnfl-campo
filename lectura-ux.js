@@ -5,11 +5,9 @@
   function normalizeReadingStatuses() {
     readingOrders = readingOrders.map((o, index) => {
       const wasDeferredLegacy = o.status === 'unread';
-      const lectura = String(o.lectura ?? '').trim();
       return {
         ...o,
-        status: o.status === 'read' && lectura ? 'read' : 'pending',
-        lectura,
+        status: o.status === 'read' ? 'read' : 'pending',
         deferCount: Number(o.deferCount || (wasDeferredLegacy ? 1 : 0)),
         sequence: Number(o.sequence || index + 1),
         originalSequence: Number(o.originalSequence || o.sequence || index + 1)
@@ -87,17 +85,9 @@
             </div>
           </div>
 
-          <div class="reading-entry reading-entry-priority">
-            <label for="currentReadingValue"><i class="fa-solid fa-gauge-high"></i> LECTURA ACTUAL</label>
-            <input id="currentReadingValue" type="text" inputmode="decimal" autocomplete="off"
-              placeholder="Ingresá la lectura"
-              value="${escapeHtml(current.lectura || '')}"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();saveCurrentReading();}" />
-          </div>
-
           <div class="primary-action reading-save-priority">
-            <button class="btn-primary" onclick="saveCurrentReading()">
-              <i class="fa-solid fa-floppy-disk"></i> GUARDAR LECTURA · SIGUIENTE
+            <button class="btn-primary" onclick="markCurrentVisit()">
+              <i class="fa-solid fa-check"></i> MARCAR VISITADO · SIGUIENTE
             </button>
           </div>
 
@@ -133,35 +123,15 @@
       </div>` : '';
   };
 
-  function normalizeReadingValue(raw) {
-    const clean = String(raw ?? '').trim().replace(',', '.');
-    if (!clean) return null;
-    if (!/^\d+(?:\.\d+)?$/.test(clean)) return null;
-    const n = Number(clean);
-    if (!Number.isFinite(n) || n < 0) return null;
-    return clean;
-  }
-
-  window.saveCurrentReading = function () {
+  window.markCurrentVisit = function () {
     const current = readingOrders.find(o => o.status !== 'read');
     if (!current) return;
 
-    const input = document.getElementById('currentReadingValue');
-    const value = normalizeReadingValue(input ? input.value : current.lectura);
-    if (value === null) {
-      alert('Ingresá una lectura numérica válida antes de guardar.');
-      if (input) input.focus();
-      return;
-    }
-
-    current.lectura = value;
     current.status = 'read';
     current.readAt = new Date().toISOString();
     archiveReadingEvent(current);
 
-    const completed = readingOrders.every(o =>
-      o.status === 'read' && String(o.lectura || '').trim()
-    );
+    const completed = readingOrders.every(o => o.status === 'read');
     if (completed) {
       readingRouteInfo.completedAt = new Date().toISOString();
     } else if (readingRouteInfo && readingRouteInfo.completedAt) {
@@ -169,26 +139,14 @@
     }
 
     saveReadingState();
-
-    if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
-      const id = [readingRouteInfo.routeId,current.localizacion,current.medidor,current.readAt].join('|');
-      window.CNFLStore.putRecord('meter-readings', id, {
-        routeId: readingRouteInfo.routeId,
-        route: readingRouteInfo.name,
-        date: readingRouteInfo.date || localDateKey(),
-        localizacion: current.localizacion,
-        medidor: current.medidor,
-        lectura: current.lectura,
-        at: current.readAt
-      }).catch(() => {});
-    }
-
     renderAll();
-    showReadingToast(`Lectura ${value} guardada · siguiente medidor`);
+    showReadingToast(`Medidor ${current.medidor} visitado · siguiente`);
   };
 
+  // Compatibilidad con botones/código anteriores.
+  window.saveCurrentReading = window.markCurrentVisit;
   markCurrentReading = function (status) {
-    if (status === 'read') return window.saveCurrentReading();
+    if (status === 'read') return window.markCurrentVisit();
     window.deferCurrentReading();
   };
 
@@ -255,11 +213,7 @@
     saveReadingState();
     renderAll();
     switchReadingTab('route', document.getElementById('tabRoute'));
-    setTimeout(() => {
-      const input = document.getElementById('currentReadingValue');
-      if (input) { input.focus(); input.select(); }
-    }, 50);
-    showReadingToast(`Editando lectura del medidor ${target.medidor}`);
+    showReadingToast(`Medidor ${target.medidor} vuelve a pendiente`);
   };
 
   renderList = function () {
@@ -276,7 +230,7 @@
         ? `onclick="editSavedReading('${o.localizacion}')"`
         : `onclick="setNextReading('${o.localizacion}')"`;
       const hint = visited
-        ? `<span class="list-next-hint">LECTURA ${escapeHtml(o.lectura || '')} · EDITAR</span>`
+        ? '<span class="list-next-hint">VOLVER A PENDIENTE</span>'
         : '<span class="list-next-hint">HACER SIGUIENTE</span>';
 
       return `
@@ -313,13 +267,13 @@
     const date = now.toLocaleDateString('es-CR');
     const time = now.toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit'});
     const lines = [
-      'CNFL CAMPO · REPORTE DE LECTURA',
+      'CNFL CAMPO · CONTROL DE RECORRIDO',
       routeDisplayName(),
       readingRouteInfo.subtitle || '',
       `Fecha: ${date} · Hora: ${time}`,
       '',
       `Total: ${s.total}`,
-      `Lecturas guardadas: ${s.read}`,
+      `Visitados: ${s.read}`,
       `Pendientes: ${s.pending}`,
       '',
       'DETALLE'
@@ -328,9 +282,12 @@
     readingOrders.slice()
       .sort((a,b) => Number(a.originalSequence || a.sequence || 0) - Number(b.originalSequence || b.sequence || 0))
       .forEach((o,i) => {
-        const reading = o.status === 'read' && String(o.lectura || '').trim() ? String(o.lectura).trim() : 'PENDIENTE';
+        const status = o.status === 'read' ? 'VISITADO' : 'PENDIENTE';
         const routePart = READING_MODE === 'residencial' && o.sourceRoute ? `Ruta ${o.sourceRoute} · ` : '';
-        lines.push(`${String(i+1).padStart(2,'0')}. ${routePart}Localización ${o.localizacion} · Medidor ${o.medidor} · Lectura ${reading}`);
+        const timePart = o.status === 'read' && o.readAt
+          ? ' · ' + new Date(o.readAt).toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit'})
+          : '';
+        lines.push(`${String(i+1).padStart(2,'0')}. ${routePart}Localización ${o.localizacion} · Medidor ${o.medidor} · ${status}${timePart}`);
       });
 
     return lines.join('\n');
@@ -339,7 +296,7 @@
   copyReadingSummary = function () {
     const text = buildReadingReport();
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(() => showReadingToast('Reporte copiado.'));
+      navigator.clipboard.writeText(text).then(() => showReadingToast('Control copiado.'));
     } else {
       prompt('Copia el reporte:', text);
     }
@@ -357,14 +314,14 @@
     const url = a.href;
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url),1000);
-    showReadingToast('Reporte descargado.');
+    showReadingToast('Control descargado.');
   };
 
   window.shareReadingReport = async function () {
     const text = buildReadingReport();
     if (navigator.share) {
       try {
-        await navigator.share({title:'Reporte de lectura CNFL',text});
+        await navigator.share({title:'Control de recorrido CNFL',text});
         return;
       } catch (err) {
         if (err && err.name === 'AbortError') return;
