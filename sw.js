@@ -18,6 +18,7 @@ const CORE_ASSETS = [
   './lectura.css',
   './lectura.js',
   './lectura-pdf.js',
+  './lectura-map.js',
   './lectura-pdf-hotfix.js',
   './lectura-residential-flow.js',
   './lectura-pdf-v2.js',
@@ -30,6 +31,8 @@ const CORE_ASSETS = [
 
 const OPTIONAL_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];
