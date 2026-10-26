@@ -396,6 +396,16 @@ function parseReadingPdfLayout(layoutPages, fullText = '') {
     };
   }
 
+  const rowPairs = parseReadingPdfRowPairs(layoutPages, fullText);
+  if (rowPairs.rows.length) {
+    return {
+      rows: rowPairs.rows,
+      expectedCount: rowPairs.expectedCount,
+      pagesWithHeaders: 0,
+      parser: 'explicit-row-pairs'
+    };
+  }
+
   const direct = parseReadingPdfDirectText(fullText);
   if (direct.rows.length) {
     return {
