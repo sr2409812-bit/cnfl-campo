@@ -787,3 +787,29 @@ button,a{-webkit-tap-highlight-color:transparent}
   overflow:visible!important;
   background:var(--page)!important;
 }
+
+
+/* Lectura prioritaria en campo: visible antes de navegación */
+.reading-entry-priority{
+  margin-top:12px;
+  border:3px solid var(--cnfl-orange);
+  background:#FFF8F2;
+}
+.reading-entry-priority label{
+  color:var(--navy);
+  font-size:11px;
+}
+.reading-entry-priority input{
+  height:64px;
+  font-size:30px;
+  border:2px solid #C7D2DD;
+}
+.reading-save-priority{
+  margin-top:8px;
+  margin-bottom:10px;
+}
+.reading-save-priority .btn-primary{
+  min-height:58px;
+  font-size:14px;
+  font-weight:900;
+}
