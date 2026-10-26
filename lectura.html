@@ -6,8 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CNFL Campo · Demanda</title>
   <meta name="theme-color" content="#0033A0" />
-  <link rel="stylesheet" href="lectura.css?v=20261020-4" />
+  <link rel="stylesheet" href="lectura.css?v=20261026-1" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link rel="stylesheet" href="campo-shell.css?v=20261019-1" />
   <script src="data-store.js?v=20261020-2"></script>
@@ -143,6 +145,25 @@
       </div>
     </section>
 
+    <section id="view-map" class="view">
+      <div class="summary-card map-card">
+        <div class="eyebrow">MAPA EN VIVO</div>
+        <h2>Pendientes alrededor mío</h2>
+        <p id="readingMapInfo">Esperando ubicación y puntos GPS…</p>
+        <div class="map-actions">
+          <button class="btn-outline" onclick="centerReadingMapOnMe()"><i class="fa-solid fa-location-crosshairs"></i> CENTRARME</button>
+          <button class="btn-secondary" onclick="refreshReadingMap()"><i class="fa-solid fa-rotate"></i> ACTUALIZAR</button>
+        </div>
+        <div class="map-legend">
+          <span><b class="dot pending"></b>Pendiente</span>
+          <span><b class="dot done"></b>Leído</span>
+          <span><b class="dot me"></b>Mi ubicación</span>
+        </div>
+        <div id="readingLiveMap" class="reading-live-map"></div>
+        <p class="map-note">Tocá un punto pendiente para hacerlo el siguiente. El mapa usa Internet para cargar las calles; las lecturas siguen guardándose aunque te quedés sin señal.</p>
+      </div>
+    </section>
+
     <section id="view-summary" class="view">
       <div class="summary-card">
         <div class="eyebrow">RESUMEN DE JORNADA</div>
@@ -179,6 +200,9 @@
     <button id="tabLoad" class="nav-btn" onclick="switchReadingTab('load', this)">
       <i class="fa-solid fa-upload"></i><span>CARGAR</span>
     </button>
+    <button id="tabMap" class="nav-btn" onclick="switchReadingTab('map', this)">
+      <i class="fa-solid fa-map"></i><span>MAPA</span>
+    </button>
     <button id="tabSummary" class="nav-btn" onclick="switchReadingTab('summary', this)">
       <i class="fa-solid fa-chart-column"></i><span>RESUMEN</span>
     </button>
@@ -186,10 +210,10 @@
 
   <div id="readingToast" class="toast"></div>
   <script src="lectura.js?v=20261026-1"></script>
-  <script src="lectura-ux.js?v=20261020-6"></script>
+  <script src="lectura-ux.js?v=20261026-1"></script>
   <script src="lectura-pdf-v2.js?v=20261020-7"></script>
   <script src="lectura-pdf-hotfix.js?v=20261020-7"></script>
   <script src="lectura-residential-flow.js?v=20261020-7"></script>
-  <script src="campo-shell.js?v=20261020-5"></script>
+  <script src="campo-shell.js?v=20261026-1"></script>
 </body>
 </html>
