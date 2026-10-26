@@ -80,3 +80,24 @@ body.cnfl-module-demanda .route-head{border-radius:12px!important}
   .cnfl-global-menu{left:18px}
   .cnfl-global-drawer{width:250px}
 }
+
+
+/* Menú principal siempre visible dentro de la cabecera móvil */
+.topbar .cnfl-global-menu.cnfl-menu-in-header,
+.app-header .cnfl-global-menu.cnfl-menu-in-header{
+  position:static!important;
+  left:auto!important;
+  top:auto!important;
+  flex:0 0 44px!important;
+  margin:0 8px 0 0!important;
+  z-index:1!important;
+  align-self:center!important;
+}
+body.cnfl-module-residencial .topbar,
+body.cnfl-module-demanda .topbar,
+body.cnfl-module-notificaciones .topbar{
+  padding-left:12px!important;
+}
+body.cnfl-module-cortes .app-header{
+  padding-left:12px!important;
+}
