@@ -405,6 +405,8 @@ function readingGpsSets() {
 
 function renderLoadView() {
   const sets = readingGpsSets();
+  const newDayButton = document.getElementById('startNewReadingDayButton');
+  if (newDayButton) newDayButton.style.display = READING_MODE === 'residencial' && readingOrders.length ? 'block' : 'none';
   document.getElementById('loadGpsTotal').textContent = sets.all.length;
   document.getElementById('loadGpsMemory').textContent = sets.reusable.length;
   document.getElementById('loadGpsMissing').textContent = sets.missing.length;
