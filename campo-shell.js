@@ -18,6 +18,12 @@
     document.body.appendChild(menu);
   }
 
+  const moduleHeader=document.querySelector('.topbar, .app-header');
+  if(moduleHeader && menu && !moduleHeader.contains(menu)){
+    moduleHeader.insertBefore(menu,moduleHeader.firstChild);
+  }
+  menu.classList.add('cnfl-menu-in-header');
+
   if(!drawer){
     drawer=document.createElement('aside');
     drawer.id='cnflGlobalDrawer';
