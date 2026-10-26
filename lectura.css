@@ -334,6 +334,7 @@ button,a{-webkit-tap-highlight-color:transparent}
 .pdf-status.ok{border-left-color:var(--ok)}
 .pdf-status.error{border-left-color:var(--danger);color:var(--danger)}
 .pdf-review{margin:12px 0 18px;padding:16px;border:2px solid var(--cnfl-blue);background:#F5F9FF;border-radius:12px}
+.pdf-review{scroll-margin-top:90px}
 .pdf-review[hidden]{display:none}
 .pdf-review h3{margin:0 0 8px;font-size:17px;color:var(--navy)}
 .pdf-review p{margin:0 0 10px;font-size:13px;line-height:1.4}
@@ -342,6 +343,7 @@ button,a{-webkit-tap-highlight-color:transparent}
 .review-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .review-actions button{min-height:48px}
 @media(max-width:420px){.review-actions{grid-template-columns:1fr}}
+.new-day-action{margin:14px 0 12px;min-height:52px;white-space:normal;line-height:1.25}
 .load-divider{
   position:relative;
   text-align:center;
