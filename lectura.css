@@ -719,7 +719,7 @@ button,a{-webkit-tap-highlight-color:transparent}
   pointer-events:none!important;
 }
 #view-map.active{
-  overflow:visible!important;
+  overflow:hidden!important;
 }
 #view-map.active .map-card{
   overflow:hidden!important;
@@ -730,4 +730,60 @@ button,a{-webkit-tap-highlight-color:transparent}
 #view-map.active .leaflet-pane,
 #view-map.active .leaflet-control-container{
   max-width:100%!important;
+}
+
+
+/* FIX 2026-10-26 MAPA v4: recorte definitivo.
+   El mapa jamás puede pintar fuera de su pestaña/tarjeta. */
+#view-map,
+#view-map.active{
+  position:relative!important;
+  z-index:0!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  contain:layout paint!important;
+}
+#view-map .map-card,
+#view-map.active .map-card{
+  position:relative!important;
+  z-index:0!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  contain:paint!important;
+  clip-path:inset(0 round 2px);
+  -webkit-clip-path:inset(0 round 2px);
+}
+#readingLiveMap,
+#view-map .reading-live-map{
+  position:relative!important;
+  z-index:0!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  contain:paint!important;
+  clip-path:inset(0 round 8px);
+  -webkit-clip-path:inset(0 round 8px);
+  transform:none!important;
+}
+#view-map .leaflet-container{
+  position:relative!important;
+  z-index:0!important;
+  overflow:hidden!important;
+}
+#view-map:not(.active){
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  height:0!important;
+  max-height:0!important;
+  overflow:hidden!important;
+}
+#view-load,
+#view-summary,
+#view-list,
+#view-route{
+  position:relative!important;
+  z-index:10!important;
+  isolation:isolate!important;
+  overflow:visible!important;
+  background:var(--page)!important;
 }
