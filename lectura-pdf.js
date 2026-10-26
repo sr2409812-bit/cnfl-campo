@@ -292,6 +292,7 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
     const medLabels = items.filter(i => normalizeReadingPdfText(i.text).replace(/:$/, '') === 'medidor');
 
     let pageInspectionRows = 0;
+    if (locLabels.length && medLabels.length) detected = true;
     for (const locLabel of locLabels) {
       const medLabel = medLabels
         .filter(m => Math.abs(m.y - locLabel.y) <= 4)
@@ -337,6 +338,7 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
     const contractHeader = items.find(i => normalizeReadingPdfText(i.text) === 'contrato');
 
     if (locHeader && medHeader) {
+      detected = true;
       const leftBoundary = (locHeader.x + medHeader.x) / 2;
       const rightBoundary = contractHeader
         ? (medHeader.x + contractHeader.x) / 2
@@ -345,7 +347,7 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
       const locValues = items.filter(i => {
         const d = digits(i.text);
         return /^\d{9,10}$/.test(d) &&
-          i.y > locHeader.y + 5 &&
+          i.y < locHeader.y - 5 &&
           i.x < leftBoundary + 12;
       });
 
