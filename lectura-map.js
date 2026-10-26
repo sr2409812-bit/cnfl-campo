@@ -214,6 +214,7 @@
     if(!box)return;
     box.style.visibility=visible?'visible':'hidden';
     box.style.pointerEvents=visible?'auto':'none';
+    box.style.display=visible?'block':'none';
     if(map){
       const container=map.getContainer();
       if(container){
@@ -224,19 +225,60 @@
     }
   }
 
+  function stopWatch(){
+    if(watchId!==null&&navigator.geolocation){
+      navigator.geolocation.clearWatch(watchId);
+    }
+    watchId=null;
+  }
+
+  function destroyMap(){
+    stopWatch();
+    if(resizeObserver){
+      resizeObserver.disconnect();
+      resizeObserver=null;
+    }
+    if(map){
+      try{ map.closePopup(); }catch(_){}
+      try{ map.remove(); }catch(_){}
+    }
+    map=null;
+    pointsLayer=null;
+    userLayer=null;
+    lastPointsSignature='';
+    const box=mapBox();
+    if(box){
+      box.innerHTML='';
+      box.style.display='none';
+      box.style.visibility='hidden';
+      box.style.pointerEvents='none';
+    }
+  }
+
   if(typeof window.switchReadingTab==='function'){
     const baseSwitch=window.switchReadingTab;
     window.switchReadingTab=function(tab,btn){
-      if(tab!=='map') setMapVisibility(false);
-      baseSwitch(tab,btn);
-      if(tab==='map'){
-        setMapVisibility(true);
-        setTimeout(()=>{
-          init();
-          setMapVisibility(true);
-          if(map) map.invalidateSize({pan:false});
-        },30);
+      if(tab!=='map'){
+        // Android/Chrome puede conservar capas GPU de Leaflet aunque el contenedor
+        // quede oculto. Destruir el mapa evita que se dibuje encima de CARGAR,
+        // MEMORIA, LISTA o RESUMEN.
+        destroyMap();
+        baseSwitch(tab,btn);
+        return;
       }
+
+      baseSwitch(tab,btn);
+      const box=mapBox();
+      if(box){
+        box.style.display='block';
+        box.style.visibility='visible';
+        box.style.pointerEvents='auto';
+      }
+      setTimeout(()=>{
+        init();
+        setMapVisibility(true);
+        if(map) map.invalidateSize({pan:false});
+      },40);
     };
   }
 
@@ -253,9 +295,5 @@
 
   setMapVisibility(false);
   window.initReadingLiveMap=init;
-  window.addEventListener('pagehide',()=>{
-    if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);
-    watchId=null;
-    if(resizeObserver){resizeObserver.disconnect();resizeObserver=null;}
-  });
+  window.addEventListener('pagehide',destroyMap);
 })();
