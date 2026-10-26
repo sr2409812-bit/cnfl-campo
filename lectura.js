@@ -808,6 +808,24 @@ function clearActiveReadingRoute() {
   return oldRouteId;
 }
 
+function startNewReadingDay() {
+  if (!readingOrders.length) {
+    switchReadingTab('load', document.getElementById('tabLoad'));
+    showReadingToast('No hay una jornada activa. Ya podés cargar los PDFs de hoy.');
+    return;
+  }
+  const s = stats();
+  if (!confirm('¿Cerrar la jornada actual y abrir una nueva? ' +
+    s.read + ' visitados y ' + s.pending + ' pendientes quedarán guardados en Rutas recientes.')) return;
+  try {
+    archiveCurrentRoute();
+    clearActiveReadingRoute();
+    showReadingToast('Jornada anterior guardada en Rutas recientes. Cargá los PDFs de hoy.');
+  } catch (err) {
+    alert('No pude guardar la jornada anterior. No inicié una nueva.');
+  }
+}
+
 function deleteReadingRoute(routeId) {
   const id = String(routeId || '');
   if (!id) return;
