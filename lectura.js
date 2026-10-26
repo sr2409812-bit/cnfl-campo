@@ -71,6 +71,17 @@ function saveReadingState() {
     updatedAt: new Date().toISOString(),
     orders: readingOrders
   }));
+
+  // La jornada activa también queda reflejada en "Rutas recientes".
+  // Así una carga directa desde PDF no depende de cargar otra ruta para guardarse.
+  if (
+    readingOrders.length &&
+    readingRouteInfo &&
+    readingRouteInfo.routeId &&
+    readingRouteInfo.routeId !== 'reading-empty'
+  ) {
+    archiveCurrentRoute();
+  }
 }
 
 function migrateOldReadingState() {
@@ -472,7 +483,7 @@ function archiveCurrentRoute() {
   localStorage.setItem(READING_ROUTE_HISTORY_KEY, JSON.stringify(filtered.slice(0, 20)));
 
   if (window.CNFLStore && typeof window.CNFLStore.putRecord === 'function') {
-    const id = String(readingRouteInfo.routeId || 'route') + '|' + snapshot.savedAt;
+    const id = String(readingRouteInfo.routeId || 'route') + '|latest';
     window.CNFLStore.putRecord(READING_MODE === 'residencial' ? 'residential-reading-routes' : 'reading-routes', id, snapshot).catch(() => {});
   }
 }
