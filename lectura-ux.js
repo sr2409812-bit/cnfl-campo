@@ -46,7 +46,7 @@
           <div class="done-card">
             <i class="fa-solid fa-file-arrow-up"></i>
             <h2>Sin jornada cargada</h2>
-            <p>Entrá a CARGAR para abrir una ruta de Demanda.</p>
+            <p>Entrá a CARGAR para abrir una jornada residencial.</p>
           </div>`;
       } else {
         container.innerHTML = `
