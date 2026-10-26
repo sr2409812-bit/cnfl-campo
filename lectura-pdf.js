@@ -85,7 +85,9 @@ function parseReadingPdfRowPairs(layoutPages, fullText = '') {
   const text = String(fullText || '');
   const expectedMatch =
     text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/(\d+)\s*Total\s+Inspecciones\s*:/i) ||
     text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/(\d+)\s*Total\s+Medidores\s*:/i) ||
     text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
 
   const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
@@ -139,7 +141,9 @@ function parseReadingPdfDirectText(fullText = '') {
 
   const expectedMatch =
     text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/(\d+)\s*Total\s+Inspecciones\s*:/i) ||
     text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/(\d+)\s*Total\s+Medidores\s*:/i) ||
     text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
 
   const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
@@ -316,7 +320,9 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
   const text = String(fullText || '');
   const expectedMatch =
     text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/(\d+)\s*Total\s+Inspecciones\s*:/i) ||
     text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/(\d+)\s*Total\s+Medidores\s*:/i) ||
     text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
   const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
 
@@ -390,7 +396,9 @@ function parseNearestGeometryPairs(layoutPages, fullText = '') {
   const text = String(fullText || '');
   const expectedMatch =
     text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/(\d+)\s*Total\s+Inspecciones\s*:/i) ||
     text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/(\d+)\s*Total\s+Medidores\s*:/i) ||
     text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
   const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
 
