@@ -253,6 +253,150 @@ function parseInspectionBlocksByGeometry(layoutPages) {
   return rows;
 }
 
+
+function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
+  const rows = [];
+  const seen = new Map();
+  const conflicts = [];
+  let detected = false;
+
+  function digits(value) {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  function add(localizacionRaw, medidorRaw) {
+    let localizacion = digits(localizacionRaw);
+    const medidor = digits(medidorRaw);
+    if (localizacion.length === 9) localizacion = '0' + localizacion;
+    if (!/^\d{10}$/.test(localizacion)) return;
+    if (!/^\d{4,8}$/.test(medidor)) return;
+
+    if (seen.has(localizacion)) {
+      if (seen.get(localizacion) !== medidor) {
+        conflicts.push(localizacion + ': ' + seen.get(localizacion) + ' / ' + medidor);
+      }
+      return;
+    }
+
+    seen.set(localizacion, medidor);
+    rows.push({localizacion, medidor});
+  }
+
+  for (const rawItems of layoutPages || []) {
+    const items = (rawItems || []).map(readingPdfItemXY).filter(i => i.text);
+
+    // LMR0085 / HOJA DE INSPECCIONES:
+    // El medidor está en la MISMA línea que "Localización:" y "Medidor:".
+    // El Contrato está en otra línea; nunca se usa como candidato.
+    const locLabels = items.filter(i => normalizeReadingPdfText(i.text).replace(/:$/, '') === 'localizacion');
+    const medLabels = items.filter(i => normalizeReadingPdfText(i.text).replace(/:$/, '') === 'medidor');
+
+    let pageInspectionRows = 0;
+    for (const locLabel of locLabels) {
+      const medLabel = medLabels
+        .filter(m => Math.abs(m.y - locLabel.y) <= 4)
+        .sort((a,b) => Math.abs(a.y - locLabel.y) - Math.abs(b.y - locLabel.y))[0];
+
+      if (!medLabel) continue;
+
+      const locCandidate = items
+        .filter(i => {
+          const d = digits(i.text);
+          return /^\d{9,10}$/.test(d) &&
+            i.x > locLabel.x &&
+            i.x < medLabel.x &&
+            Math.abs(i.y - locLabel.y) <= 5;
+        })
+        .sort((a,b) => Math.abs(a.y - locLabel.y) - Math.abs(b.y - locLabel.y) || a.x - b.x)[0];
+
+      const medCandidate = items
+        .filter(i => {
+          const d = digits(i.text);
+          return /^\d{4,8}$/.test(d) &&
+            i.x > medLabel.x &&
+            i.x < medLabel.x + 125 &&
+            Math.abs(i.y - medLabel.y) <= 5;
+        })
+        .sort((a,b) => Math.abs(a.y - medLabel.y) - Math.abs(b.y - medLabel.y) || a.x - b.x)[0];
+
+      if (locCandidate && medCandidate) {
+        add(locCandidate.text, medCandidate.text);
+        pageInspectionRows++;
+      }
+    }
+
+    if (pageInspectionRows) {
+      detected = true;
+      continue;
+    }
+
+    // LMR0155 / tabla "MEDIDORES SIN REGISTRO DE LECTURA":
+    // Se usa estrictamente la columna Medidor, limitada entre Localización y Contrato.
+    const locHeader = items.find(i => normalizeReadingPdfText(i.text) === 'localizacion');
+    const medHeader = items.find(i => normalizeReadingPdfText(i.text) === 'medidor');
+    const contractHeader = items.find(i => normalizeReadingPdfText(i.text) === 'contrato');
+
+    if (locHeader && medHeader) {
+      const leftBoundary = (locHeader.x + medHeader.x) / 2;
+      const rightBoundary = contractHeader
+        ? (medHeader.x + contractHeader.x) / 2
+        : medHeader.x + 45;
+
+      const locValues = items.filter(i => {
+        const d = digits(i.text);
+        return /^\d{9,10}$/.test(d) &&
+          i.y > locHeader.y + 5 &&
+          i.x < leftBoundary + 12;
+      });
+
+      let pageTableRows = 0;
+      for (const locItem of locValues) {
+        const meter = items
+          .filter(i => {
+            const d = digits(i.text);
+            return /^\d{4,8}$/.test(d) &&
+              Math.abs(i.y - locItem.y) <= 4 &&
+              i.x > leftBoundary &&
+              i.x < rightBoundary + 12;
+          })
+          .sort((a,b) => Math.abs(a.x - medHeader.x) - Math.abs(b.x - medHeader.x))[0];
+
+        if (meter) {
+          add(locItem.text, meter.text);
+          pageTableRows++;
+        }
+      }
+
+      if (pageTableRows) detected = true;
+    }
+  }
+
+  if (conflicts.length) {
+    throw new Error(
+      'Encontré Localizaciones con dos medidores distintos: ' +
+      conflicts.slice(0,6).join(', ')
+    );
+  }
+
+  const text = String(fullText || '');
+  const expectedMatch =
+    text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
+    text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
+    text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
+
+  const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
+
+  if (detected && expectedCount && rows.length !== expectedCount) {
+    throw new Error(
+      'El PDF indica ' + expectedCount +
+      ' medidores/inspecciones, pero validé ' + rows.length +
+      '. No lo cargué para evitar asociar un Contrato como Medidor.'
+    );
+  }
+
+  return {rows, expectedCount, detected};
+}
+
 function parseReadingPdfLayout(layoutPages, fullText = '') {
   const rowPairs = parseReadingPdfRowPairs(layoutPages, fullText);
   if (rowPairs.rows.length) {
