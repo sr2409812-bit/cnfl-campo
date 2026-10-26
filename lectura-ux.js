@@ -46,7 +46,7 @@
           <div class="done-card">
             <i class="fa-solid fa-file-arrow-up"></i>
             <h2>Sin jornada cargada</h2>
-            <p>Entrá a CARGAR para abrir una jornada residencial.</p>
+            <p>Entrá a CARGAR para abrir una jornada ${READING_MODE === 'residencial' ? 'residencial' : 'de Demanda'}.</p>
           </div>`;
       } else {
         container.innerHTML = `
