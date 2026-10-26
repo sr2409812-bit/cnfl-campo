@@ -243,13 +243,10 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
   const conflicts = [];
   let detected = false;
 
-  function digits(value) {
-    return String(value || '').replace(/\D/g, '');
-  }
-
   function add(localizacionRaw, medidorRaw) {
-    let localizacion = digits(localizacionRaw);
-    const medidor = digits(medidorRaw);
+    let localizacion = String(localizacionRaw || '').replace(/\D/g, '');
+    const medidor = String(medidorRaw || '').replace(/\D/g, '');
+
     if (localizacion.length === 9) localizacion = '0' + localizacion;
     if (!/^\d{10}$/.test(localizacion)) return;
     if (!/^\d{4,8}$/.test(medidor)) return;
@@ -267,98 +264,51 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
 
   for (const rawItems of layoutPages || []) {
     const items = (rawItems || []).map(readingPdfItemXY).filter(i => i.text);
+    const visualRows = groupReadingPdfRows(items, 3.2);
 
-    // LMR0085 / HOJA DE INSPECCIONES:
-    // El medidor está en la MISMA línea que "Localización:" y "Medidor:".
-    // El Contrato está en otra línea; nunca se usa como candidato.
-    const locLabels = items.filter(i => normalizeReadingPdfText(i.text).replace(/:$/, '') === 'localizacion');
-    const medLabels = items.filter(i => normalizeReadingPdfText(i.text).replace(/:$/, '') === 'medidor');
+    const pageHasTableHeader = visualRows.some(row => {
+      const n = normalizeReadingPdfText(row.items.map(i => i.text).join(' '));
+      return n.includes('localizacion') && n.includes('medidor') && n.includes('contrato');
+    });
 
-    let pageInspectionRows = 0;
-    if (locLabels.length && medLabels.length) detected = true;
-    for (const locLabel of locLabels) {
-      const medLabel = medLabels
-        .filter(m => Math.abs(m.y - locLabel.y) <= 4)
-        .sort((a,b) => Math.abs(a.y - locLabel.y) - Math.abs(b.y - locLabel.y))[0];
+    for (const row of visualRows) {
+      const rowText = row.items
+        .map(i => i.text)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-      if (!medLabel) continue;
-
-      const locCandidate = items
-        .filter(i => {
-          const d = digits(i.text);
-          return /^\d{9,10}$/.test(d) &&
-            i.x > locLabel.x &&
-            i.x < medLabel.x &&
-            Math.abs(i.y - locLabel.y) <= 5;
-        })
-        .sort((a,b) => Math.abs(a.y - locLabel.y) - Math.abs(b.y - locLabel.y) || a.x - b.x)[0];
-
-      const medCandidate = items
-        .filter(i => {
-          const d = digits(i.text);
-          return /^\d{4,8}$/.test(d) &&
-            i.x > medLabel.x &&
-            i.x < medLabel.x + 125 &&
-            Math.abs(i.y - medLabel.y) <= 5;
-        })
-        .sort((a,b) => Math.abs(a.y - medLabel.y) - Math.abs(b.y - medLabel.y) || a.x - b.x)[0];
-
-      if (locCandidate && medCandidate) {
-        add(locCandidate.text, medCandidate.text);
-        pageInspectionRows++;
+      // FORMATO LMR0085
+      // La fila visual dice:
+      // Localización: 9006760195   Medidor: 488956   Tarifa: ...
+      // Contrato está en OTRA FILA y jamás entra aquí.
+      let match = rowText.match(
+        /Localizaci[oó]n\s*:\s*(\d{9,10})[\s\S]*?Medidor\s*:\s*(\d{4,8})(?=\s|Tarifa|$)/i
+      );
+      if (match) {
+        detected = true;
+        add(match[1], match[2]);
+        continue;
       }
-    }
 
-    if (pageInspectionRows) {
-      detected = true;
-      continue;
-    }
-
-    // LMR0155 / tabla "MEDIDORES SIN REGISTRO DE LECTURA":
-    // Se usa estrictamente la columna Medidor, limitada entre Localización y Contrato.
-    const locHeader = items.find(i => normalizeReadingPdfText(i.text) === 'localizacion');
-    const medHeader = items.find(i => normalizeReadingPdfText(i.text) === 'medidor');
-    const contractHeader = items.find(i => normalizeReadingPdfText(i.text) === 'contrato');
-
-    if (locHeader && medHeader) {
-      detected = true;
-      const leftBoundary = (locHeader.x + medHeader.x) / 2;
-      const rightBoundary = contractHeader
-        ? (medHeader.x + contractHeader.x) / 2
-        : medHeader.x + 45;
-
-      const locValues = items.filter(i => {
-        const d = digits(i.text);
-        return /^\d{9,10}$/.test(d) &&
-          i.y < locHeader.y - 5 &&
-          i.x < leftBoundary + 12;
-      });
-
-      let pageTableRows = 0;
-      for (const locItem of locValues) {
-        const meter = items
-          .filter(i => {
-            const d = digits(i.text);
-            return /^\d{4,8}$/.test(d) &&
-              Math.abs(i.y - locItem.y) <= 4 &&
-              i.x > leftBoundary &&
-              i.x < rightBoundary + 12;
-          })
-          .sort((a,b) => Math.abs(a.x - medHeader.x) - Math.abs(b.x - medHeader.x))[0];
-
-        if (meter) {
-          add(locItem.text, meter.text);
-          pageTableRows++;
+      // FORMATO LMR0155
+      // Encabezado: Localización | Medidor | Contrato | ...
+      // Fila:       9006021040     1001667   27963728TR ...
+      // Por diseño SOLO tomamos el 1er número como Localización
+      // y el 2do como Medidor. El 3ro (Contrato) se ignora.
+      if (pageHasTableHeader) {
+        match = rowText.match(/^\s*(\d{9,10})\s+(\d{4,8})(?=\s|$)/);
+        if (match) {
+          detected = true;
+          add(match[1], match[2]);
         }
       }
-
-      if (pageTableRows) detected = true;
     }
   }
 
   if (conflicts.length) {
     throw new Error(
-      'Encontré Localizaciones con dos medidores distintos: ' +
+      'Encontré Localizaciones con dos Medidores distintos: ' +
       conflicts.slice(0,6).join(', ')
     );
   }
@@ -368,14 +318,13 @@ function parseReadingPdfExplicitLayout(layoutPages, fullText = '') {
     text.match(/Total\s+Inspecciones\s*:\s*(\d+)/i) ||
     text.match(/Total\s+Medidores\s*:\s*(\d+)/i) ||
     text.match(/Cantidad\s+(?:de\s+)?Medidores?\s*:?\s*(\d+)/i);
-
   const expectedCount = expectedMatch ? Number(expectedMatch[1]) : null;
 
   if (detected && expectedCount && rows.length !== expectedCount) {
     throw new Error(
       'El PDF indica ' + expectedCount +
       ' medidores/inspecciones, pero validé ' + rows.length +
-      '. No lo cargué para evitar asociar un Contrato como Medidor.'
+      '. No cargué nada para evitar mezclar Contrato con Medidor.'
     );
   }
 
@@ -601,7 +550,7 @@ async function handleReadingPdfUpload(event) {
 
     if (statusEl) {
       statusEl.className = 'pdf-status ok';
-      statusEl.innerHTML = '<i class="fa-solid fa-check"></i> ' + merged.length + ' medidores extraídos. Cargando jornada...';
+      statusEl.innerHTML = '<i class="fa-solid fa-check"></i> ' + merged.length + ' Localizaciones + Medidores validados. CONTRATO IGNORADO. Cargando jornada...';
     }
 
     loadNewReadingRoute();
