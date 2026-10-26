@@ -361,14 +361,16 @@ function renderRouteMeta() {
   const title = document.getElementById('routeEngineLabel');
   const sub = document.getElementById('routeEngineSub');
   if (readingRouteMeta && readingRouteMeta.engine === 'osrm-road-network') {
-    title.textContent = 'Ruta vial calculada';
     const km = Number.isFinite(Number(readingRouteMeta.totalMeters))
       ? ` · ~${(Number(readingRouteMeta.totalMeters)/1000).toFixed(1)} km`
       : '';
-    sub.textContent = `Desde tu ubicación${km}`;
+    const crossings = Number(readingRouteMeta.crossings || 0);
+    const delta = Number(readingRouteMeta.roadCostDeltaPct || 0);
+    title.textContent = crossings === 0 ? 'Ruta limpia · sin cruces' : 'Ruta vial calculada';
+    sub.textContent = `Desde tu ubicación${km} · ${crossings} cruces · +${delta.toFixed(1)}% vs mínima distancia`;
   } else {
     title.textContent = 'Secuencia del listado';
-    sub.textContent = 'Tocá “Desde aquí” para ordenarla por calles.';
+    sub.textContent = 'Tocá “Desde aquí” para buscar una ruta continua y sin devolverse.';
   }
 }
 
