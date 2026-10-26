@@ -209,11 +209,34 @@
     setTimeout(()=>{map.invalidateSize({pan:false});renderPoints(true);},220);
   }
 
+  function setMapVisibility(visible){
+    const box=mapBox();
+    if(!box)return;
+    box.style.visibility=visible?'visible':'hidden';
+    box.style.pointerEvents=visible?'auto':'none';
+    if(map){
+      const container=map.getContainer();
+      if(container){
+        container.style.visibility=visible?'visible':'hidden';
+        container.style.pointerEvents=visible?'auto':'none';
+      }
+      if(!visible) map.closePopup();
+    }
+  }
+
   if(typeof window.switchReadingTab==='function'){
     const baseSwitch=window.switchReadingTab;
     window.switchReadingTab=function(tab,btn){
+      if(tab!=='map') setMapVisibility(false);
       baseSwitch(tab,btn);
-      if(tab==='map') setTimeout(init,30);
+      if(tab==='map'){
+        setMapVisibility(true);
+        setTimeout(()=>{
+          init();
+          setMapVisibility(true);
+          if(map) map.invalidateSize({pan:false});
+        },30);
+      }
     };
   }
 
@@ -228,6 +251,7 @@
     };
   }
 
+  setMapVisibility(false);
   window.initReadingLiveMap=init;
   window.addEventListener('pagehide',()=>{
     if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);
