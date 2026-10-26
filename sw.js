@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v39';
+const CACHE_NAME = 'cnfl-campo-v40';
 
 const CORE_ASSETS = [
   './',
@@ -18,6 +18,7 @@ const CORE_ASSETS = [
   './lectura.css',
   './lectura.js',
   './lectura-pdf.js',
+  './lectura-pdf-v3.js',
   './lectura-map.js',
   './lectura-pdf-hotfix.js',
   './lectura-residential-flow.js',
@@ -45,13 +46,13 @@ self.addEventListener('install', event => {
     // una falla aislada no deje toda la app sin modo offline.
     for (const asset of CORE_ASSETS) {
       try { await cache.add(asset); }
-      catch (err) { console.warn('[SW v39] No se pudo precachear', asset, err); }
+      catch (err) { console.warn('[SW v40] No se pudo precachear', asset, err); }
     }
 
     // Dependencias externas son opcionales: no bloquean la instalación.
     for (const asset of OPTIONAL_ASSETS) {
       try { await cache.add(asset); }
-      catch (err) { console.warn('[SW v39] Dependencia externa no disponible', asset); }
+      catch (err) { console.warn('[SW v40] Dependencia externa no disponible', asset); }
     }
 
     await self.skipWaiting();
