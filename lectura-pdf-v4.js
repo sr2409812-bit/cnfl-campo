@@ -583,6 +583,7 @@ async function handleReadingPdfUpload(event) {
            (corrected ? '<p class="review-warning">' + corrected + ' medidor(es) existente(s) cambiarán de número. Revisá los PDFs.</p>' : '') +
            '<div class="review-actions"><button class="btn-primary" type="button" onclick="confirmResidentialPdfImport()">AGREGAR A JORNADA</button>' +
            '<button class="btn-secondary" type="button" onclick="cancelResidentialPdfImport()">CANCELAR</button></div>';
+         review.scrollIntoView({behavior:'smooth',block:'start'});
        }
 
       if (statusEl) {
