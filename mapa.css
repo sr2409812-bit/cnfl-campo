@@ -24,4 +24,20 @@ button,a{font:inherit;-webkit-tap-highlight-color:transparent}
 .empty{background:#fff;border:1px solid var(--line);padding:18px;color:var(--muted);font-size:13px;line-height:1.4}
 .point-popup{min-width:175px;font-family:Arial,Helvetica,sans-serif}.point-popup strong{display:block;color:var(--navy);font-size:14px}.point-popup small{display:block;margin:4px 0 9px;color:var(--muted)}
 .point-popup .actions{display:flex;gap:5px;flex-wrap:wrap}.point-popup a{display:inline-flex;min-height:36px;padding:7px 9px;align-items:center;border-radius:5px;background:var(--blue);color:#fff;text-decoration:none;font-size:11px;font-weight:800}.point-popup a:last-child{background:#E9EFF5;color:var(--navy)}
+.route-stop-icon{background:#fff;border:2px solid #0055B8;border-radius:50%;box-shadow:0 2px 7px #00264d65;text-align:center;color:#00264D;font-weight:900;font-size:12px;line-height:26px}
+.route-stop-icon span{display:block}
+.preview-panel{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px}
+.preview-panel h2{font-size:17px;margin:0 0 5px;color:var(--navy)}
+.preview-panel p{font-size:12px;line-height:1.4;margin:6px 0;color:#46556B}
+.preview-actions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+.preview-actions button,#saveRouteReview{min-height:44px;flex:1;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:7px;padding:7px 11px;font-size:11px;font-weight:900}
+.preview-actions button:disabled{opacity:.45}
+.preview-actions button[aria-pressed="true"]{background:#0B7D55;border-color:#0B7D55}
+#previewFromBase{background:#fff;color:var(--blue)}
+#previewStatus{font-weight:700}
+#previewResult{background:#E8F3FF;border-left:4px solid #0055B8;border-radius:5px;padding:10px;font-size:12px;line-height:1.45;font-weight:800;color:var(--navy)}
+.preview-panel .route-limit{background:#FFF5E6;border-left:4px solid #CA7922;padding:9px;color:#664519}
+#previewReview label{display:block;font-size:12px;font-weight:800;margin:9px 0 5px}
+#routeNote{width:100%;min-height:58px;resize:vertical;border:1px solid #A5B5C7;border-radius:7px;padding:8px;font:13px Arial,Helvetica,sans-serif}
+#saveRouteReview{margin-top:8px;width:100%}
 @media(max-width:390px){.map-toolbar{flex-wrap:wrap}.map-toolbar span{flex-basis:100%}.map-toolbar button{flex:1}}

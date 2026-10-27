@@ -8,7 +8,7 @@
   <title>CNFL Campo · Mapa general</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="mapa.css?v=20261026-map1">
+  <link rel="stylesheet" href="mapa.css?v=20261026-vrs1">
   <link rel="stylesheet" href="campo-shell.css?v=20261026-navfix2">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="notification-stops.js?v=20261026-map1"></script>
@@ -23,11 +23,26 @@
     </div>
     <div class="map-toolbar"><span id="mapCount" role="status">Cargando puntos…</span><button id="fitPoints" type="button">VER PUNTOS</button><button id="centerMe" type="button">MI UBICACIÓN</button></div>
     <div id="fieldMap" aria-label="Mapa de trabajos de campo"></div>
-    <div class="map-note">El mapa de calles requiere Internet. El progreso de cada módulo sigue guardado en este dispositivo.</div>
+    <section class="preview-panel" aria-labelledby="previewTitle">
+      <h2 id="previewTitle">Ruta sugerida</h2>
+      <p>Calculá una vista previa de los trabajos pendientes del filtro actual. Las coordenadas se envían al servicio vial externo OSRM para trazarla.</p>
+      <div class="preview-actions"><button id="previewFromMe" type="button">DESDE MI UBICACIÓN</button><button id="previewFromBase" type="button">DESDE LA BASE</button></div>
+      <p id="previewStatus" role="status" aria-live="polite">Todavía no hay ruta trazada.</p>
+      <div id="previewResult" hidden></div>
+      <div id="previewReview" hidden>
+        <p class="route-limit">Evita autopistas cuando el motor vial admite ese filtro. No verifica vías trunk, límites de 60 km/h, cruces sin regulación ni condiciones actuales de tránsito. Revisá el trazado antes de circular.</p>
+        <div class="preview-actions"><button id="routeUseful" type="button">ME SIRVE</button><button id="routeAdjust" type="button">NECESITA AJUSTES</button></div>
+        <label for="routeNote">Observación del técnico (opcional)</label><textarea id="routeNote" rows="2" placeholder="Ej.: evitar cruce frente a…"></textarea>
+        <button id="saveRouteReview" type="button">GUARDAR EVALUACIÓN</button>
+        <p id="reviewStatus" role="status"></p>
+      </div>
+    </section>
+    <div class="map-note">El mapa y la ruta requieren Internet. Las gestiones permanecen guardadas en este dispositivo.</div>
     <div class="list-head"><h2>Puntos de trabajo</h2><button id="pendingOnly" type="button" aria-pressed="false">SOLO PENDIENTES</button></div>
     <div id="mapList" class="map-list"></div>
   </main>
-  <script src="mapa.js?v=20261026-map1"></script>
+  <script src="route-preview.js?v=20261026-vrs1"></script>
+  <script src="mapa.js?v=20261026-vrs1"></script>
   <script src="campo-shell.js?v=20261026-map1"></script>
 </body>
 </html>
