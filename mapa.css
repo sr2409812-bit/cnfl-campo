@@ -35,6 +35,8 @@ button,a{font:inherit;-webkit-tap-highlight-color:transparent}
 .preview-actions button[aria-pressed="true"]{background:#0B7D55;border-color:#0B7D55}
 #previewFromBase{background:#fff;color:var(--blue)}
 #previewStatus{font-weight:700}
+#previewUnfiltered{display:block;width:100%;min-height:44px;margin:8px 0;border:1px solid #B45309;border-radius:7px;background:#FFF5E6;color:#75430C;font-size:11px;font-weight:900}
+#previewUnfiltered[hidden]{display:none}
 #previewResult{background:#E8F3FF;border-left:4px solid #0055B8;border-radius:5px;padding:10px;font-size:12px;line-height:1.45;font-weight:800;color:var(--navy)}
 .preview-panel .route-limit{background:#FFF5E6;border-left:4px solid #CA7922;padding:9px;color:#664519}
 #previewReview label{display:block;font-size:12px;font-weight:800;margin:9px 0 5px}
