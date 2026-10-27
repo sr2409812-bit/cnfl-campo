@@ -8,7 +8,7 @@
   <title>CNFL Campo · Mapa general</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="mapa.css?v=20261026-vrs1">
+  <link rel="stylesheet" href="mapa.css?v=20261027-vrs2">
   <link rel="stylesheet" href="campo-shell.css?v=20261026-navfix2">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="notification-stops.js?v=20261026-map1"></script>
@@ -28,9 +28,10 @@
       <p>Calculá una vista previa de los trabajos pendientes del filtro actual. Las coordenadas se envían al servicio vial externo OSRM para trazarla.</p>
       <div class="preview-actions"><button id="previewFromMe" type="button">DESDE MI UBICACIÓN</button><button id="previewFromBase" type="button">DESDE LA BASE</button></div>
       <p id="previewStatus" role="status" aria-live="polite">Todavía no hay ruta trazada.</p>
+      <button id="previewUnfiltered" type="button" hidden>VER BORRADOR SIN FILTRO VIAL</button>
       <div id="previewResult" hidden></div>
       <div id="previewReview" hidden>
-        <p class="route-limit">Evita autopistas cuando el motor vial admite ese filtro. No verifica vías trunk, límites de 60 km/h, cruces sin regulación ni condiciones actuales de tránsito. Revisá el trazado antes de circular.</p>
+        <p class="route-limit" id="routeLimit">Evita autopistas cuando el motor vial admite ese filtro. No verifica vías trunk, límites de 60 km/h, cruces sin regulación ni condiciones actuales de tránsito. Revisá el trazado antes de circular.</p>
         <div class="preview-actions"><button id="routeUseful" type="button">ME SIRVE</button><button id="routeAdjust" type="button">NECESITA AJUSTES</button></div>
         <label for="routeNote">Observación del técnico (opcional)</label><textarea id="routeNote" rows="2" placeholder="Ej.: evitar cruce frente a…"></textarea>
         <button id="saveRouteReview" type="button">GUARDAR EVALUACIÓN</button>
@@ -41,8 +42,8 @@
     <div class="list-head"><h2>Puntos de trabajo</h2><button id="pendingOnly" type="button" aria-pressed="false">SOLO PENDIENTES</button></div>
     <div id="mapList" class="map-list"></div>
   </main>
-  <script src="route-preview.js?v=20261026-vrs1"></script>
-  <script src="mapa.js?v=20261026-vrs1"></script>
+  <script src="route-preview.js?v=20261027-vrs2"></script>
+  <script src="mapa.js?v=20261027-vrs2"></script>
   <script src="campo-shell.js?v=20261026-map1"></script>
 </body>
 </html>

@@ -4,13 +4,14 @@
   const params=new URLSearchParams(location.search);
   let type=Object.hasOwn(names,params.get('tipo')) ? params.get('tipo') : 'todos';
   let pendingOnly=false, map=null, layer=null, myLayer=null, routeLayer=null, shown=[];
-  let preview=null, generation=0, reviewChoice='';
+  let preview=null, generation=0, reviewChoice='', retryDraft=null;
   const box=document.getElementById('fieldMap');
   const list=document.getElementById('mapList');
   const count=document.getElementById('mapCount');
   const previewStatus=document.getElementById('previewStatus');
   const previewResult=document.getElementById('previewResult');
   const previewReview=document.getElementById('previewReview');
+  const fallbackButton=document.getElementById('previewUnfiltered');
   function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function visibleRows(){return window.CNFLFieldMapData.collect().filter(o=>(type==='todos'||o.type===type)&&(!pendingOnly||!o.done));}
   function popup(o){
@@ -56,7 +57,7 @@
       routeLayer=null;
       if(preview){
         routeLayer=L.layerGroup().addTo(map);
-        preview.segments.forEach(segment=>L.polyline(segment,{color:'#0055B8',weight:6,opacity:.85,lineJoin:'round'}).addTo(routeLayer));
+        preview.segments.forEach(segment=>L.polyline(segment,{color:preview.unfiltered?'#B45309':'#0055B8',weight:6,opacity:.85,lineJoin:'round',dashArray:preview.unfiltered?'9 7':null}).addTo(routeLayer));
         L.circleMarker([preview.start.lat,preview.start.lon],{radius:9,color:'#fff',weight:2,fillColor:'#0A9F6C',fillOpacity:1})
           .bindPopup('Salida de la ruta sugerida').addTo(routeLayer);
         routeLayer.eachLayer(item=>{if(item.bringToBack)item.bringToBack();});
@@ -86,7 +87,7 @@
     if(rows.length>100){const note=document.createElement('div');note.className='empty';note.textContent='Mostrando 100 de '+rows.length+'. Elegí un tipo para reducir la lista.';list.append(note);}
   }
   function clearPreview(){
-    generation++;preview=null;reviewChoice='';
+    generation++;preview=null;reviewChoice='';retryDraft=null;fallbackButton.hidden=true;
     previewResult.hidden=true;previewReview.hidden=true;
     previewStatus.textContent='El filtro o los trabajos cambiaron. Calculá otra ruta para ver el trazado actualizado.';
     render();
@@ -107,29 +108,33 @@
     return {lat:9.91154,lon:-84.07826,name:'La Guaca · San Sebastián'};
   }
   function reviewKey(result){
-    return JSON.stringify([type,result.start.lat.toFixed(5),result.start.lon.toFixed(5),result.ordered.map(s=>s.jobs.map(j=>j.type+':'+j.loc).sort())]);
+    return JSON.stringify([type,result.unfiltered,result.start.lat.toFixed(5),result.start.lon.toFixed(5),result.ordered.map(s=>s.jobs.map(j=>j.type+':'+j.loc).sort())]);
   }
-  async function calculatePreview(useLocation){
+  async function calculatePreview(useLocation,previousStart=null,unfiltered=false){
     if(!map){previewStatus.textContent='El mapa de calles no está disponible. Conectate a Internet y actualizá.';return;}
     const token=++generation;
-    preview=null;reviewChoice='';previewResult.hidden=true;previewReview.hidden=true;
+    preview=null;reviewChoice='';retryDraft=null;fallbackButton.hidden=true;previewResult.hidden=true;previewReview.hidden=true;
     render();
     const rows=visibleRows();
     const {stops,missing}=window.CNFLRoutePreview.prepare(rows);
     if(!stops.length){previewStatus.textContent='No hay pendientes con GPS en este filtro. Revisá las localizaciones.';return;}
     const buttons=[document.getElementById('previewFromMe'),document.getElementById('previewFromBase')];
     buttons.forEach(b=>b.disabled=true);
-    previewStatus.textContent=useLocation?'Obteniendo tu ubicación…':'Calculando desde la base…';
+    previewStatus.textContent=unfiltered?'Calculando borrador sin filtro vial…':useLocation?'Obteniendo tu ubicación…':'Calculando desde la base…';
+    let start=null;
     try{
-      const start=useLocation?await fromBrowser():fromBase();
+      start=previousStart||(useLocation?await fromBrowser():fromBase());
       if(token!==generation)return;
-      const result=await window.CNFLRoutePreview.calculate(stops,start,fetch,message=>{if(token===generation)previewStatus.textContent=message;});
+      const result=await window.CNFLRoutePreview.calculate(stops,start,fetch,message=>{if(token===generation)previewStatus.textContent=message;},{unfiltered});
       if(token!==generation)return;
       preview=result;
       const jobs=result.ordered.reduce((sum,s)=>sum+s.jobs.length,0);
       const skipped=missing.length?' · '+missing.length+' sin GPS fuera del trazado':'';
-      previewStatus.textContent='Vista previa calculada. Revisá las calles antes de usarla.';
-      previewResult.textContent=result.ordered.length+' paradas · '+jobs+' trabajos · '+(result.meters/1000).toFixed(1)+' km · '+Math.round(result.seconds/60)+' min de recorrido estimado'+skipped+'. Inicio: '+(start.name||'mi ubicación')+'.';
+      previewStatus.textContent=unfiltered?'Borrador sin filtro vial. Revisá cada tramo; puede incluir autopistas.':'Vista previa calculada. Revisá las calles antes de usarla.';
+      previewResult.textContent=(unfiltered?'BORRADOR SIN FILTRO · ':'')+result.ordered.length+' paradas · '+jobs+' trabajos · '+(result.meters/1000).toFixed(1)+' km · '+Math.round(result.seconds/60)+' min de recorrido estimado'+skipped+'. Inicio: '+(start.name||'mi ubicación')+'.';
+      document.getElementById('routeLimit').textContent=unfiltered?
+        'Sin filtro vial: el trazado puede incluir autopistas, vías rápidas y cruces que el técnico considere inseguros. Es solo un borrador para evaluación manual; no es una ruta segura verificada.':
+        'Evita autopistas si el motor vial admite ese filtro. No verifica vías trunk, límites de 60 km/h, cruces sin regulación ni condiciones actuales de tránsito. Revisá el trazado antes de circular.';
       previewResult.hidden=false;previewReview.hidden=false;
       document.getElementById('reviewStatus').textContent='';
       document.getElementById('routeNote').value='';
@@ -140,7 +145,15 @@
       }catch(_){}
       render();
     }catch(error){
-      if(token===generation){previewStatus.textContent=error.message||'No se pudo calcular la ruta.';render();}
+      if(token===generation){
+        if(error.code==='FILTER_UNAVAILABLE'&&!unfiltered){
+          // Conservar solo en memoria el punto de salida de este intento.
+          retryDraft=start;
+          fallbackButton.hidden=!retryDraft;
+          previewStatus.textContent='Este servicio vial no admite evitar autopistas. La ruta segura no se calculó. Podés ver un borrador sin ese filtro para revisarlo manualmente.';
+        }else previewStatus.textContent=error.message||'No se pudo calcular la ruta.';
+        render();
+      }
     }finally{buttons.forEach(b=>b.disabled=false);}
   }
   if(typeof L==='undefined') box.innerHTML='<div class="empty">No cargó el mapa de calles. Conectate a Internet y actualizá. La lista de trabajos sigue disponible.</div>';
@@ -153,6 +166,7 @@
   document.getElementById('fitPoints').onclick=fit;
   document.getElementById('previewFromMe').onclick=()=>calculatePreview(true);
   document.getElementById('previewFromBase').onclick=()=>calculatePreview(false);
+  fallbackButton.onclick=()=>{if(retryDraft) calculatePreview(false,retryDraft,true);};
   document.getElementById('routeUseful').onclick=()=>selectReview('useful');
   document.getElementById('routeAdjust').onclick=()=>selectReview('adjust');
   function selectReview(choice){
