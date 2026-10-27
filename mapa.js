@@ -49,7 +49,8 @@
       grouped.forEach(group=>{
         const first=group[0], color=group.length>1?'#00264D':colors[first.type];
         const number=group.map(o=>order.get(o.type+':'+o.loc)).find(Boolean);
-        const marker=number ? L.marker([first.lat,first.lon],{icon:L.divIcon({className:'route-stop-icon',html:'<span>'+number+'</span>',iconSize:[30,30],iconAnchor:[15,15]})}) :
+        const compact=preview&&preview.ordered.length>40, diameter=compact?24:30;
+        const marker=number ? L.marker([first.lat,first.lon],{icon:L.divIcon({className:'route-stop-icon'+(compact?' dense':''),html:'<span>'+number+'</span>',iconSize:[diameter,diameter],iconAnchor:[diameter/2,diameter/2]})}) :
           L.circleMarker([first.lat,first.lon],{radius:group.length>1?11:9,color:'#fff',weight:2,fillColor:color,fillOpacity:group.every(x=>x.done)?.55:.95});
         marker.bindPopup(group.map(popup).join('<hr>'),{maxWidth:270}).addTo(layer);
       });
@@ -131,7 +132,10 @@
       const jobs=result.ordered.reduce((sum,s)=>sum+s.jobs.length,0);
       const skipped=missing.length?' · '+missing.length+' sin GPS fuera del trazado':'';
       previewStatus.textContent=unfiltered?'Borrador sin filtro vial. Revisá cada tramo; puede incluir autopistas.':'Vista previa calculada. Revisá las calles antes de usarla.';
-      previewResult.textContent=(unfiltered?'BORRADOR SIN FILTRO · ':'')+result.ordered.length+' paradas · '+jobs+' trabajos · '+(result.meters/1000).toFixed(1)+' km · '+Math.round(result.seconds/60)+' min de recorrido estimado'+skipped+'. Inicio: '+(start.name||'mi ubicación')+'.';
+      const longLegs=result.legMeters.map((meters,index)=>({meters,index})).filter(leg=>leg.meters>=1500)
+        .sort((a,b)=>b.meters-a.meters).slice(0,3);
+      previewResult.textContent=(unfiltered?'BORRADOR SIN FILTRO · ':'')+result.ordered.length+' paradas · '+jobs+' trabajos · '+(result.meters/1000).toFixed(1)+' km · '+Math.round(result.seconds/60)+' min de recorrido estimado'+skipped+'. Inicio: '+(start.name||'mi ubicación')+'. Orden comparado entre todas las paradas.'+
+        (longLegs.length?' Tramos largos para revisar: '+longLegs.map(leg=>(leg.index===0?'salida':leg.index)+'→'+(leg.index+1)+' ('+(leg.meters/1000).toFixed(1)+' km)').join(', ')+'.':'');
       document.getElementById('routeLimit').textContent=unfiltered?
         'Sin filtro vial: el trazado puede incluir autopistas, vías rápidas y cruces que el técnico considere inseguros. Es solo un borrador para evaluación manual; no es una ruta segura verificada.':
         'Evita autopistas si el motor vial admite ese filtro. No verifica vías trunk, límites de 60 km/h, cruces sin regulación ni condiciones actuales de tránsito. Revisá el trazado antes de circular.';

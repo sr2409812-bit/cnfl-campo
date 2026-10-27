@@ -12,10 +12,13 @@ function responder(log, failure=false,unfiltered=false){
     const waypoints=points.map(p=>({distance:0,location:p}));
     if(parsed.pathname.includes('/table/')){
       assert.equal(parsed.searchParams.get('annotations'),'duration');
-      return {ok:true,json:async()=>({code:'Ok',sources:points.map(p=>({location:p})),
-        durations:points.map(a=>points.map(b=>Math.round(Math.hypot(a[0]-b[0],a[1]-b[1])*100000)))})};
+      const indices=Array.from({length:points.length},(_,i)=>i);
+      const src=parsed.searchParams.has('sources')?parsed.searchParams.get('sources').split(';').map(Number):indices;
+      const dst=parsed.searchParams.has('destinations')?parsed.searchParams.get('destinations').split(';').map(Number):indices;
+      return {ok:true,json:async()=>({code:'Ok',sources:src.map(i=>({location:points[i]})),destinations:dst.map(i=>({location:points[i]})),
+        durations:src.map(i=>dst.map(j=>Math.round(Math.hypot(points[i][0]-points[j][0],points[i][1]-points[j][1])*100000)))})};
     }
-    return {ok:true,json:async()=>({code:'Ok',waypoints,routes:[{geometry:{coordinates:points},distance:1234,duration:321}]})};
+    return {ok:true,json:async()=>({code:'Ok',waypoints,routes:[{geometry:{coordinates:points},legs:points.slice(1).map(()=>({distance:123})),distance:1234,duration:321}]})};
   };
 }
 
@@ -32,17 +35,36 @@ test('agrupa trabajos en una parada y omite GPS faltante o conflictivo',()=>{
   assert.equal(result.missing.length,1);
 });
 
-test('ordena y dibuja en bloques usando exclusión de autopistas en todas las consultas',async()=>{
+test('el costo incorpora cercanía sin inventar conexiones viales',()=>{
+  const points=[{lat:9.9,lon:-84.1},{lat:9.91,lon:-84.1},{lat:9.92,lon:-84.1}];
+  const costs=preview.weightedCosts([[0,60,60],[60,0,null],[60,60,0]],points);
+  assert.ok(costs[0][2]>costs[0][1]);
+  assert.equal(costs[1][2],Infinity);
+});
+
+test('compara globalmente la jornada y dibuja la geometría en tramos',async()=>{
   const log=[];
-  const stops=Array.from({length:27},(_,i)=>({lat:9.9+i*.001,lon:-84.1,jobs:[{type:'cortes',loc:String(i)}]}));
+  const stops=Array.from({length:61},(_,i)=>({lat:9.9+i*.001,lon:-84.1,jobs:[{type:'cortes',loc:String(i)}]}));
   const result=await preview.calculate(stops,{lat:9.899,lon:-84.1},responder(log));
-  assert.equal(result.ordered.length,27);
-  assert.equal(new Set(result.ordered).size,27);
-  assert.equal(result.segments.length,3);
-  assert.equal(log.filter(url=>url.pathname.includes('/table/')).length,2);
-  assert.equal(log.filter(url=>url.pathname.includes('/route/')).length,3);
-  assert.ok(log.every(url=>url.pathname.split('/').pop().split(';').length<=25));
-  assert.equal(result.meters,3702);
+  assert.equal(result.ordered.length,61);
+  assert.equal(new Set(result.ordered).size,61);
+  assert.equal(result.segments.length,6);
+  assert.equal(result.legMeters.length,61);
+  assert.equal(log.filter(url=>url.pathname.includes('/table/')).length,1);
+  assert.equal(log.filter(url=>url.pathname.includes('/route/')).length,6);
+  assert.equal(log.find(url=>url.pathname.includes('/table/')).pathname.split('/').pop().split(';').length,62);
+  assert.equal(result.meters,7404);
+});
+
+test('más de 99 paradas completan pares dirigidos antes de ordenar',async()=>{
+  const log=[];
+  const stops=Array.from({length:100},(_,i)=>({lat:9.9+i*.0001,lon:-84.1+(i%10)*.0001,jobs:[]}));
+  const result=await preview.calculate(stops,{lat:9.89,lon:-84.1},responder(log));
+  const matrices=log.filter(url=>url.pathname.includes('/table/'));
+  assert.equal(matrices.length,9);
+  assert.ok(matrices.every(url=>url.pathname.split('/').pop().split(';').length<=100));
+  assert.equal(result.ordered.length,100);
+  assert.equal(new Set(result.ordered).size,100);
 });
 
 test('si el motor no admite exclusión vial, no devuelve una ruta sin restricciones',async()=>{
@@ -63,7 +85,7 @@ test('descarta paradas con ajuste a la calle mayor de 100 m',async()=>{
   let calls=0;
   const fetcher=async()=>{
     calls++;
-    if(calls===1) return {ok:true,json:async()=>({code:'Ok',sources:[{location:[-84.11,9.91]},{location:[-84.1,9.9]}],durations:[[0,10],[10,0]]})};
+    if(calls===1) return {ok:true,json:async()=>({code:'Ok',sources:[{location:[-84.11,9.91]},{location:[-84.1,9.9]}],destinations:[{location:[-84.11,9.91]},{location:[-84.1,9.9]}],durations:[[0,10],[10,0]]})};
     return {ok:true,json:async()=>({code:'Ok',waypoints:[{location:[-84.11,9.91],distance:0},{location:[-84.1,9.9],distance:145}],routes:[]})};
   };
   await assert.rejects(preview.calculate([{lat:9.9,lon:-84.1,jobs:[]}],{lat:9.91,lon:-84.11},fetcher),/más de 100 m/);

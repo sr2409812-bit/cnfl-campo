@@ -26,6 +26,7 @@ button,a{font:inherit;-webkit-tap-highlight-color:transparent}
 .point-popup .actions{display:flex;gap:5px;flex-wrap:wrap}.point-popup a{display:inline-flex;min-height:36px;padding:7px 9px;align-items:center;border-radius:5px;background:var(--blue);color:#fff;text-decoration:none;font-size:11px;font-weight:800}.point-popup a:last-child{background:#E9EFF5;color:var(--navy)}
 .route-stop-icon{background:#fff;border:2px solid #0055B8;border-radius:50%;box-shadow:0 2px 7px #00264d65;text-align:center;color:#00264D;font-weight:900;font-size:12px;line-height:26px}
 .route-stop-icon span{display:block}
+.route-stop-icon.dense{font-size:10px;line-height:20px}
 .preview-panel{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px}
 .preview-panel h2{font-size:17px;margin:0 0 5px;color:var(--navy)}
 .preview-panel p{font-size:12px;line-height:1.4;margin:6px 0;color:#46556B}
