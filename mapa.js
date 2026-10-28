@@ -27,7 +27,7 @@
   function persistManual(){try{localStorage.setItem('cnfl_manual_route_v1',JSON.stringify(manualKeys));}catch(_){manualStatus.textContent='No se pudo guardar la ruta en este teléfono.';}}
   function syncManual(){const rows=new Set(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(key));const clean=[...new Set(manualKeys)].filter(k=>rows.has(k)).slice(0,120);if(clean.length!==manualKeys.length){manualKeys=clean;manualTrace=null;persistManual();}}
   function changeManual(next){manualKeys=next;manualTrace=null;manualDraft=false;manualToken++;document.getElementById('manualUnfiltered').hidden=true;persistManual();if(preview) clearPreview();else render();}
-  function addManual(o){if(o.done)return;if(manualKeys.includes(key(o))){manualStatus.textContent='Esta parada ya está en tu ruta.';return;}if(manualKeys.length>=120){manualStatus.textContent='La ruta admite hasta 120 paradas.';return;}changeManual([...manualKeys,key(o)]);}
+  function addManual(o){if(o.done||manualKeys.includes(key(o)))return;if(manualKeys.length>=120){manualStatus.textContent='La ruta admite hasta 120 paradas.';return;}changeManual([...manualKeys,key(o)]);}
   function focusJob(o){selectedKey=key(o);renderSelection();if(map&&o.lat!==null)map.setView([o.lat,o.lon],Math.max(map.getZoom(),16));}
   function renderSelection(){
     const all=visibleRows(),o=all.find(row=>key(row)===selectedKey);
