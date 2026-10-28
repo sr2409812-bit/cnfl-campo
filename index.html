@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CNFL — Terminal de Operaciones en Campo</title>
-  <link rel="stylesheet" href="style.css?v=20261028-reopen1" />
+  <link rel="stylesheet" href="style.css?v=20261028-map-bridge1" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <meta name="theme-color" content="#001D40" />
   <link rel="manifest" href="manifest.json" />
@@ -53,6 +53,7 @@
           <div class="route-info-sub" id="routeDistanceSubtitle">Motor vial V6 · pendientes por calles desde tu ubicación</div>
         </div>
         <button class="btn-reorder" onclick="optimizePendingFromCurrentLocation()" title="Recalcular solo pendientes desde donde estoy"><i class="fa-solid fa-location-crosshairs"></i> Recalcular desde aquí</button>
+        <button class="btn-map-open" type="button" onclick="openCutsMap()"><i class="fa-solid fa-map-location-dot"></i> Armar en el mapa</button>
       </div>
 
       <div class="segmented-control">
@@ -158,12 +159,17 @@
     <button class="nav-tab-btn" onclick="switchTab('cargar', this)"><i class="fa-solid fa-upload"></i><span>Cargar</span></button>
     <button class="nav-tab-btn" onclick="switchTab('resumen', this)"><i class="fa-solid fa-file-lines"></i><span>Liquidación</span></button>
     <button class="nav-tab-btn" onclick="switchTab('historial', this)"><i class="fa-solid fa-clock-rotate-left"></i><span>Memoria</span></button>
-    <a class="nav-tab-btn" href="mapa.html?tipo=cortes"><i class="fa-solid fa-map-location-dot"></i><span>Mapa</span></a>
+    <button class="nav-tab-btn" type="button" onclick="openCutsMap()"><i class="fa-solid fa-map-location-dot"></i><span>Mapa</span></button>
   </nav>
 
   <div class="toast-msg" id="mobileToast"></div>
+  <div id="cutsMapOverlay" class="cuts-map-overlay" hidden>
+    <div class="cuts-map-top"><strong>MAPA DE CORTES</strong><button id="closeCutsMap" type="button" onclick="closeCutsMap()">VOLVER A CORTES</button></div>
+    <iframe id="cutsMapFrame" title="Mapa de cortes y ruta manual"></iframe>
+  </div>
 
-  <script src="app.js?v=20261026-hoy1"></script>
+  <script src="cuts-manual-order.js?v=20261028-map-bridge1"></script>
+  <script src="app.js?v=20261028-map-bridge1"></script>
   <script src="telegram-fix.js?v=20261001-1"></script>
   <script src="route-optimizer.js?v=20261019-6"></script>
   <script src="campo-shell.js?v=20261026-navfix2"></script>

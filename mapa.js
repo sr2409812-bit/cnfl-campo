@@ -2,11 +2,13 @@
   const names={cortes:'Cortes',demanda:'Demanda',residencial:'Residencial',notificaciones:'Notificaciones'};
   const colors={cortes:'#F26C21',demanda:'#2257B8',residencial:'#8754C9',notificaciones:'#C43867'};
   const params=new URLSearchParams(location.search);
+  const embedded=params.get('embedded')==='1'&&window.parent!==window;
+  if(embedded)document.body.classList.add('embedded-map');
   let type=Object.hasOwn(names,params.get('tipo')) ? params.get('tipo') : 'todos';
   let pendingOnly=false, map=null, layer=null, myLayer=null, routeLayer=null, shown=[];
   let preview=null, generation=0, reviewChoice='', retryDraft=null;
   let manualKeys=[];try{const saved=JSON.parse(localStorage.getItem('cnfl_manual_route_v1')||'[]');if(Array.isArray(saved))manualKeys=saved.filter(k=>typeof k==='string').slice(0,120);}catch(_){}
-  let manualTrace=null,manualToken=0,manualDraft=false,selectedKey=null,routeMode=false;
+  let manualTrace=null,manualToken=0,manualDraft=false,selectedKey=null,clusterKeys=null,routeMode=false;
   const box=document.getElementById('fieldMap');
   const list=document.getElementById('mapList');
   const count=document.getElementById('mapCount');
@@ -28,8 +30,27 @@
   function syncManual(){const rows=new Set(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(key));const clean=[...new Set(manualKeys)].filter(k=>rows.has(k)).slice(0,120);if(clean.length!==manualKeys.length){manualKeys=clean;manualTrace=null;persistManual();}}
   function changeManual(next){manualKeys=next;manualTrace=null;manualDraft=false;manualToken++;document.getElementById('manualUnfiltered').hidden=true;persistManual();if(preview) clearPreview();else render();}
   function addManual(o){if(o.done||manualKeys.includes(key(o)))return;if(manualKeys.length>=120){manualStatus.textContent='La ruta admite hasta 120 paradas.';return;}changeManual([...manualKeys,key(o)]);}
-  function focusJob(o){selectedKey=key(o);renderSelection();if(map&&o.lat!==null)map.setView([o.lat,o.lon],Math.max(map.getZoom(),16));}
+  function focusJob(o){clusterKeys=null;selectedKey=key(o);renderSelection();if(map&&o.lat!==null)map.setView([o.lat,o.lon],Math.max(map.getZoom(),16));}
+  function renderCluster(){
+    const rows=visibleRows().filter(o=>clusterKeys.includes(key(o)));
+    if(!rows.length){clusterKeys=null;selectedPanel.hidden=true;return;}
+    selectedPanel.hidden=false;
+    selectedPanel.innerHTML='<div class="sheet-header"><div><h2>'+rows.length+' puntos muy cercanos</h2><p>'+(routeMode?'Elegí cuál agregar a la ruta':'Elegí la orden que querés revisar')+'</p></div><button id="closeSelected" type="button" aria-label="Cerrar lista">×</button></div><div id="clusterChoices" class="cluster-choices"></div>';
+    document.getElementById('closeSelected').onclick=()=>{clusterKeys=null;selectedPanel.hidden=true;};
+    const choices=document.getElementById('clusterChoices');
+    rows.forEach(o=>{
+      const b=document.createElement('button');b.type='button';b.className='cluster-choice';
+      const position=manualKeys.indexOf(key(o));
+      b.textContent=(position>=0?'#'+(position+1)+' · ':'')+o.label+' · '+o.loc+(o.done?' · HECHO':position>=0?' · EN RUTA':' · PENDIENTE');
+      b.onclick=()=>{
+        if(routeMode&&!o.done&&position<0){addManual(o);return;}
+        focusJob(o);
+      };
+      choices.append(b);
+    });
+  }
   function renderSelection(){
+    if(clusterKeys){renderCluster();return;}
     const all=visibleRows(),o=all.find(row=>key(row)===selectedKey);
     if(!o){selectedPanel.hidden=true;return;}
     selectedPanel.hidden=false;
@@ -44,6 +65,9 @@
       (o.type==='cortes'?'<details class="quick-status"><summary>CAMBIAR ESTADO DE ESTA ORDEN</summary><div class="quick-grid">'+[['cortado','Cortado'],['avisado','Avisado'],['reconectado','Reconectado'],['pago','Pagó sitio'],['no_acceso','Sin acceso'],['ya_cortado','Ya cortado'],['directo','Directo'],['pending','Devolver a pendiente']].map(([value,label])=>'<button type="button" data-status="'+value+'" '+((o.done?value==='pending':value!=='pending')?'':'disabled')+'>'+label+'</button>').join('')+'</div></details>':'');
     document.getElementById('closeSelected').onclick=()=>{selectedKey=null;selectedPanel.hidden=true;};
     document.getElementById('addSelected').onclick=()=>addManual(o);
+    if(embedded&&o.type==='cortes')document.querySelector('.selected-actions a').onclick=event=>{
+      event.preventDefault();window.parent.postMessage({kind:'cnfl:open-cut',loc:o.loc},location.origin);
+    };
     selectedPanel.querySelectorAll('[data-status]').forEach(button=>button.onclick=()=>{
       if(!window.CNFLFieldMapData.setCutStatus(o.loc,o.orderId,button.dataset.status)){manualStatus.textContent='No pude actualizar la orden. Revisá el almacenamiento del teléfono.';return;}
       if(preview)clearPreview();else render();
@@ -94,20 +118,22 @@
     if(map){
       if(layer) layer.remove();
       layer=L.layerGroup().addTo(map);
-      // Puntos compartidos por varios trabajos se abren juntos.
-      const grouped=new Map();
-      plotted.forEach(o=>{
-        const key=o.lat.toFixed(6)+','+o.lon.toFixed(6);
-        if(!grouped.has(key)) grouped.set(key,[]);
-        grouped.get(key).push(o);
-      });
-      grouped.forEach(group=>{
-        const first=group.find(o=>key(o)===selectedKey)||group.find(o=>!o.done)||group[0], color=group.length>1?'#00264D':colors[first.type];
-        const number=group.map(o=>order.get(key(o))).find(Boolean);
+      // Agrupación por píxeles: incluso coordenadas distintas pueden taparse en celular.
+      const groups=window.CNFLMapClusters.group(plotted,o=>map.project([o.lat,o.lon],map.getZoom()),40);
+      groups.forEach(group=>{
+        if(group.length>1){
+          const lat=group.reduce((sum,o)=>sum+o.lat,0)/group.length;
+          const lon=group.reduce((sum,o)=>sum+o.lon,0)/group.length;
+          L.marker([lat,lon],{icon:L.divIcon({className:'cluster-icon',html:'<span>'+group.length+'</span>',iconSize:[36,36],iconAnchor:[18,18]})})
+            .on('click',()=>{clusterKeys=group.map(key);selectedKey=null;renderSelection();}).addTo(layer);
+          return;
+        }
+        const first=group[0],color=colors[first.type];
+        const number=order.get(key(first));
         const compact=(preview?preview.ordered.length:manualKeys.length)>40, diameter=compact?24:30;
         const marker=number ? L.marker([first.lat,first.lon],{icon:L.divIcon({className:'route-stop-icon'+(compact?' dense':''),html:'<span>'+number+'</span>',iconSize:[diameter,diameter],iconAnchor:[diameter/2,diameter/2]})}) :
-          L.circleMarker([first.lat,first.lon],{radius:group.length>1?11:9,color:'#fff',weight:2,fillColor:color,fillOpacity:group.every(x=>x.done)?.55:.95});
-        marker.on('click',()=>{selectedKey=key(first);if(routeMode)addManual(first);renderSelection();}).addTo(layer);
+          L.circleMarker([first.lat,first.lon],{radius:9,color:'#fff',weight:2,fillColor:color,fillOpacity:first.done?.55:.95});
+        marker.on('click',()=>{clusterKeys=null;selectedKey=key(first);if(routeMode)addManual(first);renderSelection();}).addTo(layer);
       });
       if(routeLayer) routeLayer.remove();
       routeLayer=null;
@@ -238,13 +264,14 @@
   else{
     map=L.map(box,{zoomControl:true,preferCanvas:true}).setView([9.93,-84.08],12);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
-    map.on('click',()=>{selectedKey=null;selectedPanel.hidden=true;});
+    map.on('click',()=>{selectedKey=null;clusterKeys=null;selectedPanel.hidden=true;});
+    map.on('zoomend',()=>render());
   }
   document.getElementById('mapFilters').onclick=e=>{const b=e.target.closest('button[data-type]');if(b){type=b.dataset.type;clearPreview();fit();}};
   document.getElementById('pendingOnly').onclick=()=>{pendingOnly=!pendingOnly;clearPreview();fit();};
   document.getElementById('fitPoints').onclick=fit;
-  routeModeButton.onclick=()=>{routeMode=!routeMode;selectedKey=null;selectedPanel.hidden=true;renderManual();};
-  routeOverview.onclick=()=>{selectedKey=null;selectedPanel.hidden=true;manualPanel.open=true;manualPanel.scrollIntoView({behavior:'smooth',block:'start'});};
+  routeModeButton.onclick=()=>{routeMode=!routeMode;selectedKey=null;clusterKeys=null;selectedPanel.hidden=true;renderManual();};
+  routeOverview.onclick=()=>{selectedKey=null;clusterKeys=null;selectedPanel.hidden=true;manualPanel.open=true;manualPanel.scrollIntoView({behavior:'smooth',block:'start'});};
   document.getElementById('traceManual').onclick=()=>traceManual(false);
   document.getElementById('manualUnfiltered').onclick=()=>{if(manualDraft)traceManual(true);};
   document.getElementById('showManual').onclick=()=>{if(preview)clearPreview();};

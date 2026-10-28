@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v52';
+const CACHE_NAME = 'cnfl-campo-v53';
 
 const CORE_ASSETS = [
   './',
@@ -10,6 +10,7 @@ const CORE_ASSETS = [
   './index.html',
   './style.css',
   './app.js',
+  './cuts-manual-order.js',
   './telegram-fix.js',
   './route-optimizer.js',
   './orders_today.json',
@@ -29,6 +30,7 @@ const CORE_ASSETS = [
   './mapa.html',
   './mapa.css',
   './mapa.js',
+  './map-clusters.js',
   './route-preview.js',
   './mapa-data.js',
   './hoy.html',
