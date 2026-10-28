@@ -700,7 +700,7 @@ function renderOrders() {
           </div>
         ` : ''}
 
-        <!-- Navegación GPS Satelital 1-Touch -->
+        <div class="card-action-label">1 · LLEGAR AL PUNTO</div>
         <div class="gps-nav-grid">
           <a href="${wazeUrl}" target="_blank" class="btn-nav-waze">
             <i class="fa-brands fa-waze"></i> Waze GPS
@@ -710,8 +710,16 @@ function renderOrders() {
           </a>
         </div>
 
-        <!-- Botones de Acción de Campo (Fila 1: Operaciones Principales) -->
-        <div class="execution-actions-grid">
+        <button class="payment-share-action" type="button" onclick="openPaymentShare(${workOrders.indexOf(ord)})">
+          <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+          <span><strong>COMPARTIR DATOS PARA PAGO</strong><small>Imagen con NIS, orden y monto para enviar al dueño</small></span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </button>
+
+        <details class="order-status-details">
+          <summary><span>2 · REGISTRAR RESULTADO</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+          <div class="status-details-body">
+          <div class="execution-actions-grid">
           <button class="btn-status-act btn-act-corte" onclick="setOrderStatus('${cardId}', 'cortado')">
             <i class="fa-solid fa-bolt"></i> Cortado
           </button>
@@ -724,14 +732,15 @@ function renderOrders() {
           <button class="btn-status-act btn-act-pago" onclick="setOrderStatus('${cardId}', 'pago')">
             <i class="fa-solid fa-receipt"></i> Pagó Sitio
           </button>
-        </div>
+          </div>
 
-        <!-- Fila 2: Casos Especiales / Anormalidades -->
-        <div class="execution-actions-secondary-grid">
+          <div class="execution-actions-secondary-grid">
           <button class="btn-status-act btn-act-noacc" onclick="setOrderStatus('${cardId}', 'no_acceso')">
             <i class="fa-solid fa-ban"></i> Sin Acceso
           </button>
-        </div>
+          </div>
+          </div>
+        </details>
 
         <!-- Formulario Técnico: Lecturas, Sellos y Observaciones -->
         <div class="field-form-panel">
@@ -2042,6 +2051,85 @@ function shareWhatsAppLiquidation() {
   const text = encodeURIComponent(generateLiquidationText());
   window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
 }
+
+let paymentShareData=null, paymentShareFile=null, paymentShareUrl=null, paymentShareToken=0, paymentShareForceDownload=false;
+function closePaymentShare(){
+  paymentShareToken++;
+  document.getElementById('paymentShareOverlay').hidden=true;
+  document.body.classList.remove('payment-share-open');
+  if(paymentShareUrl)URL.revokeObjectURL(paymentShareUrl);
+  paymentShareUrl=null;paymentShareFile=null;paymentShareData=null;paymentShareForceDownload=false;
+  document.getElementById('paymentSharePreview').removeAttribute('src');
+}
+function openPaymentShare(index){
+  const order=workOrders[index];
+  if(!order)return;
+  const amount=!cnflPdfBatchStale&&/[0-9]/.test(String(order.monto||''))&&cnflAmountNumber(order.monto)>0
+    ?cnflFormatAmount(order.monto):null;
+  paymentShareData=window.CNFLOrderShare.build(order,amount);
+  document.getElementById('paymentShareDetails').textContent=
+    'NIS '+paymentShareData.nis+' · Orden '+paymentShareData.orden+'\n'+
+    'Localización '+paymentShareData.localizacion+' · '+paymentShareData.monto;
+  const token=++paymentShareToken;
+  const overlay=document.getElementById('paymentShareOverlay');
+  const status=document.getElementById('paymentShareStatus');
+  const image=document.getElementById('paymentSharePreview');
+  const button=document.getElementById('paymentShareImage');
+  if(paymentShareUrl)URL.revokeObjectURL(paymentShareUrl);
+  paymentShareUrl=null;paymentShareFile=null;paymentShareForceDownload=false;
+  image.hidden=true;image.removeAttribute('src');button.disabled=true;
+  status.textContent='Preparando la imagen de la orden…';
+  overlay.hidden=false;document.body.classList.add('payment-share-open');
+  overlay.querySelector('.payment-share-head button').focus();
+  try{
+    const canvas=window.CNFLOrderShare.draw(document.createElement('canvas'),paymentShareData);
+    canvas.toBlob(blob=>{
+      if(token!==paymentShareToken)return;
+      if(!blob){status.textContent='No se pudo crear la imagen. Podés copiar los datos.';return;}
+      try{
+        const name=String(paymentShareData.orden).replace(/[^0-9a-z]/gi,'').slice(0,24)||'sin-numero';
+        paymentShareFile=new File([blob],`datos-orden-${name}.png`,{type:'image/png'});
+        paymentShareUrl=URL.createObjectURL(blob);
+        image.src=paymentShareUrl;image.hidden=false;
+        let canShare=false;
+        try{canShare=Boolean(navigator.share&&navigator.canShare?.({files:[paymentShareFile]}));}catch(_){}
+        button.textContent=canShare?'COMPARTIR IMAGEN':'DESCARGAR IMAGEN';
+        button.disabled=false;
+        status.textContent=paymentShareData.listed?'Lista para compartir. Verificá el monto antes de enviarla.':'Imagen lista, sin monto validado. Consultá el monto vigente.';
+      }catch(error){status.textContent='No se pudo preparar la imagen. Podés copiar los datos.';}
+    },'image/png');
+  }catch(error){status.textContent=error.message||'No se pudo crear la imagen. Podés copiar los datos.';}
+}
+async function sendPaymentShare(){
+  if(!paymentShareFile||!paymentShareData)return;
+  const status=document.getElementById('paymentShareStatus');
+  const payload={files:[paymentShareFile],title:'Datos de la orden',text:window.CNFLOrderShare.text(paymentShareData)};
+  let canShare=false;
+  try{canShare=Boolean(navigator.share&&navigator.canShare?.({files:payload.files}));}catch(_){}
+  if(!paymentShareForceDownload&&canShare){
+    try{await navigator.share(payload);return;}
+    catch(error){
+      if(error.name==='AbortError')return;
+      paymentShareForceDownload=true;
+      document.getElementById('paymentShareImage').textContent='DESCARGAR IMAGEN';
+      status.textContent='No se abrió el menú para compartir. Tocá DESCARGAR IMAGEN o copiá los datos.';
+      return;
+    }
+  }
+  const link=document.createElement('a');link.href=paymentShareUrl;link.download=paymentShareFile.name;
+  document.body.appendChild(link);link.click();link.remove();
+  status.textContent='Imagen descargada. Podés enviarla desde Descargas o copiar los datos.';
+}
+async function copyPaymentShare(){
+  if(!paymentShareData)return;
+  try{
+    await navigator.clipboard.writeText(window.CNFLOrderShare.text(paymentShareData));
+    document.getElementById('paymentShareStatus').textContent='Datos copiados. Pegalos en el mensaje al dueño.';
+  }catch(_){document.getElementById('paymentShareStatus').textContent='No se pudieron copiar los datos en este navegador. Podés compartir o descargar la imagen.';}
+}
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!document.getElementById('paymentShareOverlay')?.hidden)closePaymentShare();
+});
 
 function showToast(msg) {
   const t = document.getElementById('mobileToast');
