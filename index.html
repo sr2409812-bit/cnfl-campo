@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CNFL — Terminal de Operaciones en Campo</title>
-  <link rel="stylesheet" href="style.css?v=20261028-map-bridge1" />
+  <link rel="stylesheet" href="style.css?v=20261028-share1" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <meta name="theme-color" content="#001D40" />
   <link rel="manifest" href="manifest.json" />
@@ -163,13 +163,28 @@
   </nav>
 
   <div class="toast-msg" id="mobileToast"></div>
+  <div class="payment-share-overlay" id="paymentShareOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="paymentShareTitle">
+    <div class="payment-share-panel">
+      <div class="payment-share-head"><h2 id="paymentShareTitle">Compartir datos de la orden</h2><button type="button" onclick="closePaymentShare()" aria-label="Cerrar">×</button></div>
+      <p>Revisá esta imagen antes de enviarla al dueño. El monto es el listado en la orden y puede cambiar.</p>
+      <div id="paymentShareDetails" class="payment-share-details"></div>
+      <img id="paymentSharePreview" alt="Vista previa de los datos de la orden" hidden>
+      <div id="paymentShareStatus" role="status" aria-live="polite">Preparando imagen…</div>
+      <div class="payment-share-buttons">
+        <button id="paymentShareImage" type="button" disabled onclick="sendPaymentShare()">COMPARTIR IMAGEN</button>
+        <button type="button" onclick="copyPaymentShare()">COPIAR DATOS</button>
+      </div>
+      <small>Este resumen no es factura ni comprobante de pago. Confirmá el monto vigente antes de pagar.</small>
+    </div>
+  </div>
   <div id="cutsMapOverlay" class="cuts-map-overlay" hidden>
     <div class="cuts-map-top"><strong>MAPA DE CORTES</strong><button id="closeCutsMap" type="button" onclick="closeCutsMap()">VOLVER A CORTES</button></div>
     <iframe id="cutsMapFrame" title="Mapa de cortes y ruta manual"></iframe>
   </div>
 
   <script src="cuts-manual-order.js?v=20261028-map-bridge1"></script>
-  <script src="app.js?v=20261028-memory1"></script>
+  <script src="order-share.js?v=20261028-share1"></script>
+  <script src="app.js?v=20261028-share1"></script>
   <script src="telegram-fix.js?v=20261001-1"></script>
   <script src="route-optimizer.js?v=20261019-6"></script>
   <script src="campo-shell.js?v=20261026-navfix2"></script>
