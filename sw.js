@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v53';
+const CACHE_NAME = 'cnfl-campo-v54';
 
 const CORE_ASSETS = [
   './',

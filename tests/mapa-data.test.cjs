@@ -83,7 +83,7 @@ test('cambiar estado desde el mapa actualiza bandeja e historial sin alterar otr
   assert.equal(context.CNFLFieldMapData.setCutStatus('1234567890','7','cortado'),true);
   assert.equal(JSON.parse(store.get('cnfl_work_orders'))[0].status,'cortado');
   assert.equal(JSON.parse(store.get('cnfl_work_orders'))[1].status,'pending');
-  assert.equal(JSON.parse(store.get('cnfl_order_history_v1'))[0].status,'cortado');
+  assert.equal(JSON.parse(store.get('cnfl_order_history_v1'))[0].status,undefined);
   assert.equal(context.CNFLFieldMapData.setCutStatus('1234567890','7','pending'),true);
   assert.equal(JSON.parse(store.get('cnfl_work_orders'))[0].status,'pending');
   assert.equal(JSON.parse(store.get('cnfl_order_history_v1')).length,1);

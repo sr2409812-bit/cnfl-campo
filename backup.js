@@ -9,6 +9,16 @@ function backupItems(data){
   const rows=Array.isArray(data.database&&data.database.kv)?data.database.kv:[];
   rows.forEach(row=>{if(row&&isCnflKey(row.key)&&typeof row.value==='string')merged[row.key]=row.value;});
   Object.entries(data.items||{}).forEach(([key,value])=>{if(isCnflKey(key)&&typeof value==='string')merged[key]=value;});
+  if(typeof merged.cnfl_order_history_v1==='string'){
+    try{
+      const history=JSON.parse(merged.cnfl_order_history_v1);
+      if(Array.isArray(history))merged.cnfl_order_history_v1=JSON.stringify(history.map(row=>{
+        if(!row||typeof row!=='object')return row;
+        const {monto,status,...reference}=row;
+        return reference;
+      }));
+    }catch(_){}
+  }
   return merged;
 }
 function backupSummary(items){
@@ -48,14 +58,14 @@ async function exportBackup(){
     items:{},
     database:null
   };
-  keys.forEach(k=>{data.items[k]=localStorage.getItem(k)});
-
   try{
     if(window.CNFLStore&&typeof window.CNFLStore.snapshot==='function') await window.CNFLStore.snapshot();
     if(window.CNFLStore&&typeof window.CNFLStore.exportDb==='function') data.database=await window.CNFLStore.exportDb();
   }catch(err){
     console.warn('No pude agregar IndexedDB al respaldo:',err);
   }
+  keys.forEach(k=>{data.items[k]=localStorage.getItem(k)});
+  data.items=backupItems({items:data.items});
 
   const summary=backupSummary(data.items);
   const historical=Array.isArray(data.database&&data.database.records)?data.database.records.length:0;

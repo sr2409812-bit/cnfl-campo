@@ -75,7 +75,16 @@ function cnflDateFromPdfText(rawText) {
 function cnflHistoryLoad() {
   try {
     const parsed = JSON.parse(localStorage.getItem(CNFL_HISTORY_KEY) || '[]');
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    const obsolete = parsed.some(o => o && (Object.hasOwn(o,'monto') || Object.hasOwn(o,'status')));
+    if (!obsolete) return parsed;
+    const clean = parsed.map(o => {
+      if (!o || typeof o !== 'object') return o;
+      const {monto, status, ...record} = o;
+      return record;
+    });
+    try { localStorage.setItem(CNFL_HISTORY_KEY, JSON.stringify(clean)); } catch (_) {}
+    return clean;
   } catch (e) {
     return [];
   }
@@ -98,10 +107,8 @@ function cnflCompactHistoryOrder(o, fallbackDate) {
     medidor: String(o.medidor || o.meter || ''),
     cliente: String(o.cliente || o.client || ''),
     direccion: String(o.direccion || o.address || ''),
-    monto: String(o.monto || ''),
     pendientes: String(o.pendientes || ''),
     plan: String(o.plan || ''),
-    status: String(o.status || 'pending'),
     lectura: String(o.lectura || ''),
     sello_instalado: String(o.sello_instalado || ''),
     sello_retirado: String(o.sello_retirado || ''),
@@ -192,8 +199,6 @@ function renderOrderHistory(query = '') {
   }
 
   container.innerHTML = items.slice(0, 120).map(o => {
-    const amount = o.monto ? `₡${cnflEscapeHtml(typeof cnflFormatAmount === 'function' ? cnflFormatAmount(o.monto) : o.monto)}` : '';
-    const status = typeof getStatusLabel === 'function' ? getStatusLabel(o.status) : String(o.status || '');
     const locKey = String(o.localizacion || '').replace(/\D/g, '');
     const memoryGeo = (typeof geoCache !== 'undefined' && geoCache && geoCache[locKey]) ? geoCache[locKey] : null;
     const hasGps = (memoryGeo && Number.isFinite(Number(memoryGeo.lat)) && Number.isFinite(Number(memoryGeo.lon))) ||
@@ -210,7 +215,6 @@ function renderOrderHistory(query = '') {
             <div style="font-family:var(--font-mono);color:var(--cnfl-cyan);font-size:11px;font-weight:700">${cnflEscapeHtml(cnflHistoryDisplayDate(o.historyDate))}</div>
             <div style="font-size:15px;font-weight:800;color:var(--cnfl-blue-header);margin-top:2px">${cnflEscapeHtml(o.cliente || 'SIN NOMBRE')}</div>
           </div>
-          <div style="text-align:right;font-size:11px;color:#86EFAC;font-weight:700">${cnflEscapeHtml(status)}</div>
         </div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-body)">${cnflEscapeHtml(o.direccion || 'Sin dirección')}</div>
         <div class="tech-meta-grid" style="margin-top:8px">
@@ -218,10 +222,7 @@ function renderOrderHistory(query = '') {
           <div class="meta-chip"><span>LOCALIZACIÓN</span><strong>${cnflEscapeHtml(o.localizacion || 'N/D')}</strong></div>
           <div class="meta-chip"><span>MEDIDOR</span><strong>${cnflEscapeHtml(o.medidor || 'N/D')}</strong></div>
         </div>
-        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:11px;color:var(--text-muted)">
-          <span>NIS: ${cnflEscapeHtml(o.nis || 'N/D')}</span>
-          <span>${amount}</span>
-        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">NIS: ${cnflEscapeHtml(o.nis || 'N/D')}</div>
         ${o.observaciones ? `<div style="margin-top:7px;padding:7px;background:var(--bg-input);border-radius:4px;font-size:11px">Obs: ${cnflEscapeHtml(o.observaciones)}</div>` : ''}
         ${hasGps ? `<div style="margin-top:7px;font-size:10px;color:#86EFAC"><i class="fa-solid fa-location-dot"></i> GPS en memoria${gpsSource ? ' · ' + cnflEscapeHtml(gpsSource) : ''}${gpsDate ? ' · ' + gpsDate : ''}</div>` : ''}
       </div>`;
@@ -729,12 +730,6 @@ function renderOrders() {
         <div class="execution-actions-secondary-grid">
           <button class="btn-status-act btn-act-noacc" onclick="setOrderStatus('${cardId}', 'no_acceso')">
             <i class="fa-solid fa-ban"></i> Sin Acceso
-          </button>
-          <button class="btn-status-act btn-act-yacortado" onclick="setOrderStatus('${cardId}', 'ya_cortado')">
-            <i class="fa-solid fa-check-double"></i> Ya Cortado
-          </button>
-          <button class="btn-status-act btn-act-directo" onclick="setOrderStatus('${cardId}', 'directo')">
-            <i class="fa-solid fa-triangle-exclamation"></i> Directo
           </button>
         </div>
 

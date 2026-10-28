@@ -49,7 +49,7 @@
       }).filter(x=>x.meters<=radius).sort((a,b)=>a.meters-b.meters);
   }
   function setCutStatus(loc,orderId,status){
-    const allowed=['pending','cortado','avisado','reconectado','pago','no_acceso','ya_cortado','directo'];
+    const allowed=['pending','cortado','avisado','reconectado','pago','no_acceso'];
     if(!allowed.includes(status)) return false;
     const orders=read('cnfl_work_orders',[]);
     if(!Array.isArray(orders)) return false;
@@ -62,7 +62,10 @@
       if(Array.isArray(history)){
         const today=new Date(),date=order._journeyDate||`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
         const index=history.findIndex(item=>item.historyDate===date&&String(item.orden||'')===orderId&&String(item.localizacion||'').replace(/\D/g,'')===loc&&String(item.medidor||'')===String(order.medidor||''));
-        const entry={...(index>=0?history[index]:{}),...order,historyDate:date,savedAt:Date.now()};
+        const {monto,status:currentStatus,...safeOrder}=order;
+        const prior=index>=0?history[index]:{};
+        const {monto:oldAmount,status:oldStatus,...safePrior}=prior;
+        const entry={...safePrior,...safeOrder,historyDate:date,savedAt:Date.now()};
         if(index>=0) history.splice(index,1);
         history.unshift(entry);
         localStorage.setItem('cnfl_order_history_v1',JSON.stringify(history.slice(0,1200)));
