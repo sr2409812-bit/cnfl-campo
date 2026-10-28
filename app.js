@@ -11,6 +11,49 @@ let geoCache = {};
 const expandedFields = {};
 const CNFL_PDF_PARSER_VERSION = 6;
 let cnflPdfBatchStale = false;
+function cnflManualPlan(){
+  try{
+    const keys=JSON.parse(localStorage.getItem('cnfl_manual_route_v1')||'[]');
+    return window.CNFLCutsManualOrder.arrange(workOrders,keys);
+  }catch(_){return {orders:workOrders,chosen:0,pending:workOrders.filter(o=>o.status==='pending').length};}
+}
+
+function cnflRefreshOrdersFromStorage(){
+  try{const saved=JSON.parse(localStorage.getItem('cnfl_work_orders')||'[]');if(Array.isArray(saved))workOrders=saved;}catch(_){}
+  renderOrders();updateLiquidation();
+}
+
+function openCutsMap(){
+  const overlay=document.getElementById('cutsMapOverlay'),frame=document.getElementById('cutsMapFrame');
+  if(!overlay||!frame)return;
+  overlay.hidden=false;document.body.classList.add('map-overlay-open');
+  if(!frame.getAttribute('src'))frame.src='mapa.html?tipo=cortes&embedded=1';
+  document.getElementById('closeCutsMap').focus();
+}
+function closeCutsMap(){
+  const overlay=document.getElementById('cutsMapOverlay');if(!overlay)return;
+  overlay.hidden=true;document.body.classList.remove('map-overlay-open');
+  cnflRefreshOrdersFromStorage();
+}
+function cnflOpenCutFromMap(loc){
+  if(!/^\d{1,20}$/.test(String(loc)))return;
+  closeCutsMap();
+  const order=workOrders.find(o=>String(o.localizacion||'').replace(/\D/g,'')===loc);
+  switchTab('ruta',document.querySelector('.bottom-nav .nav-tab-btn'));
+  setRouteFilter(order&&order.status!=='pending'?'all':'pending',document.getElementById(order&&order.status!=='pending'?'btnFilterAll':'btnFilterPending'));
+  searchQuery=loc;
+  const search=document.getElementById('orderSearchInput');if(search)search.value=loc;
+  renderOrders();
+  document.getElementById('ordersListContainer')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+addEventListener('message',event=>{
+  const frame=document.getElementById('cutsMapFrame');
+  if(event.origin!==location.origin||event.source!==frame?.contentWindow||event.data?.kind!=='cnfl:open-cut')return;
+  cnflOpenCutFromMap(String(event.data.loc||''));
+});
+addEventListener('storage',event=>{
+  if(event.key==='cnfl_manual_route_v1'||event.key==='cnfl_work_orders')cnflRefreshOrdersFromStorage();
+});
 
 const CNFL_HISTORY_KEY = 'cnfl_order_history_v1';
 const CNFL_HISTORY_DAYS = 14;
@@ -495,7 +538,9 @@ function renderOrders() {
   if (!container) return;
 
   // Filtrado de la vista según el selector segmentado
-  let list = workOrders;
+  const manualPlan=cnflManualPlan();
+  let list = manualPlan.orders;
+  const manualPositions=new Map(list.map((order,index)=>[order,index+1]));
 
   if (activeFilter === 'pending') {
     list = list.filter(o => o.status === 'pending');
@@ -599,7 +644,7 @@ function renderOrders() {
         
         <!-- Fila Superior: Parada, Tipo de Operación y Coordenada -->
         <div class="order-top-row">
-          <span class="stop-badge">PARADA #${idx + 1}</span>
+          <span class="stop-badge">PARADA #${manualPlan.chosen?manualPositions.get(ord):idx+1}</span>
           <span class="type-pill ${typeClass}">${typeName}</span>
           ${typeof cnflGpsBadgeHtml === 'function'
             ? cnflGpsBadgeHtml(ord)
@@ -790,6 +835,18 @@ function appendQuickObs(cardId, tag) {
 function calculateRouteDistance() {
   const subtitle = document.getElementById('routeDistanceSubtitle');
   if (!subtitle) return;
+
+  const manual=cnflManualPlan(),banner=document.getElementById('routeSummaryBanner');
+  banner?.classList.toggle('manual-active',manual.chosen>0);
+  const autoButton=document.querySelector('.header-actions .btn-optimize');
+  if(autoButton)autoButton.hidden=manual.chosen>0;
+  if(manual.chosen>0){
+    document.getElementById('routeStatusTitle').innerText='RUTA ARMADA EN EL MAPA';
+    subtitle.innerText=`${manual.chosen} de ${manual.pending} pendientes ordenadas · las demás quedan al final`;
+    return;
+  }
+  if(document.getElementById('routeStatusTitle')?.innerText==='RUTA ARMADA EN EL MAPA')
+    document.getElementById('routeStatusTitle').innerText='RUTA ACTIVA DE OPERACIÓN';
 
   const pendingCount = workOrders.filter(o => o.status === 'pending').length;
   if (pendingCount === 0) {

@@ -1314,6 +1314,18 @@ textarea.input-box {
 .btn-reopen { background:#fff; color:#0033A0; border:1px solid #0033A0; min-height:40px; padding:7px 10px; font-weight:800; }
 .btn-reopen:hover,.btn-reopen:focus-visible { background:#E8F3FF; color:#00264D; border-color:#00264D; }
 
+.route-summary-banner{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.route-summary-banner>div{min-width:0}
+.btn-map-open{grid-column:2;grid-row:1;min-height:42px;border:1px solid #087855;border-radius:5px;background:#087855;color:#fff;font-size:11px;font-weight:800;padding:7px 9px}
+.route-summary-banner .btn-reorder{grid-column:1/-1;min-height:40px}
+.route-summary-banner.manual-active .btn-reorder,.header-actions .btn-optimize[hidden]{display:none}
+.cuts-map-overlay[hidden]{display:none}
+.cuts-map-overlay{position:fixed;inset:0;z-index:1000;background:#F3F6F9;display:flex;flex-direction:column}
+.cuts-map-top{height:58px;padding:8px 12px;background:#00264D;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none}
+.cuts-map-top strong{font-size:15px}.cuts-map-top button{min-height:42px;border:1px solid #fff;border-radius:6px;background:#fff;color:#00264D;padding:6px 10px;font-size:11px;font-weight:900}
+#cutsMapFrame{width:100%;height:100%;flex:1;border:0;background:#F3F6F9}
+body.map-overlay-open{overflow:hidden}
+
 #tgMemoryCount { color:#168A5B!important; }
 #tgMissingCount { color:#B45309!important; }
 
