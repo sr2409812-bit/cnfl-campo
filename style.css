@@ -1308,6 +1308,12 @@ textarea.input-box {
 .btn-act-yacortado { color:#62758A; border-color:#C7D2DD; }
 .btn-act-directo { color:#B45309; border-color:#F1C7A5; }
 
+/* La acción de reabrir debe conservar contraste en el tema claro. */
+.done-reopen-row { background:#EDF4FB; border-color:#C7D2DD; color:#00264D; }
+.done-reopen-row span { color:#168A5B!important; }
+.btn-reopen { background:#fff; color:#0033A0; border:1px solid #0033A0; min-height:40px; padding:7px 10px; font-weight:800; }
+.btn-reopen:hover,.btn-reopen:focus-visible { background:#E8F3FF; color:#00264D; border-color:#00264D; }
+
 #tgMemoryCount { color:#168A5B!important; }
 #tgMissingCount { color:#B45309!important; }
 

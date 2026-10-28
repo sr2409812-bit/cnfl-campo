@@ -58,3 +58,33 @@ test('legacy unread reading stays pending and links open its own work',()=>{
   assert.equal(rows[0].href,'index.html?loc=0123456789');
   assert.equal(rows[1].href,'lectura.html?loc=1234567890');
 });
+
+test('cercanos respeta 250 m, pendientes y distancia',()=>{
+  const data=collect({cnfl_work_orders:[
+    {localizacion:'1111111111',orden:'1',lat:9.9,lon:-84.1,status:'pending'},
+    {localizacion:'2222222222',orden:'2',lat:9.9003,lon:-84.1,status:'pending'},
+    {localizacion:'3333333333',orden:'3',lat:9.91,lon:-84.1,status:'pending'},
+    {localizacion:'4444444444',orden:'4',lat:9.9001,lon:-84.1,status:'cortado'}
+  ]});
+  const context=vm.createContext({localStorage:{getItem:()=>null}});context.window=context;
+  vm.runInContext(fs.readFileSync('mapa-data.js','utf8'),context);
+  const near=context.CNFLFieldMapData.nearby(data,data[0]);
+  assert.deepEqual(Array.from(near,x=>x.row.loc),['2222222222']);
+  assert.ok(near[0].meters>30&&near[0].meters<40);
+});
+
+test('cambiar estado desde el mapa actualiza bandeja e historial sin alterar otras órdenes',()=>{
+  const store=new Map(Object.entries({
+    cnfl_work_orders:[{orden:'7',localizacion:'1234567890',status:'pending',nis:'55',medidor:'456'},{orden:'8',localizacion:'9876543210',status:'pending'}],
+    cnfl_order_history_v1:[]
+  }).map(([k,v])=>[k,JSON.stringify(v)]));
+  const context=vm.createContext({localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)}});context.window=context;
+  vm.runInContext(fs.readFileSync('mapa-data.js','utf8'),context);
+  assert.equal(context.CNFLFieldMapData.setCutStatus('1234567890','7','cortado'),true);
+  assert.equal(JSON.parse(store.get('cnfl_work_orders'))[0].status,'cortado');
+  assert.equal(JSON.parse(store.get('cnfl_work_orders'))[1].status,'pending');
+  assert.equal(JSON.parse(store.get('cnfl_order_history_v1'))[0].status,'cortado');
+  assert.equal(context.CNFLFieldMapData.setCutStatus('1234567890','7','pending'),true);
+  assert.equal(JSON.parse(store.get('cnfl_work_orders'))[0].status,'pending');
+  assert.equal(JSON.parse(store.get('cnfl_order_history_v1')).length,1);
+});
