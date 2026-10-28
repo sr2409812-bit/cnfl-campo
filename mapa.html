@@ -8,11 +8,11 @@
   <title>CNFL Campo · Mapa general</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="mapa.css?v=20261027-vrs3">
+  <link rel="stylesheet" href="mapa.css?v=20261028-manual1">
   <link rel="stylesheet" href="campo-shell.css?v=20261026-navfix2">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="notification-stops.js?v=20261026-map1"></script>
-  <script src="mapa-data.js?v=20261026-2"></script>
+  <script src="mapa-data.js?v=20261028-manual1"></script>
 </head>
 <body>
   <header class="topbar"><button id="cnflGlobalMenu" class="cnfl-global-menu" type="button" aria-label="Abrir menú"><span aria-hidden="true">☰</span></button><div><strong>CNFL CAMPO</strong><small>MAPA GENERAL</small></div></header>
@@ -23,8 +23,18 @@
     </div>
     <div class="map-toolbar"><span id="mapCount" role="status">Cargando puntos…</span><button id="fitPoints" type="button">VER PUNTOS</button><button id="centerMe" type="button">MI UBICACIÓN</button></div>
     <div id="fieldMap" aria-label="Mapa de trabajos de campo"></div>
+    <section id="selectedPanel" class="selected-panel" aria-label="Punto seleccionado" hidden></section>
+    <section class="manual-panel" aria-labelledby="manualTitle">
+      <h2 id="manualTitle">Mi ruta en el mapa</h2>
+      <p>Tocá un punto y elegí «Añadir a mi ruta». El orden lo decidís vos; podés mover o quitar paradas. Se guarda en este teléfono.</p>
+      <div id="manualStatus" role="status" aria-live="polite">Elegí tu primera parada en el mapa.</div>
+      <ol id="manualList" class="manual-list"></ol>
+      <div class="manual-actions"><button id="traceManual" type="button">VER POR CALLES</button><button id="showManual" type="button">MOSTRAR MI RUTA</button><button id="undoManual" type="button">DESHACER ÚLTIMA</button><button id="clearManual" type="button">BORRAR RUTA</button></div>
+      <button id="manualUnfiltered" type="button" hidden>VER BORRADOR SIN FILTRO VIAL</button>
+      <p class="manual-note">La línea punteada une los puntos visualmente; no indica calles transitables. «Ver por calles» envía estas coordenadas a OSRM. Revisá cada tramo antes de circular.</p>
+    </section>
     <section class="preview-panel" aria-labelledby="previewTitle">
-      <h2 id="previewTitle">Ruta sugerida</h2>
+      <h2 id="previewTitle">Sugerencia automática (opcional)</h2>
       <p>Calculá una vista previa de los trabajos pendientes del filtro actual. Las coordenadas se envían al servicio vial externo OSRM para trazarla.</p>
       <div class="preview-actions"><button id="previewFromMe" type="button">DESDE MI UBICACIÓN</button><button id="previewFromBase" type="button">DESDE LA BASE</button></div>
       <p id="previewStatus" role="status" aria-live="polite">Todavía no hay ruta trazada.</p>
@@ -42,8 +52,8 @@
     <div class="list-head"><h2>Puntos de trabajo</h2><button id="pendingOnly" type="button" aria-pressed="false">SOLO PENDIENTES</button></div>
     <div id="mapList" class="map-list"></div>
   </main>
-  <script src="route-preview.js?v=20261027-vrs3"></script>
-  <script src="mapa.js?v=20261027-vrs3"></script>
+  <script src="route-preview.js?v=20261028-manual1"></script>
+  <script src="mapa.js?v=20261028-manual1"></script>
   <script src="campo-shell.js?v=20261026-map1"></script>
 </body>
 </html>

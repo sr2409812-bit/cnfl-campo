@@ -145,21 +145,16 @@
     if(!best||!Number.isFinite(bestCost)) throw new Error('Hay paradas sin conexión por calles'+(unfiltered?'':' evitando autopistas')+'.');
     return best;
   }
-  async function calculate(stops,start,fetcher,progress,options={}){
-    if(!valid(start)) throw new Error('No se obtuvo un punto de salida válido.');
-    if(!stops.length) throw new Error('No hay pendientes con GPS para trazar.');
-    if(stops.length>MAX_STOPS) throw new Error('Hay más de 120 paradas. Filtrá por tipo y calculá por bloques.');
-    const get=fetcher||root.fetch.bind(root);
-    const unfiltered=options.unfiltered===true;
-    const points=[start,...stops];
-    const matrix=weightedCosts(await roadMatrix(points,get,unfiltered,progress),points);
-    if(progress) progress('Buscando un orden continuo para '+stops.length+' paradas…');
-    const ordered=orderBatch(matrix,stops.length,unfiltered).map(idx=>stops[idx-1]);
-    const path=[start,...ordered],segments=[],legMeters=[];
+  async function traceOrdered(ordered,fetcher,progress,options={}){
+    if(ordered.length<2) throw new Error('Elegí al menos dos paradas para trazar por calles.');
+    if(ordered.length>MAX_STOPS) throw new Error('La ruta admite hasta 120 paradas.');
+    if(ordered.some(point=>!valid(point))) throw new Error('Una parada de la ruta no tiene coordenadas válidas.');
+    const get=fetcher||root.fetch.bind(root),unfiltered=options.unfiltered===true;
+    const path=ordered,segments=[],legMeters=[];
     let meters=0,seconds=0;
     for(let from=0;from<path.length-1;from+=GEOMETRY_BATCH-1){
       const part=path.slice(from,Math.min(from+GEOMETRY_BATCH,path.length));
-      if(progress) progress('Trazando calles '+(from+1)+'–'+(from+part.length-1)+' de '+stops.length+'…');
+      if(progress) progress('Trazando calles '+(from+1)+'–'+(from+part.length)+' de '+path.length+'…');
       const data=await request('route',part,{overview:'full',geometries:'geojson',steps:'false'},get,unfiltered);
       const route=data.routes&&data.routes[0];
       if(!route||!route.geometry||!Array.isArray(route.geometry.coordinates)||route.geometry.coordinates.length<2||
@@ -170,9 +165,22 @@
       legMeters.push(...route.legs.map(leg=>leg.distance));
       meters+=route.distance;seconds+=route.duration;
     }
-    return {ordered,segments,legMeters,meters,seconds,start,unfiltered};
+    return {ordered,segments,legMeters,meters,seconds,unfiltered};
   }
-  const api={prepare,calculate,orderBatch,weightedCosts,distance};
+  async function calculate(stops,start,fetcher,progress,options={}){
+    if(!valid(start)) throw new Error('No se obtuvo un punto de salida válido.');
+    if(!stops.length) throw new Error('No hay pendientes con GPS para trazar.');
+    if(stops.length>MAX_STOPS) throw new Error('Hay más de 120 paradas. Filtrá por tipo y calculá por bloques.');
+    const get=fetcher||root.fetch.bind(root);
+    const unfiltered=options.unfiltered===true;
+    const points=[start,...stops];
+    const matrix=weightedCosts(await roadMatrix(points,get,unfiltered,progress),points);
+    if(progress) progress('Buscando un orden continuo para '+stops.length+' paradas…');
+    const ordered=orderBatch(matrix,stops.length,unfiltered).map(idx=>stops[idx-1]);
+    const traced=await traceOrdered([start,...ordered],get,progress,options);
+    return {...traced,ordered,start};
+  }
+  const api={prepare,calculate,traceOrdered,orderBatch,weightedCosts,distance};
   root.CNFLRoutePreview=api;
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
 })(typeof window==='undefined'?globalThis:window);

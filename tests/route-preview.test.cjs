@@ -81,6 +81,22 @@ test('el borrador sin filtro requiere una elección explícita y queda identific
   assert.equal(log.length,2);
 });
 
+test('la ruta manual conserva exactamente el orden marcado y no consulta la matriz',async()=>{
+  const log=[];
+  const stops=[{lat:9.93,lon:-84.08},{lat:9.91,lon:-84.09},{lat:9.92,lon:-84.07}];
+  const result=await preview.traceOrdered(stops,responder(log,false,true),null,{unfiltered:true});
+  assert.deepEqual(result.ordered,stops);
+  assert.equal(log.length,1);
+  assert.ok(log.every(url=>url.pathname.includes('/route/')));
+  assert.equal(result.legMeters.length,2);
+});
+
+test('la ruta manual tampoco cae automáticamente a calles sin filtro',async()=>{
+  const log=[];
+  await assert.rejects(preview.traceOrdered([{lat:9.9,lon:-84.1},{lat:9.91,lon:-84.11}],responder(log,true)),error=>error.code==='FILTER_UNAVAILABLE');
+  assert.equal(log.length,1);
+});
+
 test('descarta paradas con ajuste a la calle mayor de 100 m',async()=>{
   let calls=0;
   const fetcher=async()=>{
