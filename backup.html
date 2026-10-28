@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="campo.css?v=20261019-1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-.back-shell{max-width:680px;margin:auto;padding:18px 14px 90px}.back-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}.back-card h2{margin:4px 0 8px}.back-card p{color:var(--muted);line-height:1.45}.big-btn{width:100%;border:0;border-radius:10px;padding:15px;font-weight:900;font-size:15px;margin-top:8px}.primary{background:var(--blue);color:#fff}.danger{background:#B42318;color:#fff}.file-label{display:block;border:2px dashed var(--line);padding:18px;border-radius:12px;text-align:center;font-weight:800;cursor:pointer}.meta{font-size:12px;color:var(--muted);margin-top:8px}.status{padding:10px;border-radius:10px;background:#F1F5F9;margin-top:10px;font-size:13px}
+.back-shell{max-width:680px;margin:auto;padding:18px 14px 90px}.back-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}.back-card h2{margin:4px 0 8px}.back-card p{color:var(--muted);line-height:1.45}.big-btn{width:100%;border:0;border-radius:10px;padding:15px;font-weight:900;font-size:15px;margin-top:8px}.primary{background:var(--blue);color:#fff}.danger{background:#B42318;color:#fff}.file-label{display:block;border:2px dashed var(--line);padding:18px;border-radius:12px;text-align:center;font-weight:800;cursor:pointer}.meta{font-size:12px;color:var(--muted);margin-top:8px}.status{padding:10px;border-radius:10px;background:#F1F5F9;margin-top:10px;font-size:13px;overflow-wrap:anywhere}.status.error{background:#FEF3F2;color:#912018}.status.success{background:#E7F6EC;color:#075A3C}.next-link{display:none;margin-top:12px;text-align:center;color:var(--blue);font-weight:800}
 </style>
   <script src="data-store.js?v=20261019-1"></script>
 </head>
@@ -25,17 +25,20 @@
     <p>Exporta en un solo archivo la memoria GPS, jornadas, estados, rutas e historial guardado en este navegador.</p>
     <button class="big-btn primary" onclick="exportBackup()"><i class="fa-solid fa-download"></i> DESCARGAR RESPALDO</button>
     <div class="meta">No borra ni modifica ningún dato.</div>
+    <div id="exportStatus" class="status" role="status">Abrí esta página en el navegador donde tenés tus órdenes y verificá la cantidad antes de compartir el archivo.</div>
     <div id="databaseStatus" class="status">Verificando base histórica…</div>
   </section>
   <section class="back-card">
     <div class="eyebrow">RECUPERAR</div>
     <h2>Restaurar un respaldo</h2>
-    <p>Usalo si cambiaste de teléfono o si necesitás recuperar información guardada anteriormente.</p>
-    <label class="file-label"><input id="restoreFile" type="file" accept=".json,application/json" hidden onchange="prepareRestore(event)"><i class="fa-solid fa-file-arrow-up"></i> SELECCIONAR ARCHIVO</label>
-    <div id="restoreStatus" class="status">Ningún archivo seleccionado.</div>
+    <p>En el otro celular, abrí este enlace en Chrome o en el mismo navegador donde usarás la app. Seleccioná el archivo de Descargas o el que recibiste por mensaje.</p>
+    <label class="file-label"><input id="restoreFile" type="file" hidden onchange="prepareRestore(event)"><i class="fa-solid fa-file-arrow-up"></i> SELECCIONAR ARCHIVO</label>
+    <div id="restoreStatus" class="status" role="status">Ningún archivo seleccionado.</div>
     <button id="restoreBtn" class="big-btn danger" disabled onclick="restoreBackup()"><i class="fa-solid fa-rotate-left"></i> RESTAURAR DATOS</button>
+    <a class="next-link" id="afterRestore" href="campo.html">ABRIR MIS TRABAJOS →</a>
+    <div class="meta">Si ya hay trabajo en este celular, descargá primero su respaldo. Restaurar reemplaza los datos que tengan la misma clave.</div>
   </section>
 </main>
-<script src="backup.js?v=20261019-1"></script>
+<script src="backup.js?v=20261028-2"></script>
 </body>
 </html>
