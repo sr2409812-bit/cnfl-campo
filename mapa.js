@@ -6,7 +6,7 @@
   let pendingOnly=false, map=null, layer=null, myLayer=null, routeLayer=null, shown=[];
   let preview=null, generation=0, reviewChoice='', retryDraft=null;
   let manualKeys=[];try{const saved=JSON.parse(localStorage.getItem('cnfl_manual_route_v1')||'[]');if(Array.isArray(saved))manualKeys=saved.filter(k=>typeof k==='string').slice(0,120);}catch(_){}
-  let manualTrace=null,manualToken=0,manualDraft=false,selectedKey=null;
+  let manualTrace=null,manualToken=0,manualDraft=false,selectedKey=null,routeMode=false;
   const box=document.getElementById('fieldMap');
   const list=document.getElementById('mapList');
   const count=document.getElementById('mapCount');
@@ -17,6 +17,10 @@
   const selectedPanel=document.getElementById('selectedPanel');
   const manualList=document.getElementById('manualList');
   const manualStatus=document.getElementById('manualStatus');
+  const manualPanel=document.getElementById('manualPanel');
+  const routeModeButton=document.getElementById('routeMode');
+  const routeHint=document.getElementById('routeHint');
+  const routeOverview=document.getElementById('routeOverview');
   function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function key(o){return o.type+':'+o.loc;}
   function manualStops(){const rows=new Map(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(o=>[key(o),o]));return manualKeys.map(k=>rows.get(k)).filter(Boolean);}
@@ -24,17 +28,20 @@
   function syncManual(){const rows=new Set(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(key));const clean=[...new Set(manualKeys)].filter(k=>rows.has(k)).slice(0,120);if(clean.length!==manualKeys.length){manualKeys=clean;manualTrace=null;persistManual();}}
   function changeManual(next){manualKeys=next;manualTrace=null;manualDraft=false;manualToken++;document.getElementById('manualUnfiltered').hidden=true;persistManual();if(preview) clearPreview();else render();}
   function addManual(o){if(o.done)return;if(manualKeys.includes(key(o))){manualStatus.textContent='Esta parada ya está en tu ruta.';return;}if(manualKeys.length>=120){manualStatus.textContent='La ruta admite hasta 120 paradas.';return;}changeManual([...manualKeys,key(o)]);}
-  function focusJob(o){selectedKey=key(o);renderSelection();if(map&&o.lat!==null){map.setView([o.lat,o.lon],Math.max(map.getZoom(),16));layer.eachLayer(marker=>{if(marker.getLatLng().distanceTo([o.lat,o.lon])<1)marker.openPopup();});}}
+  function focusJob(o){selectedKey=key(o);renderSelection();if(map&&o.lat!==null)map.setView([o.lat,o.lon],Math.max(map.getZoom(),16));}
   function renderSelection(){
     const all=visibleRows(),o=all.find(row=>key(row)===selectedKey);
     if(!o){selectedPanel.hidden=true;return;}
     selectedPanel.hidden=false;
     const near=window.CNFLFieldMapData.nearby(all,o,250);
     const choices=near.length?near.slice(0,8):window.CNFLFieldMapData.nearby(all,o,Infinity).slice(0,3);
-    selectedPanel.innerHTML='<h2>'+safe(o.label)+'</h2><p>'+safe(names[o.type])+' · Localización '+safe(o.loc)+(o.nis?' · NIS '+safe(o.nis):'')+(o.address?' · '+safe(o.address):'')+' · '+(o.done?'GESTIONADO':'PENDIENTE')+'</p>'+
+    const coords=encodeURIComponent(o.lat+','+o.lon);
+    selectedPanel.innerHTML='<div class="sheet-header"><div><h2>'+safe(o.label)+'</h2><p>'+safe(names[o.type])+' · Localización '+safe(o.loc)+' · '+(o.done?'GESTIONADO':'PENDIENTE')+'</p></div><button id="closeSelected" type="button" aria-label="Cerrar ficha">×</button></div>'+
       '<div class="selected-actions"><button id="addSelected" type="button" '+(o.done||manualKeys.includes(key(o))?'disabled':'')+'>'+(manualKeys.includes(key(o))?'EN MI RUTA':'AÑADIR A MI RUTA')+'</button><a href="'+safe(o.href)+'">ABRIR FICHA</a></div>'+
-      (o.type==='cortes'?'<div class="quick-status"><strong>Cambiar estado de esta orden</strong><div class="quick-grid">'+[['cortado','Cortado'],['avisado','Avisado'],['reconectado','Reconectado'],['pago','Pagó sitio'],['no_acceso','Sin acceso'],['ya_cortado','Ya cortado'],['directo','Directo'],['pending','Devolver a pendiente']].map(([value,label])=>'<button type="button" data-status="'+value+'" '+((o.done?value==='pending':value!=='pending')?'':'disabled')+'>'+label+'</button>').join('')+'</div></div>':'')+
-      '<h3>'+(near.length?'Pendientes a 250 m ('+near.length+')':'Sin pendientes a 250 m · los más cercanos')+'</h3><div id="nearbyList"></div>';
+      '<h3>'+(near.length?'Pendientes a 250 m ('+near.length+')':'Sin pendientes a 250 m · los más cercanos')+'</h3><div id="nearbyList"></div>'+
+      '<div class="sheet-links"><a target="_blank" rel="noopener" href="https://www.waze.com/ul?ll='+coords+'&navigate=yes">WAZE</a><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+coords+'">MAPS</a></div>'+
+      (o.type==='cortes'?'<details class="quick-status"><summary>CAMBIAR ESTADO DE ESTA ORDEN</summary><div class="quick-grid">'+[['cortado','Cortado'],['avisado','Avisado'],['reconectado','Reconectado'],['pago','Pagó sitio'],['no_acceso','Sin acceso'],['ya_cortado','Ya cortado'],['directo','Directo'],['pending','Devolver a pendiente']].map(([value,label])=>'<button type="button" data-status="'+value+'" '+((o.done?value==='pending':value!=='pending')?'':'disabled')+'>'+label+'</button>').join('')+'</div></details>':'');
+    document.getElementById('closeSelected').onclick=()=>{selectedKey=null;selectedPanel.hidden=true;};
     document.getElementById('addSelected').onclick=()=>addManual(o);
     selectedPanel.querySelectorAll('[data-status]').forEach(button=>button.onclick=()=>{
       if(!window.CNFLFieldMapData.setCutStatus(o.loc,o.orderId,button.dataset.status)){manualStatus.textContent='No pude actualizar la orden. Revisá el almacenamiento del teléfono.';return;}
@@ -42,7 +49,7 @@
     });
     const nearList=document.getElementById('nearbyList');
     if(!choices.length){nearList.innerHTML='<p>No hay más trabajos pendientes con GPS en este filtro.</p>';return;}
-    choices.forEach(({row,meters})=>{const b=document.createElement('button');b.type='button';b.className='nearby-item';b.textContent=row.label+' · '+Math.round(meters)+' m · '+names[row.type];b.onclick=()=>focusJob(row);nearList.append(b);});
+    choices.forEach(({row,meters})=>{const b=document.createElement('button');b.type='button';b.className='nearby-item';b.textContent=(routeMode?'+ ':'')+row.label+' · '+Math.round(meters)+' m';b.onclick=()=>{if(routeMode)addManual(row);focusJob(row);};nearList.append(b);});
   }
   function renderManual(){
     syncManual();const stops=manualStops();manualList.replaceChildren();
@@ -50,6 +57,12 @@
       for(const [title,delta] of [['↑',-1],['↓',1],['×',null]]){const b=document.createElement('button');b.type='button';b.textContent=title;b.setAttribute('aria-label',delta===null?'Quitar '+o.label:'Mover '+o.label+(delta<0?' arriba':' abajo'));b.disabled=delta!==null&&(index+delta<0||index+delta>=stops.length);b.onclick=()=>{const next=[...manualKeys];if(delta===null)next.splice(index,1);else [next[index],next[index+delta]]=[next[index+delta],next[index]];changeManual(next);};controls.append(b);}
       item.append(label,controls);manualList.append(item);
     });
+    manualPanel.hidden=!stops.length;
+    document.getElementById('manualCount').textContent=stops.length+(stops.length===1?' parada':' paradas');
+    routeModeButton.setAttribute('aria-pressed',String(routeMode));
+    routeModeButton.textContent=routeMode?'LISTO':'ARMAR MI RUTA';
+    routeHint.textContent=routeMode?'Tocá puntos en el orden de visita':stops.length?stops.length+(stops.length===1?' parada guardada':' paradas guardadas'):'Tocá “Armar mi ruta” para empezar';
+    routeOverview.hidden=!stops.length;
     document.getElementById('traceManual').disabled=stops.length<2;
     document.getElementById('showManual').disabled=!preview;
     document.getElementById('undoManual').disabled=!stops.length;
@@ -59,13 +72,6 @@
     else manualStatus.textContent=stops.length+(stops.length===1?' parada':' paradas')+' en tu orden. Línea visual entre puntos; tocá «Ver por calles» para revisar el trayecto.';
   }
   function visibleRows(){return window.CNFLFieldMapData.collect().filter(o=>(type==='todos'||o.type===type)&&(!pendingOnly||!o.done));}
-  function popup(o){
-    const coords=encodeURIComponent(o.lat+','+o.lon);
-    return '<div class="point-popup"><strong>'+safe(o.label)+'</strong><small>'+safe(names[o.type])+' · '+safe(o.loc)+' · '+(o.done?'GESTIONADO':'PENDIENTE')+'</small><div class="actions">'+
-      '<a target="_blank" rel="noopener" href="https://www.waze.com/ul?ll='+coords+'&navigate=yes">WAZE</a>'+ 
-      '<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+coords+'">MAPS</a>'+ 
-      '<a href="'+safe(o.href)+'">ABRIR TRABAJO</a></div></div>';
-  }
   function fit(){
     if(!map||!shown.length)return;
     const bounds=L.latLngBounds(shown.map(o=>[o.lat,o.lon]));
@@ -100,7 +106,7 @@
         const compact=(preview?preview.ordered.length:manualKeys.length)>40, diameter=compact?24:30;
         const marker=number ? L.marker([first.lat,first.lon],{icon:L.divIcon({className:'route-stop-icon'+(compact?' dense':''),html:'<span>'+number+'</span>',iconSize:[diameter,diameter],iconAnchor:[diameter/2,diameter/2]})}) :
           L.circleMarker([first.lat,first.lon],{radius:group.length>1?11:9,color:'#fff',weight:2,fillColor:color,fillOpacity:group.every(x=>x.done)?.55:.95});
-        marker.bindPopup(group.map(popup).join('<hr>'),{maxWidth:270}).on('click',()=>{selectedKey=key(first);renderSelection();selectedPanel.scrollIntoView({behavior:'smooth',block:'nearest'});}).addTo(layer);
+        marker.on('click',()=>{selectedKey=key(first);if(routeMode)addManual(first);renderSelection();}).addTo(layer);
       });
       if(routeLayer) routeLayer.remove();
       routeLayer=null;
@@ -132,7 +138,7 @@
       const state=document.createElement('span');state.className='state';state.textContent=o.lat===null?(o.conflict?'GPS EN CONFLICTO':'SIN GPS'):(o.done?'HECHO':'PENDIENTE');
       button.append(main,state);
       button.onclick=()=>{
-        if(map&&o.lat!==null){focusJob(o);box.scrollIntoView({behavior:'smooth',block:'center'});}
+        if(map&&o.lat!==null){if(routeMode)addManual(o);focusJob(o);box.scrollIntoView({behavior:'smooth',block:'center'});}
         else location.href=o.href;
       };
       list.append(button);
@@ -231,10 +237,13 @@
   else{
     map=L.map(box,{zoomControl:true,preferCanvas:true}).setView([9.93,-84.08],12);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+    map.on('click',()=>{selectedKey=null;selectedPanel.hidden=true;});
   }
   document.getElementById('mapFilters').onclick=e=>{const b=e.target.closest('button[data-type]');if(b){type=b.dataset.type;clearPreview();fit();}};
   document.getElementById('pendingOnly').onclick=()=>{pendingOnly=!pendingOnly;clearPreview();fit();};
   document.getElementById('fitPoints').onclick=fit;
+  routeModeButton.onclick=()=>{routeMode=!routeMode;selectedKey=null;selectedPanel.hidden=true;renderManual();};
+  routeOverview.onclick=()=>{selectedKey=null;selectedPanel.hidden=true;manualPanel.open=true;manualPanel.scrollIntoView({behavior:'smooth',block:'start'});};
   document.getElementById('traceManual').onclick=()=>traceManual(false);
   document.getElementById('manualUnfiltered').onclick=()=>{if(manualDraft)traceManual(true);};
   document.getElementById('showManual').onclick=()=>{if(preview)clearPreview();};
