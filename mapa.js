@@ -33,8 +33,9 @@
     const all=visibleRows(),o=all.find(row=>key(row)===selectedKey);
     if(!o){selectedPanel.hidden=true;return;}
     selectedPanel.hidden=false;
-    const near=window.CNFLFieldMapData.nearby(all,o,250);
-    const choices=near.length?near.slice(0,8):window.CNFLFieldMapData.nearby(all,o,Infinity).slice(0,3);
+    const available=x=>!routeMode||!manualKeys.includes(key(x.row));
+    const near=window.CNFLFieldMapData.nearby(all,o,250).filter(available);
+    const choices=near.length?near.slice(0,8):window.CNFLFieldMapData.nearby(all,o,Infinity).filter(available).slice(0,3);
     const coords=encodeURIComponent(o.lat+','+o.lon);
     selectedPanel.innerHTML='<div class="sheet-header"><div><h2>'+safe(o.label)+'</h2><p>'+safe(names[o.type])+' · Localización '+safe(o.loc)+' · '+(o.done?'GESTIONADO':'PENDIENTE')+'</p></div><button id="closeSelected" type="button" aria-label="Cerrar ficha">×</button></div>'+
       '<div class="selected-actions"><button id="addSelected" type="button" '+(o.done||manualKeys.includes(key(o))?'disabled':'')+'>'+(manualKeys.includes(key(o))?'EN MI RUTA':'AÑADIR A MI RUTA')+'</button><a href="'+safe(o.href)+'">ABRIR FICHA</a></div>'+
@@ -61,7 +62,7 @@
     document.getElementById('manualCount').textContent=stops.length+(stops.length===1?' parada':' paradas');
     routeModeButton.setAttribute('aria-pressed',String(routeMode));
     routeModeButton.textContent=routeMode?'LISTO':'ARMAR MI RUTA';
-    routeHint.textContent=routeMode?'Tocá puntos en el orden de visita':stops.length?stops.length+(stops.length===1?' parada guardada':' paradas guardadas'):'Tocá “Armar mi ruta” para empezar';
+    routeHint.textContent=routeMode?stops.length+(stops.length===1?' parada':' paradas')+' · tocá la siguiente':stops.length?stops.length+(stops.length===1?' parada guardada':' paradas guardadas'):'Tocá “Armar mi ruta” para empezar';
     routeOverview.hidden=!stops.length;
     document.getElementById('traceManual').disabled=stops.length<2;
     document.getElementById('showManual').disabled=!preview;
