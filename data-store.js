@@ -15,6 +15,41 @@
   }
   const ready=('indexedDB' in window)?open():Promise.resolve(null);
   function done(tx){return new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});}
+  function cleanHistoryRecord(row){
+    if(!row||typeof row!=='object'||(!Object.hasOwn(row,'monto')&&!Object.hasOwn(row,'status')))return row;
+    const {monto,status,...record}=row;
+    return record;
+  }
+  function cleanHistoryValue(value){
+    try{
+      const parsed=JSON.parse(value);
+      if(!Array.isArray(parsed))return value;
+      const cleaned=parsed.map(cleanHistoryRecord);
+      return cleaned.some((row,i)=>row!==parsed[i])?JSON.stringify(cleaned):value;
+    }catch(_){return value;}
+  }
+  async function scrubCutHistory(){
+    const db=await ready;if(!db)return;
+    const tx=db.transaction(['kv','records'],'readwrite');
+    const kv=tx.objectStore('kv'),records=tx.objectStore('records');
+    const saved=kv.get('cnfl_order_history_v1');
+    saved.onsuccess=()=>{
+      const row=saved.result;
+      if(row){const value=cleanHistoryValue(row.value);if(value!==row.value)kv.put({...row,value});}
+    };
+    const cursor=records.openCursor();
+    cursor.onsuccess=()=>{
+      const item=cursor.result;
+      if(!item)return;
+      const row=item.value;
+      if(row.namespace==='cuts-history'){
+        const data=cleanHistoryRecord(row.data);
+        if(data!==row.data)item.update({...row,data});
+      }
+      item.continue();
+    };
+    await done(tx);
+  }
   async function snapshot(){
     const db=await ready;if(!db)return 0;
     const tx=db.transaction('kv','readwrite'),store=tx.objectStore('kv');
@@ -22,7 +57,12 @@
     for(let i=0;i<localStorage.length;i++){
       const key=localStorage.key(i);
       if(!key||!(key.startsWith('cnfl_')||key.startsWith('CNFL_')))continue;
-      store.put({key,value:localStorage.getItem(key),updatedAt:new Date().toISOString()});
+      let value=localStorage.getItem(key);
+      if(key==='cnfl_order_history_v1'){
+        const clean=cleanHistoryValue(value);
+        if(clean!==value){localStorage.setItem(key,clean);value=clean;}
+      }
+      store.put({key,value,updatedAt:new Date().toISOString()});
       count++;
     }
     await done(tx);return count;
@@ -43,6 +83,7 @@
     });
   }
   async function exportDb(){
+    await scrubCutHistory();
     const [kv,records]=await Promise.all([getAll('kv'),getAll('records')]);
     return {name:DB,version:VERSION,exportedAt:new Date().toISOString(),kv,records};
   }
@@ -56,6 +97,7 @@
       rows.forEach(row=>{store.put(row);out[name]++;});
       await done(tx);
     }
+    await scrubCutHistory();
     return out;
   }
   async function deleteRecordsByPrefix(namespace,prefix){
@@ -81,7 +123,7 @@
   window.CNFLStore={ready,snapshot,putRecord,exportDb,importDb,deleteRecordsByPrefix,counts};
   ready.then(db=>{
     if(!db)return;
-    snapshot().catch(()=>{});
+    scrubCutHistory().then(snapshot).catch(()=>{});
     setInterval(()=>snapshot().catch(()=>{}),5000);
     addEventListener('pagehide',()=>snapshot().catch(()=>{}));
   }).catch(err=>console.warn('[CNFL DB]',err));

@@ -61,3 +61,14 @@ test('revierte claves modificadas si el navegador rechaza el almacenamiento',asy
   assert.equal(el('restoreBtn').disabled,false);
   assert.match(el('restoreStatus').textContent,/No se pudo restaurar/);
 });
+
+test('al recibir una memoria antigua no vuelve a guardar monto ni estado histórico',async()=>{
+  const {context,values}=setup();
+  const data=backup({cnfl_order_history_v1:JSON.stringify([{orden:'7',localizacion:'1234567890',monto:'999',status:'avisado'}])});
+  await context.prepareRestore({target:{files:[file(data)]}});
+  await context.restoreBackup();
+  const row=JSON.parse(values.get('cnfl_order_history_v1'))[0];
+  assert.equal(row.monto,undefined);
+  assert.equal(row.status,undefined);
+  assert.equal(row.localizacion,'1234567890');
+});
