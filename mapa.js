@@ -55,8 +55,8 @@
     document.getElementById('undoManual').disabled=!stops.length;
     document.getElementById('clearManual').disabled=!stops.length;
     if(!stops.length)manualStatus.textContent='Elegí tu primera parada en el mapa.';
-    else if(manualTrace)manualStatus.textContent=stops.length+' paradas en tu orden · '+(manualTrace.meters/1000).toFixed(1)+' km · '+Math.round(manualTrace.seconds/60)+' min estimados'+(manualTrace.unfiltered?' · BORRADOR SIN FILTRO VIAL':'')+'.';
-    else manualStatus.textContent=stops.length+' paradas en tu orden. Línea visual entre puntos; tocá «Ver por calles» para revisar el trayecto.';
+    else if(manualTrace)manualStatus.textContent=stops.length+(stops.length===1?' parada':' paradas')+' en tu orden · '+(manualTrace.meters/1000).toFixed(1)+' km · '+Math.round(manualTrace.seconds/60)+' min estimados'+(manualTrace.unfiltered?' · BORRADOR SIN FILTRO VIAL':'')+'.';
+    else manualStatus.textContent=stops.length+(stops.length===1?' parada':' paradas')+' en tu orden. Línea visual entre puntos; tocá «Ver por calles» para revisar el trayecto.';
   }
   function visibleRows(){return window.CNFLFieldMapData.collect().filter(o=>(type==='todos'||o.type===type)&&(!pendingOnly||!o.done));}
   function popup(o){
@@ -68,9 +68,10 @@
   }
   function fit(){
     if(!map||!shown.length)return;
-    const bounds=L.latLngBounds(preview?preview.ordered.map(o=>[o.lat,o.lon]):manualKeys.length?manualStops().map(o=>[o.lat,o.lon]):shown.map(o=>[o.lat,o.lon]));
+    const bounds=L.latLngBounds(shown.map(o=>[o.lat,o.lon]));
+    if(manualKeys.length&&!preview)manualStops().forEach(o=>bounds.extend([o.lat,o.lon]));
     if(preview) bounds.extend([preview.start.lat,preview.start.lon]);
-    if(shown.length===1&&!preview) map.setView(bounds.getCenter(),17);
+    if(shown.length===1&&!preview&&!manualKeys.length) map.setView(bounds.getCenter(),17);
     else map.fitBounds(bounds,{padding:[24,24],maxZoom:17});
   }
   function render(){
@@ -155,7 +156,7 @@
       manualStatus.textContent='Trazando tu orden por calles…';
       const result=await window.CNFLRoutePreview.traceOrdered(stops,fetch,message=>{if(token===manualToken)manualStatus.textContent=message;},{unfiltered});
       if(token!==manualToken)return;
-      manualTrace=result;render();fit();
+      manualTrace=result;render();map.fitBounds(L.latLngBounds(stops.map(o=>[o.lat,o.lon])),{padding:[24,24],maxZoom:17});
     }catch(error){if(token===manualToken){manualStatus.textContent=error.message;manualDraft=error.code==='FILTER_UNAVAILABLE'&&!unfiltered;document.getElementById('manualUnfiltered').hidden=!manualDraft;}}
     finally{if(token===manualToken)button.disabled=false;}
   }
