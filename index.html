@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CNFL — Terminal de Operaciones en Campo</title>
-  <link rel="stylesheet" href="style.css?v=20261028-share1" />
+  <link rel="stylesheet" href="style.css?v=20261028-close1" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <meta name="theme-color" content="#001D40" />
   <link rel="manifest" href="manifest.json" />
@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="CNFL Campo" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <link rel="stylesheet" href="campo-shell.css?v=20261026-navfix2" />
+  <link rel="stylesheet" href="campo-shell.css?v=20261028-design1" />
   <script src="data-store.js?v=20261028-memory1"></script>
 </head>
 <body>
@@ -81,12 +81,12 @@
 
       <div class="card-panel" style="margin-top:12px">
         <h3 class="panel-title"><i class="fa-solid fa-file-pdf" style="color:var(--cnfl-cyan)"></i> Importar PDF de Desconexiones</h3>
-        <p class="panel-desc">Carga el PDF oficial de CNFL (<em>"LISTADO DE DESCONEXIONES EN MÓVILES"</em>). El motor extraerá las órdenes automáticamente.</p>
+        <p class="panel-desc"><strong>Formato de cortes:</strong> «LISTADO DE DESCONEXIONES EN MÓVILES». Se comprueban orden, localización, NIS, medidor y monto antes de cargar. Los PDFs de lectura usan otro módulo.</p>
         <div class="upload-dropzone" onclick="document.getElementById('pdfFileInput').click()">
           <input type="file" id="pdfFileInput" accept=".pdf" style="display:none" onchange="handlePdfUpload(event)" />
           <i class="fa-solid fa-file-arrow-up" style="font-size:32px;color:var(--cnfl-cyan);margin-bottom:8px;display:block"></i>
           <p style="color:#fff;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.3px">Seleccionar archivo PDF</p>
-          <p style="color:var(--text-muted);font-size:11px;margin-top:4px">Compatible con reportes oficiales CNFL Zona 50</p>
+          <p style="color:#C7DDF0;font-size:11px;margin-top:4px">Solo listado de desconexiones · revisá el resultado de la importación</p>
         </div>
         <div id="pdfLoadingStatus" style="display:none;margin-bottom:12px;padding:9px;background:rgba(0,163,224,0.1);border:1px solid var(--cnfl-cyan);border-radius:var(--radius-xs);font-size:12px;color:#7DD3FC;text-align:center"><i class="fa-solid fa-spinner fa-spin"></i> Extrayendo órdenes y asociando coordenadas...</div>
       </div>
@@ -123,15 +123,22 @@
     </section>
 
     <section id="tab-resumen" class="tab-view">
-      <div class="card-panel">
-        <h3 class="panel-title"><i class="fa-solid fa-clipboard-list" style="color:#86EFAC"></i> Reporte Oficial de Liquidación</h3>
-        <p class="panel-desc">Documento estructurado con lecturas, sellos instalados/retirados y observaciones para remisión formal a jefatura.</p>
-        <div class="liquidation-box" id="liquidationSummaryText">Generando reporte de cuadrilla...</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-          <button class="btn-primary" onclick="copyLiquidation()"><i class="fa-solid fa-copy"></i> Copiar Texto</button>
-          <button class="btn-primary" style="background:#006AA6" onclick="shareWhatsAppLiquidation()"><i class="fa-brands fa-whatsapp"></i> Enviar a WhatsApp</button>
-        </div>
+      <section class="closeout-head">
+        <div class="closeout-eyebrow">CORTES · JORNADA ACTIVA</div>
+        <h2>Cierre de jornada</h2>
+        <p>Revisá lo gestionado y compartí el resultado cuando estés listo.</p>
+        <div id="closeoutMetrics" class="closeout-metrics" role="status"></div>
+      </section>
+      <div class="closeout-actions">
+        <button type="button" onclick="shareWhatsAppLiquidation()"><i class="fa-brands fa-whatsapp"></i> COMPARTIR REPORTE</button>
+        <button type="button" onclick="downloadLiquidationCsv()"><i class="fa-solid fa-table"></i> DESCARGAR TABLA CSV</button>
       </div>
+      <div id="closeoutGroups" class="closeout-groups"></div>
+      <details class="closeout-text-panel">
+        <summary>VER REPORTE COMPLETO <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+        <div class="liquidation-box" id="liquidationSummaryText">Generando reporte...</div>
+        <button type="button" onclick="copyLiquidation()"><i class="fa-solid fa-copy"></i> COPIAR REPORTE</button>
+      </details>
     </section>
 
     <section id="tab-historial" class="tab-view">
@@ -157,7 +164,7 @@
   <nav class="bottom-nav">
     <button class="nav-tab-btn active" onclick="switchTab('ruta', this)"><i class="fa-solid fa-route"></i><span>Ruta</span></button>
     <button class="nav-tab-btn" onclick="switchTab('cargar', this)"><i class="fa-solid fa-upload"></i><span>Cargar</span></button>
-    <button class="nav-tab-btn" onclick="switchTab('resumen', this)"><i class="fa-solid fa-file-lines"></i><span>Liquidación</span></button>
+    <button class="nav-tab-btn" onclick="switchTab('resumen', this)"><i class="fa-solid fa-file-lines"></i><span>Cierre</span></button>
     <button class="nav-tab-btn" onclick="switchTab('historial', this)"><i class="fa-solid fa-clock-rotate-left"></i><span>Memoria</span></button>
     <button class="nav-tab-btn" type="button" onclick="openCutsMap()"><i class="fa-solid fa-map-location-dot"></i><span>Mapa</span></button>
   </nav>
@@ -184,10 +191,11 @@
 
   <script src="cuts-manual-order.js?v=20261028-map-bridge1"></script>
   <script src="order-share.js?v=20261028-share1"></script>
-  <script src="app.js?v=20261028-share1"></script>
+  <script src="cuts-liquidation.js?v=20261028-close1"></script>
+  <script src="app.js?v=20261028-close1"></script>
   <script src="telegram-fix.js?v=20261001-1"></script>
   <script src="route-optimizer.js?v=20261019-6"></script>
-  <script src="campo-shell.js?v=20261026-navfix2"></script>
+  <script src="campo-shell.js?v=20261028-design1"></script>
 </body>
 </html>
 

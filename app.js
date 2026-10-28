@@ -580,7 +580,7 @@ function renderOrders() {
 
   if (list.length === 0) {
     const emptyMsg = activeFilter === 'pending'
-      ? '¡Todas las órdenes han sido gestionadas! Revisa la pestaña Liquidación para enviar el reporte.'
+      ? '¡Todas las órdenes han sido gestionadas! Revisá Cierre para compartir el reporte.'
       : (activeFilter === 'done' ? 'Aún no has gestionado ninguna orden.' : 'No hay órdenes que coincidan con la búsqueda.');
 
     container.innerHTML = `
@@ -2007,8 +2007,7 @@ function generateLiquidationText() {
 
   return `==================================================
 COMPAÑÍA NACIONAL DE FUERZA Y LUZ
-REPORTE OFICIAL DE LIQUIDACIÓN — ZONA 50
-Técnico: Ramírez Artavia Sebastián
+CIERRE DE JORNADA — CORTES / RECONEXIONES
 Fecha: ${dateStr} | Hora: ${timeStr}
 ==================================================
 RESUMEN DE GESTIÓN EN CAMPO:
@@ -2030,26 +2029,75 @@ ${orderedOrders.length
   ? orderedOrders.map((o, i) => miniReport(o, i)).join('\n\n')
   : 'Sin órdenes gestionadas todavía.'}
 ==================================================
-Fin de Reporte Oficial de Cuadrilla CNFL`;
+Fin del resumen de gestión de campo`;
 }
 
 function updateLiquidation() {
   const container = document.getElementById('liquidationSummaryText');
-  if (container) {
-    container.innerText = generateLiquidationText();
-  }
+  if (container) container.innerText = generateLiquidationText();
+  const metrics=document.getElementById('closeoutMetrics');
+  const groups=document.getElementById('closeoutGroups');
+  if(!metrics||!groups||!window.CNFLCutsLiquidation)return;
+  const report=window.CNFLCutsLiquidation.snapshot(workOrders);
+  metrics.innerHTML=`
+    <div><strong>${report.managed}</strong><span>GESTIONADAS</span></div>
+    <div><strong>${report.pending}</strong><span>PENDIENTES</span></div>
+    <div><strong>${report.total}</strong><span>ASIGNADAS</span></div>`;
+  const active=report.groups.filter(group=>group.rows.length);
+  groups.innerHTML=active.length?active.map(group=>`
+    <section class="closeout-group">
+      <h3>${cnflEscapeHtml(group.label)} <span>${group.rows.length}</span></h3>
+      ${group.rows.map(order=>{
+        const index=workOrders.indexOf(order);
+        return `<button type="button" class="closeout-row" onclick="focusLiquidationOrder(${index})">
+          <span><strong>Localización ${cnflEscapeHtml(order.localizacion||'N/D')}</strong>
+          <small>Orden ${cnflEscapeHtml(order.orden||'N/D')} · Medidor ${cnflEscapeHtml(order.medidor||order.meter||'N/D')}</small></span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </button>`;
+      }).join('')}
+    </section>`).join(''):'<div class="closeout-empty">Todavía no hay gestiones. Registrá el resultado en la orden y aparecerá aquí.</div>';
 }
 
-function copyLiquidation() {
+function focusLiquidationOrder(index){
+  const order=workOrders[index];
+  if(!order)return;
+  setRouteFilter('all',document.getElementById('btnFilterAll'));
+  const query=String(order.localizacion||order.nis||order.medidor||'').trim();
+  document.getElementById('orderSearchInput').value=query;
+  handleSearch(query);
+  switchTab('ruta',document.querySelectorAll('.nav-tab-btn')[0]);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function downloadLiquidationCsv(){
+  const report=window.CNFLCutsLiquidation.snapshot(workOrders);
+  if(!report.managed){showToast('Todavía no hay gestiones para exportar.');return;}
+  const blob=new Blob([window.CNFLCutsLiquidation.csv(report)],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const anchor=document.createElement('a');
+  anchor.href=url;anchor.download=`cierre-cortes-${cnflLocalDateKey()}.csv`;
+  document.body.appendChild(anchor);anchor.click();anchor.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  showToast('Tabla descargada. Revisá los datos antes de enviarla.');
+}
+
+async function copyLiquidation() {
   const text = generateLiquidationText();
-  navigator.clipboard.writeText(text).then(() => {
+  try {await navigator.clipboard.writeText(text);
     showToast('Reporte copiado al portapapeles.');
-  });
+  }catch(_){showToast('No se pudo copiar. Abrí el reporte completo para seleccionar el texto.');}
 }
 
-function shareWhatsAppLiquidation() {
-  const text = encodeURIComponent(generateLiquidationText());
-  window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+async function shareWhatsAppLiquidation() {
+  if(!workOrders.some(o=>o.status&&o.status!=='pending')){
+    showToast('Todavía no hay gestiones para compartir.');return;
+  }
+  const report=generateLiquidationText();
+  if(navigator.share){
+    try{await navigator.share({title:'Cierre de jornada · cortes',text:report});return;}
+    catch(error){if(error.name==='AbortError')return;}
+  }
+  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(report)}`, '_blank');
 }
 
 let paymentShareData=null, paymentShareFile=null, paymentShareUrl=null, paymentShareToken=0, paymentShareForceDownload=false;

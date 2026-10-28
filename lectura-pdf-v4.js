@@ -289,6 +289,9 @@ function parseUniversalReadingRows(layoutPages,fullText='') {
   return {rows,expectedCount:expected,parser:'universal-row-v4'};
 }
 function parseReadingPdfLayout(layoutPages,fullText='') {
+  if(normalizeReadingPdfText(fullText).includes('listado de desconexiones en moviles')) {
+    throw new Error('Este PDF es de desconexiones. Abrilo en Cortes; aquí se cargan lecturas. No se modificó la jornada.');
+  }
   const universal=parseUniversalReadingRows(layoutPages,fullText);
   if(universal) return universal;
 

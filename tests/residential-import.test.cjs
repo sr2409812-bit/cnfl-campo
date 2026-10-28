@@ -84,3 +84,12 @@ test('two PDFs disagreeing on a location are rejected before saving', async () =
   assert.equal(app.context.readingOrders.length,0);
   assert.match(app.alerts[0],/medidores distintos/);
 });
+
+test('el lector de medidores rechaza un listado de desconexiones aunque contenga números',()=>{
+  const context=vm.createContext({console});
+  vm.runInContext(fs.readFileSync('lectura-pdf-v4.js','utf8'),context);
+  assert.throws(
+    ()=>context.parseReadingPdfLayout([], 'LISTADO DE DESCONEXIONES EN MÓVILES Localización 0101000050 Medidor 925995'),
+    /Abrilo en Cortes/
+  );
+});

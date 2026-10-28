@@ -1384,3 +1384,31 @@ body.map-overlay-open{overflow:hidden}
 .payment-share-panel>small{display:block;color:#596B7C;line-height:1.4;margin-top:12px}
 body.payment-share-open{overflow:hidden}
 @media(max-width:390px){.client-header{flex-wrap:wrap}.monto-val{margin-left:auto}.order-top-row .gps-verified-tag{margin-left:0}.payment-share-buttons{grid-template-columns:1fr}}
+
+/* Cierre de jornada: resumen primero; detalle y texto solo si se necesitan. */
+.closeout-head{background:#00264D;color:#fff;border-radius:16px;padding:20px 16px;margin-bottom:12px;box-shadow:0 10px 25px rgba(0,38,77,.14)}
+.closeout-eyebrow{font-size:11px;font-weight:900;letter-spacing:.1em;color:#A7D7FF}
+.closeout-head h2{font-size:24px;line-height:1.2;margin:5px 0 4px}
+.closeout-head p{font-size:13px;color:#DAE7F5;line-height:1.45}
+.closeout-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:16px}
+.closeout-metrics div{padding:12px 4px;background:#103E68;border:1px solid #335B7C;border-radius:11px;text-align:center}
+.closeout-metrics strong{display:block;font-size:25px;line-height:1.1;color:#fff}
+.closeout-metrics span{display:block;font-size:9px;font-weight:900;color:#DAE7F5;letter-spacing:.03em;margin-top:4px}
+.closeout-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px}
+.closeout-actions button,.closeout-text-panel button{display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #0033A0;background:#0033A0;color:#fff;border-radius:10px;min-height:54px;padding:10px;font-size:11px;font-weight:900;line-height:1.25;cursor:pointer}
+.closeout-actions button+button{background:#fff;color:#0033A0}
+.closeout-actions i{font-size:16px}
+.closeout-group{background:#fff;border:1px solid #D4DFEA;border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,38,77,.05)}
+.closeout-group h3{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;margin:0;background:#EFF5FB;color:#00264D;font-size:14px}
+.closeout-group h3 span{background:#0033A0;color:#fff;min-width:28px;text-align:center;padding:4px 7px;border-radius:8px}
+.closeout-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:12px 14px;border:0;border-top:1px solid #E5EBF1;background:#fff;color:#00264D;text-align:left;cursor:pointer}
+.closeout-row strong{display:block;font-size:13px}.closeout-row small{display:block;color:#53677B;font-size:11px;margin-top:4px;overflow-wrap:anywhere}
+.closeout-row i{color:#0033A0}.closeout-row:focus-visible{outline:3px solid #FF6A13;outline-offset:-3px}
+.closeout-empty{background:#fff;color:#40566C;border:1px solid #D4DFEA;border-radius:12px;padding:20px;line-height:1.45;font-size:13px}
+.closeout-text-panel{margin:16px 0 22px;background:#fff;border:1px solid #D4DFEA;border-radius:12px;padding:0 13px 13px}
+.closeout-text-panel>summary{display:flex;justify-content:space-between;align-items:center;list-style:none;min-height:52px;color:#0033A0;font-size:12px;font-weight:900;cursor:pointer}
+.closeout-text-panel>summary::-webkit-details-marker{display:none}
+.closeout-text-panel[open]>summary i{transform:rotate(180deg)}
+.closeout-text-panel .liquidation-box{max-height:45vh;overflow:auto;overflow-wrap:anywhere;background:#F5F8FB;border-radius:9px;color:#102A43}
+.closeout-text-panel button{width:100%;margin-top:10px}
+@media(max-width:350px){.closeout-actions{grid-template-columns:1fr}.closeout-head h2{font-size:21px}}
