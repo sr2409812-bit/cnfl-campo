@@ -1412,3 +1412,30 @@ body.payment-share-open{overflow:hidden}
 .closeout-text-panel .liquidation-box{max-height:45vh;overflow:auto;overflow-wrap:anywhere;background:#F5F8FB;border-radius:9px;color:#102A43}
 .closeout-text-panel button{width:100%;margin-top:10px}
 @media(max-width:350px){.closeout-actions{grid-template-columns:1fr}.closeout-head h2{font-size:21px}}
+
+/* Cargar cortes: una decisión a la vez, con revisión antes de cambiar la jornada. */
+.load-current{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 12px;color:#00264D}
+.load-current strong{font-size:19px;line-height:1.2}
+.load-current span{flex:none;background:#E7F1FB;color:#00336B;padding:8px 10px;border-radius:9px;font-size:12px;font-weight:800}
+button.upload-dropzone{display:block;width:100%;min-height:100px;margin:0;background:#F2F7FC;border:2px dashed #91AFCB;border-radius:12px;color:#00336B;font-family:inherit}
+button.upload-dropzone strong{display:block;font-size:15px;line-height:1.3}
+button.upload-dropzone small{display:block;margin-top:5px;font-size:12px;color:#475A70;font-weight:500}
+button.upload-dropzone:focus-visible{outline:3px solid #FF6A13;outline-offset:2px}
+.pdf-load-status{margin-top:12px;padding:12px;border-radius:9px;background:#E7F1FB;color:#00264D;font-size:13px}
+.pdf-load-status[hidden],.cuts-pdf-review[hidden]{display:none}
+.cuts-pdf-review{margin-top:12px;background:#EAF5ED;border:1px solid #99C9AC;border-left:4px solid #168A5B;border-radius:10px;padding:14px;color:#123B2A}
+.cuts-pdf-review h4{margin:0 0 6px;font-size:16px}
+.cuts-pdf-review p{font-size:13px;line-height:1.5;margin:0 0 14px;white-space:pre-wrap}
+.cuts-pdf-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cuts-pdf-review-actions button{min-height:48px;border:1px solid #087855;border-radius:9px;background:#087855;color:#fff;font-size:12px;font-weight:800;cursor:pointer}
+.cuts-pdf-review-actions button+button{background:#fff;color:#075845}
+.load-more{margin:14px 0 20px;border:1px solid #C9D7E5;border-radius:12px;background:#fff;padding:0 12px 12px}
+.load-more>summary{min-height:52px;display:flex;align-items:center;color:#00336B;font-size:13px;font-weight:800;cursor:pointer}
+.load-more>summary:focus-visible,.route-options>summary:focus-visible{outline:3px solid #FF6A13;outline-offset:2px}
+.load-backup-link{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;margin-bottom:10px;border:1px solid #0033A0;border-radius:9px;text-decoration:none;color:#0033A0;font-size:13px;font-weight:800}
+.load-more .btn-danger{width:100%;min-height:48px;color:#9B261C;background:#FFF5F2;border:1px solid #DBB2AD;border-radius:9px;font-weight:800}
+.route-options{grid-column:1/-1;color:#00336B}
+.route-options>summary{min-height:36px;font-size:12px;font-weight:700;cursor:pointer}
+.route-options .btn-reorder{width:100%;min-height:44px;border-radius:9px}
+.route-summary-banner.manual-active .route-options{display:none}
+@media(max-width:390px){.cuts-pdf-review-actions{grid-template-columns:1fr}.load-current strong{font-size:17px}}
