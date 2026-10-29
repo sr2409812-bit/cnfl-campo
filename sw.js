@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v57';
+const CACHE_NAME = 'cnfl-campo-v58';
 
 const CORE_ASSETS = [
   './',
@@ -13,6 +13,7 @@ const CORE_ASSETS = [
   './order-share.js',
   './cuts-liquidation.js',
   './cuts-manual-order.js',
+  './field-route.js',
   './telegram-fix.js',
   './route-optimizer.js',
   './manifest.json',

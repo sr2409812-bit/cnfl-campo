@@ -65,8 +65,8 @@
       (o.type==='cortes'?'<details class="quick-status"><summary>CAMBIAR ESTADO DE ESTA ORDEN</summary><div class="quick-grid">'+[['cortado','Cortado'],['avisado','Avisado'],['reconectado','Reconectado'],['pago','Pagó sitio'],['no_acceso','Sin acceso'],['pending','Devolver a pendiente']].map(([value,label])=>'<button type="button" data-status="'+value+'" '+((o.done?value==='pending':value!=='pending')?'':'disabled')+'>'+label+'</button>').join('')+'</div></details>':'');
     document.getElementById('closeSelected').onclick=()=>{selectedKey=null;selectedPanel.hidden=true;};
     document.getElementById('addSelected').onclick=()=>addManual(o);
-    if(embedded&&o.type==='cortes')document.querySelector('.selected-actions a').onclick=event=>{
-      event.preventDefault();window.parent.postMessage({kind:'cnfl:open-cut',loc:o.loc},location.origin);
+    if(embedded)document.querySelector('.selected-actions a').onclick=event=>{
+      event.preventDefault();window.parent.postMessage({kind:'cnfl:open-work',type:o.type,loc:o.loc},location.origin);
     };
     selectedPanel.querySelectorAll('[data-status]').forEach(button=>button.onclick=()=>{
       if(!window.CNFLFieldMapData.setCutStatus(o.loc,o.orderId,button.dataset.status)){manualStatus.textContent='No pude actualizar la orden. Revisá el almacenamiento del teléfono.';return;}

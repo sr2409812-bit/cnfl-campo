@@ -88,8 +88,9 @@ button:disabled{opacity:.48}
   .selected-panel .sheet-header{position:sticky;top:-14px;background:#fff;z-index:1;padding-top:8px}
   .nearby-item{min-height:46px}
 }
-.embedded-map .topbar,.embedded-map .intro,.embedded-map .filters,.embedded-map .map-note,.embedded-map .list-head,.embedded-map .map-list,.embedded-map .preview-panel,.embedded-map .cnfl-module-chip,.embedded-map #cnflGlobalMenu,.embedded-map #cnflGlobalDrawer,.embedded-map #cnflGlobalScrim{display:none!important}
+.embedded-map .topbar,.embedded-map .intro,.embedded-map .map-note,.embedded-map .list-head,.embedded-map .map-list,.embedded-map .preview-panel,.embedded-map .cnfl-module-chip,.embedded-map #cnflGlobalMenu,.embedded-map #cnflGlobalDrawer,.embedded-map #cnflGlobalScrim{display:none!important}
 .embedded-map main{padding:8px 10px 20px}
 .embedded-map #fieldMap{height:59dvh;max-height:none}
 .embedded-map .map-toolbar{margin-bottom:6px}
+.embedded-map .filters{margin:0 0 8px}
 @media(max-width:390px){.map-toolbar{flex-wrap:wrap}.map-toolbar span{flex-basis:100%}.map-toolbar button{flex:1}}

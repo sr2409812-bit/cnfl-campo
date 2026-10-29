@@ -27,7 +27,7 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
 .badge{font-size:11px;padding:4px 7px;border-radius:999px;background:#eef2f6}.badge.ok{background:#e2f4e8;color:#0b5d2a}.current{outline:2px solid var(--orange);border-radius:6px}
 .notice{font-size:12px;color:var(--muted);margin-top:10px}
 </style>
-  <link rel="stylesheet" href="campo-shell.css?v=20261028-design1" />
+  <link rel="stylesheet" href="campo-shell.css?v=20261029-unified1" />
   <script src="data-store.js?v=20261019-1"></script>
 </head>
 <body>
@@ -40,9 +40,9 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
     <div class="stat"><b id="doneCount">0</b><span class="label">GESTIONADAS</span></div>
     <div class="stat"><b id="currentNum">1</b><span class="label">ACTUAL</span></div>
   </div>
-  <button id="optBtn" class="optimize" onclick="optimizeFromHere()">ORDENAR RUTA · EVITAR DEVOLVERSE</button>
-  <div id="routeStatus" class="routeStatus">Podés empezar en cualquier parada o dejar que la app ordene los pendientes desde donde estás.</div>
-  <a href="mapa.html?tipo=notificaciones" class="btn maps" style="margin-top:10px">VER NOTIFICACIONES EN EL MAPA</a>
+  <button class="maps" style="width:100%" onclick="cnflOpenSharedMap('notificaciones')">ARMAR EN EL MAPA</button>
+  <div id="routeStatus" class="routeStatus">Elegí el orden de las paradas en el mapa.</div>
+  <details><summary>Orden automático opcional</summary><button id="optBtn" class="optimize" onclick="optimizeFromHere()">ORDENAR DESDE MI UBICACIÓN</button></details>
 </div>
 
 <div class="card">
@@ -72,6 +72,7 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
 </main>
 
 <script src="notification-stops.js?v=20261026-map1"></script>
+<script src="field-route.js?v=20261029-unified1"></script>
 <script>
 const DEFAULT_STOPS=window.CNFL_NOTIFICATION_STOPS;
 const KEY="cnfl_notificaciones_20261019_v2";
@@ -106,6 +107,30 @@ function currentStops(){
   return ordered;
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function applyNotificationMapRoute(){
+  const keys=window.CNFLFieldRoute.read(localStorage).filter(key=>key.startsWith('notificaciones:'));
+  const signature=JSON.stringify(keys);
+  if(state.manualRouteSignature===signature)return;
+  const current=state.order[state.index];
+  const plan=keys.length?window.CNFLFieldRoute.arrange(currentStops().map(s=>({localizacion:s[0],done:!!state.done[s[0]]})),keys,'notificaciones',s=>!s.done):null;
+  if(plan&&plan.chosen){
+    if(!state.manualChosen)state.preManualOrder=[...state.order];
+    state.order=plan.orders.map(s=>s.localizacion);
+    state.manualChosen=plan.chosen;
+    state.meta=null;
+  }else if(state.manualChosen){
+    const old=state.order;
+    state.order=[...(state.preManualOrder||[])].filter(loc=>old.includes(loc));
+    old.forEach(loc=>{if(!state.order.includes(loc))state.order.push(loc)});
+    state.manualChosen=0;delete state.preManualOrder;
+  }
+  state.manualRouteSignature=signature;
+  state.index=plan&&plan.chosen?Math.max(0,state.order.findIndex(loc=>!state.done[loc])):Math.max(0,state.order.indexOf(current));
+  save();render();
+}
+window.cnflApplyFieldRoute=applyNotificationMapRoute;
+window.cnflFocusWorkFromMap=loc=>{const index=state.order.indexOf(loc);if(index>=0){state.index=index;save();render();scrollTo({top:0,behavior:'smooth'})}};
+window.addEventListener('storage',event=>{if(event.key==='cnfl_manual_route_v1')applyNotificationMapRoute()});
 function render(){
   const stops=currentStops();
   if(!stops.length)return;
@@ -124,7 +149,9 @@ function render(){
   if(!undo.hidden) undo.textContent='DESHACER · '+state.lastAction.loc;
 
   const rs=document.getElementById("routeStatus");
-  if(state.meta&&state.meta.optimizedAt){
+  if(state.manualChosen){
+    rs.textContent='Mi ruta del mapa · '+state.manualChosen+' paradas elegidas. Siguiente sigue el orden que armaste.';
+  } else if(state.meta&&state.meta.optimizedAt){
     const when=new Date(state.meta.optimizedAt).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
     const km=Number.isFinite(state.meta.meters)?(" · "+(state.meta.meters/1000).toFixed(1)+" km aprox."):"";
     const ctl=state.meta.control?(" · control "+state.meta.control):"";
@@ -144,6 +171,13 @@ const CONTROL_SEQUENCE=["02","04","06","07","08","09","14","16","40"];
 function controlOf(loc){return String(loc||"").slice(0,2)}
 function nextPending(from){
   const stops=currentStops();
+  if(state.manualChosen){
+    for(let k=1;k<=stops.length;k++){
+      const idx=(from+k)%stops.length;
+      if(!state.done[stops[idx][0]])return idx;
+    }
+    return from;
+  }
   const currentControl=controlOf(stops[from]&&stops[from][0]);
 
   // 1) Mientras queden pendientes del control actual, NO saltar a otro control.
@@ -310,6 +344,7 @@ async function optimizeFromHere(){
     const otherPending=before.filter(s=>!state.done[s[0]] && controlOf(s[0])!==activeControl).map(s=>s[0]);
     const managed=before.filter(s=>state.done[s[0]]).map(s=>s[0]);
     state.order=[...orderedPending,...otherPending,...managed];
+    state.manualChosen=0;delete state.preManualOrder;
     state.index=Math.max(0,state.order.indexOf(currentLoc));
     if(state.index<0) state.index=0;
 
@@ -325,8 +360,8 @@ async function optimizeFromHere(){
     btn.disabled=false;btn.textContent=old;
   }
 }
-render();
+applyNotificationMapRoute();
 </script>
-  <script src="campo-shell.js?v=20261028-design1"></script>
+  <script src="campo-shell.js?v=20261029-unified1"></script>
 </body>
 </html>
