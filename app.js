@@ -330,12 +330,19 @@ async function initOrders() {
 
 // Vaciar bandeja de órdenes para iniciar nueva jornada o cargar archivo nuevo
 function clearWorkOrders() {
-  const conf = confirm('¿Deseas vaciar la bandeja de órdenes actual para cargar un archivo nuevo o iniciar de cero?');
+  if (!workOrders.length) { showToast('No hay órdenes que vaciar.'); return; }
+  const conf = confirm(`Se borrarán ${workOrders.length} órdenes de esta jornada y sus resultados. Guardá un respaldo antes de continuar. ¿Vaciar órdenes?`);
   if (!conf) return;
 
-  archiveOrdersToHistory(workOrders);
+  try {
+    archiveOrdersToHistory(workOrders);
+    localStorage.setItem('cnfl_work_orders', JSON.stringify([]));
+  } catch (error) {
+    showToast('No se pudo vaciar. Tus órdenes siguen en este teléfono.');
+    return;
+  }
+  cancelCutsPdfImport();
   workOrders = [];
-  localStorage.setItem('cnfl_work_orders', JSON.stringify([]));
   localStorage.removeItem('cnfl_gps_batch_stage');
   localStorage.removeItem('cnfl_last_route_meta');
   localStorage.removeItem('cnfl_pdf_batch_stale');
@@ -347,53 +354,8 @@ function clearWorkOrders() {
   switchTab('cargar', document.querySelectorAll('.nav-tab-btn')[1]);
 }
 
-// Forzar recarga de las 41 órdenes oficiales desde el servidor (evitando caché)
-async function forceReloadTodayOrders() {
-  showToast('Descargando listado oficial de hoy...');
-  try {
-    const res = await fetch('orders_today.json?cb=' + Date.now(), { cache: 'no-store' });
-    if (res.ok) {
-      workOrders = await res.json();
-      enrichOrdersWithCache();
-      localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
-      archiveOrdersToHistory(workOrders, cnflLocalDateKey());
-      setRouteFilter('pending', document.getElementById('btnFilterPending'));
-      renderOrders();
-      updateLiquidation();
-      updateTgCommandsCount();
-      showToast(`¡Listo! Cargadas ${workOrders.length} órdenes oficiales.`);
-      switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
-      return;
-    }
-  } catch (e) {
-    console.error('Error al forzar recarga:', e);
-  }
-  showToast('No se pudo descargar orders_today.json');
-}
-
-// Cargar las órdenes de hoy (41 órdenes oficiales)
-async function loadTodayPreloadedOrders() {
-  try {
-    const res = await fetch('orders_today.json?cb=' + Date.now(), { cache: 'no-store' });
-    if (res.ok) {
-      workOrders = await res.json();
-      enrichOrdersWithCache();
-      localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
-      setRouteFilter('pending', document.getElementById('btnFilterPending'));
-      renderOrders();
-      updateLiquidation();
-      updateTgCommandsCount();
-      showToast(`Cargadas ${workOrders.length} órdenes oficiales de la jornada.`);
-      return;
-    }
-  } catch (e) {
-    console.warn('No se pudo cargar orders_today.json:', e);
-  }
-  loadDemoOrders();
-}
-
-function enrichOrdersWithCache() {
-  for (const ord of workOrders) {
+function enrichOrdersWithCache(orders = workOrders) {
+  for (const ord of orders) {
     const rawLoc = (ord.localizacion || '').trim();
     const loc = (typeof normalizeCnflLocalization === 'function')
       ? normalizeCnflLocalization(rawLoc)
@@ -845,12 +807,12 @@ function calculateRouteDistance() {
   const autoButton=document.querySelector('.header-actions .btn-optimize');
   if(autoButton)autoButton.hidden=manual.chosen>0;
   if(manual.chosen>0){
-    document.getElementById('routeStatusTitle').innerText='RUTA ARMADA EN EL MAPA';
+    document.getElementById('routeStatusTitle').innerText='MI ORDEN DE VISITA';
     subtitle.innerText=`${manual.chosen} de ${manual.pending} pendientes ordenadas · las demás quedan al final`;
     return;
   }
-  if(document.getElementById('routeStatusTitle')?.innerText==='RUTA ARMADA EN EL MAPA')
-    document.getElementById('routeStatusTitle').innerText='RUTA ACTIVA DE OPERACIÓN';
+  if(document.getElementById('routeStatusTitle'))
+    document.getElementById('routeStatusTitle').innerText='ORDEN DE VISITA';
 
   const pendingCount = workOrders.filter(o => o.status === 'pending').length;
   if (pendingCount === 0) {
@@ -874,11 +836,7 @@ function calculateRouteDistance() {
     return;
   }
 
-  if (workOrders.some(o => o.status !== 'pending')) {
-    subtitle.innerText = `${pendingCount} pendientes · toca “Recalcular desde aquí” para actualizar la ruta`;
-  } else {
-    subtitle.innerText = `${pendingCount} paradas pendientes · ruta vial aún no calculada`;
-  }
+  subtitle.innerText = `${pendingCount} pendientes · armá el orden en el mapa o seguí la lista`;
 }
 
 function setOrderStatus(id, newStatus) {
@@ -1398,14 +1356,77 @@ function mergeCnflFieldProgress(previousOrders, freshOrders) {
   });
 }
 
+let cutsPdfStage = null;
+
+function cancelCutsPdfImport() {
+  cutsPdfStage = null;
+  const review = document.getElementById('cutsPdfReview');
+  if (review) review.hidden = true;
+}
+
+function reviewCutsPdfImport(orders, journeyDate, fileName) {
+  cutsPdfStage = {orders};
+  const current = new Set(workOrders.map(o => String(o.orden || '').replace(/\D/g, '')).filter(Boolean));
+  const incoming = new Set(orders.map(o => String(o.orden || '').replace(/\D/g, '')).filter(Boolean));
+  const same = orders.filter(o => current.has(String(o.orden || '').replace(/\D/g, ''))).length;
+  const missing = workOrders.filter(o => !incoming.has(String(o.orden || '').replace(/\D/g, '')));
+  const managedMissing = missing.filter(o => o.status && o.status !== 'pending').length;
+  const summary = document.getElementById('cutsPdfReviewText');
+  const review = document.getElementById('cutsPdfReview');
+  if (!summary || !review) return;
+  summary.textContent = `${fileName}: ${orders.length} órdenes encontradas. ` +
+    `${same} ya estaban en tu jornada y conservarán sus resultados. ` +
+    `${missing.length} órdenes actuales no están en este PDF y saldrán de la bandeja.` +
+    (managedMissing ? ` Atención: ${managedMissing} de ellas ya fueron gestionadas. Guardá un respaldo antes de reemplazarlas.` : '');
+  review.hidden = false;
+  review.scrollIntoView?.({behavior:'smooth',block:'nearest'});
+}
+
+async function confirmCutsPdfImport() {
+  const stage = cutsPdfStage;
+  if (!stage) return;
+  const incoming = new Set(stage.orders.map(o => String(o.orden || '').replace(/\D/g, '')).filter(Boolean));
+  const managedMissing = workOrders.filter(o => o.status && o.status !== 'pending' && !incoming.has(String(o.orden || '').replace(/\D/g, ''))).length;
+  if (managedMissing && !confirm(`${managedMissing} órdenes gestionadas no aparecen en el PDF nuevo. Sus resultados saldrán de la jornada actual. ¿Ya guardaste un respaldo y querés continuar?`)) return;
+
+  const previousOrders = [...workOrders];
+  let next;
+  try {
+    next = mergeCnflFieldProgress(previousOrders, stage.orders);
+    enrichOrdersWithCache(next);
+    archiveOrdersToHistory(previousOrders);
+    // Guardar primero; si el navegador no tiene espacio, la jornada anterior sigue intacta.
+    localStorage.setItem('cnfl_work_orders', JSON.stringify(next));
+  } catch (error) {
+    showToast('No se pudo guardar. Tus órdenes anteriores siguen en la jornada.');
+    console.error('Error al confirmar PDF:', error);
+    return;
+  }
+  workOrders = next;
+  cnflPdfBatchStale = false;
+  localStorage.removeItem('cnfl_pdf_batch_stale');
+  localStorage.removeItem('cnfl_gps_batch_stage');
+  localStorage.removeItem('cnfl_last_route_meta');
+  cancelCutsPdfImport();
+  setRouteFilter('pending', document.getElementById('btnFilterPending'));
+  renderOrders();
+  updateLiquidation();
+  updateTgCommandsCount();
+  const gpsReady = workOrders.filter(o => Number.isFinite(Number(o.lat)) && Number.isFinite(Number(o.lon))).length;
+  const gpsMissing = workOrders.length - gpsReady;
+  showToast(`${workOrders.length} órdenes cargadas · ${gpsReady} con GPS · ${gpsMissing} por consultar`);
+  switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
+}
+
 async function handlePdfUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
+  cancelCutsPdfImport();
 
   const statusEl = document.getElementById('pdfLoadingStatus');
   if (statusEl) {
-    statusEl.style.display = 'block';
-    statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Leyendo PDF y extrayendo órdenes oficiales...';
+    statusEl.hidden = false;
+    statusEl.textContent = 'Leyendo el PDF de cortes…';
   }
 
   try {
@@ -1517,47 +1538,13 @@ async function handlePdfUpload(event) {
         return;
       }
 
-      const previousOrders = [...workOrders];
-      archiveOrdersToHistory(previousOrders);
-      workOrders = mergeCnflFieldProgress(previousOrders, parsed);
-      cnflPdfBatchStale = false;
-      localStorage.removeItem('cnfl_pdf_batch_stale');
-      localStorage.removeItem('cnfl_gps_batch_stage');
-      localStorage.removeItem('cnfl_last_route_meta');
-      enrichOrdersWithCache();
-      localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
-      setRouteFilter('pending', document.getElementById('btnFilterPending'));
-      renderOrders();
-      updateLiquidation();
-      updateTgCommandsCount();
-
-      const gpsReady = workOrders.filter(o =>
-        Number.isFinite(Number(o.lat)) && Number.isFinite(Number(o.lon))
-      ).length;
-      const gpsMissing = workOrders.length - gpsReady;
-
-      if (gpsMissing === 0 && workOrders.length > 1) {
-        const routeOk = typeof optimizeInitialRoute === 'function'
-          ? await optimizeInitialRoute()
-          : await optimizeCurrentRoute();
-        showToast(
-          routeOk
-            ? `Extraídas ${parsed.length} órdenes · GPS 100% desde memoria · ruta lista`
-            : `Extraídas ${parsed.length} órdenes · GPS 100% disponible`
-        );
-      } else {
-        showToast(
-          `Extraídas ${parsed.length} órdenes · ${gpsReady} GPS reutilizados · ${gpsMissing} por consultar`
-        );
-      }
-
-      switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
+      reviewCutsPdfImport(parsed, journeyDate, file.name);
     }
   } catch (err) {
     console.error('Error procesando PDF:', err);
-    alert('Error al leer el archivo PDF: ' + err.message + '\n\nPuedes usar la opción de "Ingreso Manual por Texto" abajo.');
+    alert('No pude leer este PDF de cortes: ' + err.message + '\n\nTambién podés abrir Otras opciones de carga y jornada para pegar el texto.');
   } finally {
-    if (statusEl) statusEl.style.display = 'none';
+    if (statusEl) statusEl.hidden = true;
     event.target.value = '';
   }
 }
@@ -1884,14 +1871,6 @@ async function handleHistoryPdfUpload(event) {
     if (statusEl) statusEl.style.display = 'none';
     event.target.value = '';
   }
-}
-
-function loadDemoOrders() {
-  workOrders = [];
-  localStorage.setItem('cnfl_work_orders', JSON.stringify([]));
-  renderOrders();
-  updateLiquidation();
-  showToast('No se cargaron órdenes: revisa la conexión o carga el PDF oficial.');
 }
 
 // =========================================================
