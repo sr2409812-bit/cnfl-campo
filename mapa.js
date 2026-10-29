@@ -2,8 +2,21 @@
   const names={cortes:'Cortes',demanda:'Demanda',residencial:'Residencial',notificaciones:'Notificaciones'};
   const colors={cortes:'#F26C21',demanda:'#2257B8',residencial:'#8754C9',notificaciones:'#C43867'};
   const params=new URLSearchParams(location.search);
-  const embedded=params.get('embedded')==='1'&&window.parent!==window;
-  if(embedded)document.body.classList.add('embedded-map');
+  // Una pantalla antigua puede seguir abriendo el mapa en un iframe cacheado.
+  // Sacarla a página completa evita quedar atrapado aunque el módulo aún no se haya actualizado.
+  if(params.get('embedded')==='1'&&window.parent!==window){
+    const from=Object.hasOwn(names,params.get('tipo'))?params.get('tipo'):'cortes';
+    window.top.location.assign('mapa.html?tipo='+encodeURIComponent(from)+'&volver='+encodeURIComponent(from)+'&v=20261029-nav1');
+    return;
+  }
+  const returnPages={cortes:'index.html',demanda:'lectura.html',residencial:'lectura-residencial.html',notificaciones:'notificaciones.html'};
+  const back=document.getElementById('backToWork');
+  const returnType=params.get('volver');
+  if(Object.hasOwn(returnPages,returnType)){
+    back.href=returnPages[returnType];
+    back.textContent='VOLVER A '+names[returnType].toUpperCase();
+    back.hidden=false;
+  }
   let type=Object.hasOwn(names,params.get('tipo')) ? params.get('tipo') : 'todos';
   let pendingOnly=false, map=null, layer=null, myLayer=null, routeLayer=null, shown=[];
   let preview=null, generation=0, reviewChoice='', retryDraft=null;
@@ -68,9 +81,6 @@
       (o.type==='cortes'?'<details class="quick-status"><summary>CAMBIAR ESTADO DE ESTA ORDEN</summary><div class="quick-grid">'+[['cortado','Cortado'],['avisado','Avisado'],['reconectado','Reconectado'],['pago','Pagó sitio'],['no_acceso','Sin acceso'],['pending','Devolver a pendiente']].map(([value,label])=>'<button type="button" data-status="'+value+'" '+((o.done?value==='pending':value!=='pending')?'':'disabled')+'>'+label+'</button>').join('')+'</div></details>':'');
     document.getElementById('closeSelected').onclick=()=>{selectedKey=null;selectedPanel.hidden=true;};
     document.getElementById('addSelected').onclick=()=>addManual(o);
-    if(embedded)document.querySelector('.selected-actions a').onclick=event=>{
-      event.preventDefault();window.parent.postMessage({kind:'cnfl:open-work',type:o.type,loc:o.loc},location.origin);
-    };
     selectedPanel.querySelectorAll('[data-status]').forEach(button=>button.onclick=()=>{
       if(!window.CNFLFieldMapData.setCutStatus(o.loc,o.orderId,button.dataset.status)){manualStatus.textContent='No pude actualizar la orden. Revisá el almacenamiento del teléfono.';return;}
       if(preview)clearPreview();else render();
@@ -283,6 +293,7 @@
   document.getElementById('mapFilters').onclick=e=>{const b=e.target.closest('button[data-type]');if(b){type=b.dataset.type;clearPreview();fit();}};
   document.getElementById('pendingOnly').onclick=()=>{pendingOnly=!pendingOnly;clearPreview();fit();};
   document.getElementById('fitPoints').onclick=fit;
+  document.getElementById('goList').onclick=()=>document.getElementById('mapList').scrollIntoView({behavior:'smooth',block:'start'});
   routeModeButton.onclick=()=>{routeMode=!routeMode;selectedKey=null;clusterKeys=null;selectedPanel.hidden=true;renderManual();};
   routeOverview.onclick=()=>{selectedKey=null;clusterKeys=null;selectedPanel.hidden=true;manualPanel.open=true;manualPanel.scrollIntoView({behavior:'smooth',block:'start'});};
   document.getElementById('traceManual').onclick=()=>traceManual(false);

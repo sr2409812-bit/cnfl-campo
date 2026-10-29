@@ -27,7 +27,7 @@ select{width:100%;padding:12px;border:1px solid #cbd3dc;border-radius:8px;backgr
 .badge{font-size:11px;padding:4px 7px;border-radius:999px;background:#eef2f6}.badge.ok{background:#e2f4e8;color:#0b5d2a}.current{outline:2px solid var(--orange);border-radius:6px}
 .notice{font-size:12px;color:var(--muted);margin-top:10px}
 </style>
-  <link rel="stylesheet" href="campo-shell.css?v=20261029-unified1" />
+  <link rel="stylesheet" href="campo-shell.css?v=20261029-nav1" />
   <script src="data-store.js?v=20261019-1"></script>
 </head>
 <body>
@@ -131,6 +131,7 @@ function applyNotificationMapRoute(){
 window.cnflApplyFieldRoute=applyNotificationMapRoute;
 window.cnflFocusWorkFromMap=loc=>{const index=state.order.indexOf(loc);if(index>=0){state.index=index;save();render();scrollTo({top:0,behavior:'smooth'})}};
 window.addEventListener('storage',event=>{if(event.key==='cnfl_manual_route_v1')applyNotificationMapRoute()});
+window.addEventListener('pageshow',event=>{if(event.persisted)applyNotificationMapRoute()});
 function render(){
   const stops=currentStops();
   if(!stops.length)return;
@@ -362,6 +363,6 @@ async function optimizeFromHere(){
 }
 applyNotificationMapRoute();
 </script>
-  <script src="campo-shell.js?v=20261029-unified1"></script>
+  <script src="campo-shell.js?v=20261029-nav1"></script>
 </body>
 </html>

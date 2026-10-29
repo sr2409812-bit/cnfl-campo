@@ -95,42 +95,10 @@
   }
 
   const fieldModules={cortes:'CORTES',demanda:'DEMANDA',residencial:'RESIDENCIAL',notificaciones:'NOTIFICACIONES'};
-  const fieldPages={cortes:'index.html',demanda:'lectura.html',residencial:'lectura-residencial.html',notificaciones:'notificaciones.html'};
   if(Object.hasOwn(fieldModules,moduleName)){
-    const overlay=document.createElement('section');
-    overlay.id='cnflSharedMapOverlay';
-    overlay.className='cnfl-shared-map-overlay';
-    overlay.hidden=true;
-    overlay.setAttribute('aria-label','Mapa y ruta de trabajos');
-    const top=document.createElement('div');top.className='cnfl-shared-map-top';
-    const title=document.createElement('strong');title.textContent='MAPA · MI RUTA';
-    const back=document.createElement('button');back.type='button';back.textContent='VOLVER A '+fieldModules[moduleName];
-    const frame=document.createElement('iframe');frame.title='Mapa y ruta de todos los trabajos';
-    top.append(title,back);overlay.append(top,frame);document.body.append(overlay);
-    let priorFocus=null;
-    function close(){
-      if(overlay.hidden)return;
-      overlay.hidden=true;document.body.classList.remove('cnfl-map-open');
-      frame.removeAttribute('src');
-      if(typeof window.cnflApplyFieldRoute==='function')window.cnflApplyFieldRoute();
-      priorFocus?.focus?.();
-    }
     window.cnflOpenSharedMap=function(kind=moduleName){
       const selected=Object.hasOwn(fieldModules,kind)?kind:moduleName;
-      priorFocus=document.activeElement;
-      frame.src='mapa.html?tipo='+encodeURIComponent(selected)+'&embedded=1';
-      overlay.hidden=false;document.body.classList.add('cnfl-map-open');
-      back.focus();
+      location.assign('mapa.html?tipo='+encodeURIComponent(selected)+'&volver='+encodeURIComponent(moduleName));
     };
-    window.cnflCloseSharedMap=close;
-    back.onclick=close;
-    window.addEventListener('message',event=>{
-      const data=event.data;
-      if(event.origin!==location.origin||event.source!==frame.contentWindow||data?.kind!=='cnfl:open-work')return;
-      if(!Object.hasOwn(fieldPages,data.type)||!/^\d{1,20}$/.test(String(data.loc||'')))return;
-      close();
-      if(data.type===moduleName && typeof window.cnflFocusWorkFromMap==='function')window.cnflFocusWorkFromMap(String(data.loc));
-      else location.href=fieldPages[data.type]+'?loc='+encodeURIComponent(data.loc);
-    });
   }
 })();
