@@ -8,7 +8,7 @@
   <title>CNFL Campo · Mapa general</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="mapa.css?v=20261029-unified1">
+  <link rel="stylesheet" href="mapa.css?v=20261029-scroll1">
   <link rel="stylesheet" href="campo-shell.css?v=20261029-unified1">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="notification-stops.js?v=20261026-map1"></script>
@@ -23,6 +23,7 @@
       <button data-type="todos" class="active">TODOS</button><button data-type="cortes">CORTES</button><button data-type="demanda">DEMANDA</button><button data-type="residencial">RESIDENCIAL</button><button data-type="notificaciones">NOTIFICACIONES</button>
     </div>
     <div class="map-toolbar"><span id="mapCount" role="status">Cargando puntos…</span><button id="fitPoints" type="button">VER PUNTOS</button><button id="centerMe" type="button">MI UBICACIÓN</button></div>
+    <div class="map-touch-control"><button id="panMap" type="button" aria-pressed="false">MOVER MAPA</button><span id="panMapHint">Deslizá para recorrer la pantalla. Tocá «Mover mapa» cuando quieras arrastrarlo.</span></div>
     <div class="route-bar"><button id="routeMode" type="button" aria-pressed="false">ARMAR MI RUTA</button><span id="routeHint" role="status">Elegí cómo querés recorrer los puntos</span><button id="routeOverview" type="button" hidden>VER ORDEN</button></div>
     <div id="fieldMap" aria-label="Mapa de trabajos de campo"></div>
     <section id="selectedPanel" class="selected-panel" aria-label="Punto seleccionado" hidden></section>
@@ -55,7 +56,7 @@
     <div id="mapList" class="map-list"></div>
   </main>
   <script src="route-preview.js?v=20261028-manual1"></script>
-  <script src="mapa.js?v=20261029-unified1"></script>
+  <script src="mapa.js?v=20261029-scroll1"></script>
   <script src="campo-shell.js?v=20261029-unified1"></script>
 </body>
 </html>
