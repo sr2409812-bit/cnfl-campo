@@ -130,19 +130,20 @@
       layer=L.layerGroup().addTo(map);
       // Agrupación por píxeles: incluso coordenadas distintas pueden taparse en celular.
       const groups=window.CNFLMapClusters.group(plotted,o=>map.project([o.lat,o.lon],map.getZoom()),40);
+      // El toque del punto no debe llegar al mapa: su click cierra la ficha.
       groups.forEach(group=>{
         if(group.length>1){
           const lat=group.reduce((sum,o)=>sum+o.lat,0)/group.length;
           const lon=group.reduce((sum,o)=>sum+o.lon,0)/group.length;
-          L.marker([lat,lon],{icon:L.divIcon({className:'cluster-icon',html:'<span>'+group.length+'</span>',iconSize:[36,36],iconAnchor:[18,18]})})
+          L.marker([lat,lon],{bubblingMouseEvents:false,icon:L.divIcon({className:'cluster-icon',html:'<span>'+group.length+'</span>',iconSize:[36,36],iconAnchor:[18,18]})})
             .on('click',()=>{clusterKeys=group.map(key);selectedKey=null;renderSelection();}).addTo(layer);
           return;
         }
         const first=group[0],color=colors[first.type];
         const number=order.get(key(first));
         const compact=(preview?preview.ordered.length:manualKeys.length)>40, diameter=compact?24:30;
-        const marker=number ? L.marker([first.lat,first.lon],{icon:L.divIcon({className:'route-stop-icon'+(compact?' dense':''),html:'<span>'+number+'</span>',iconSize:[diameter,diameter],iconAnchor:[diameter/2,diameter/2]})}) :
-          L.circleMarker([first.lat,first.lon],{radius:9,color:'#fff',weight:2,fillColor:color,fillOpacity:first.done?.55:.95});
+        const marker=number ? L.marker([first.lat,first.lon],{bubblingMouseEvents:false,icon:L.divIcon({className:'route-stop-icon'+(compact?' dense':''),html:'<span>'+number+'</span>',iconSize:[diameter,diameter],iconAnchor:[diameter/2,diameter/2]})}) :
+          L.circleMarker([first.lat,first.lon],{bubblingMouseEvents:false,radius:9,color:'#fff',weight:2,fillColor:color,fillOpacity:first.done?.55:.95});
         marker.on('click',()=>{clusterKeys=null;selectedKey=key(first);if(routeMode)addManual(first);renderSelection();}).addTo(layer);
       });
       if(routeLayer) routeLayer.remove();
