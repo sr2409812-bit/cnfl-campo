@@ -6,7 +6,7 @@
   // Sacarla a página completa evita quedar atrapado aunque el módulo aún no se haya actualizado.
   if(params.get('embedded')==='1'&&window.parent!==window){
     const from=Object.hasOwn(names,params.get('tipo'))?params.get('tipo'):'cortes';
-    window.top.location.assign('mapa.html?tipo='+encodeURIComponent(from)+'&volver='+encodeURIComponent(from)+'&v=20261029-nav1');
+    window.top.location.assign('mapa.html?tipo='+encodeURIComponent(from)+'&volver='+encodeURIComponent(from)+'&v=20261029-pan1');
     return;
   }
   const returnPages={cortes:'index.html',demanda:'lectura.html',residencial:'lectura-residencial.html',notificaciones:'notificaciones.html'};
@@ -36,9 +36,6 @@
   const routeModeButton=document.getElementById('routeMode');
   const routeHint=document.getElementById('routeHint');
   const routeOverview=document.getElementById('routeOverview');
-  const panButton=document.getElementById('panMap');
-  const panHint=document.getElementById('panMapHint');
-  const touchScreen=window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function key(o){return o.type+':'+o.loc;}
   function manualStops(){const rows=new Map(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(o=>[key(o),o]));return manualKeys.map(k=>rows.get(k)).filter(Boolean);}
@@ -275,21 +272,11 @@
   }
   if(typeof L==='undefined') box.innerHTML='<div class="empty">No cargó el mapa de calles. Conectate a Internet y actualizá. La lista de trabajos sigue disponible.</div>';
   else{
-    map=L.map(box,{zoomControl:true,preferCanvas:true,dragging:!touchScreen,touchZoom:!touchScreen}).setView([9.93,-84.08],12);
+    map=L.map(box,{zoomControl:true,preferCanvas:true,dragging:true,touchZoom:true}).setView([9.93,-84.08],12);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
     map.on('click',()=>{selectedKey=null;clusterKeys=null;selectedPanel.hidden=true;});
     map.on('zoomend',()=>render());
   }
-  panButton.parentElement.hidden=!map||!touchScreen;
-  panButton.onclick=()=>{
-    if(!map)return;
-    const enabled=panButton.getAttribute('aria-pressed')!=='true';
-    if(enabled){map.dragging.enable();map.touchZoom.enable();}
-    else{map.dragging.disable();map.touchZoom.disable();}
-    panButton.setAttribute('aria-pressed',String(enabled));
-    panButton.textContent=enabled?'DESLIZAR PÁGINA':'MOVER MAPA';
-    panHint.textContent=enabled?'Tocá «Deslizar página» para subir o bajar sin mover el mapa.':'Deslizá para recorrer la pantalla. Tocá «Mover mapa» cuando quieras arrastrarlo.';
-  };
   document.getElementById('mapFilters').onclick=e=>{const b=e.target.closest('button[data-type]');if(b){type=b.dataset.type;clearPreview();fit();}};
   document.getElementById('pendingOnly').onclick=()=>{pendingOnly=!pendingOnly;clearPreview();fit();};
   document.getElementById('fitPoints').onclick=fit;

@@ -98,7 +98,7 @@
   if(Object.hasOwn(fieldModules,moduleName)){
     window.cnflOpenSharedMap=function(kind=moduleName){
       const selected=Object.hasOwn(fieldModules,kind)?kind:moduleName;
-      location.assign('mapa.html?tipo='+encodeURIComponent(selected)+'&volver='+encodeURIComponent(moduleName));
+      location.assign('mapa.html?tipo='+encodeURIComponent(selected)+'&volver='+encodeURIComponent(moduleName)+'&v=20261029-pan1');
     };
   }
 })();

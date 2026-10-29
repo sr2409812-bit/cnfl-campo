@@ -16,11 +16,6 @@ button,a{font:inherit;-webkit-tap-highlight-color:transparent}
 .map-toolbar{display:flex;align-items:center;gap:6px;margin:0 0 8px}
 .map-toolbar span{flex:1;font-size:11px;color:var(--muted);line-height:1.25;font-weight:800}
 .map-toolbar button{font-size:10px;padding:0 8px}
-.map-touch-control{display:none;align-items:center;gap:9px;margin:0 0 8px}
-.map-touch-control[hidden]{display:none!important}
-.map-touch-control button{min-height:44px;flex:none;border:1px solid #0033A0;border-radius:8px;padding:8px 11px;background:#fff;color:#0033A0;font-size:11px;font-weight:900}
-.map-touch-control button[aria-pressed="true"]{background:#0033A0;color:#fff}
-.map-touch-control span{font-size:11px;line-height:1.3;color:var(--muted)}
 .route-bar{display:grid;grid-template-columns:1fr auto;align-items:center;gap:3px 8px;background:#E8F4EE;border:1px solid #A9D4BF;border-radius:9px;padding:8px;margin:0 0 8px}
 #routeMode{min-height:48px;border:1px solid #087855;border-radius:7px;background:#087855;color:#fff;font-size:13px;font-weight:900;padding:8px 12px;text-align:left}
 #routeMode[aria-pressed="true"]{background:#064B38}
@@ -28,6 +23,7 @@ button,a{font:inherit;-webkit-tap-highlight-color:transparent}
 #routeOverview{grid-column:2;grid-row:1/3;min-height:44px;border:1px solid #087855;border-radius:7px;background:#fff;color:#075D42;font-size:11px;font-weight:900;padding:6px 10px}
 #routeOverview[hidden]{display:none}
 #fieldMap{height:48dvh;min-height:310px;max-height:580px;background:#E1E9F0;border:1px solid var(--line);border-radius:10px;isolation:isolate;overflow:hidden;z-index:0}
+.map-gesture-hint{margin:7px 2px 0;color:var(--muted);font-size:11px;line-height:1.4}
 .map-note{font-size:11px;color:var(--muted);line-height:1.35;margin:8px 2px 14px}
 .list-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.list-head h2{font-size:16px;margin:0}
 .map-list{display:grid;gap:8px;margin-top:9px}
@@ -97,5 +93,4 @@ button:disabled{opacity:.48}
   .selected-panel .sheet-header{position:sticky;top:-14px;background:#fff;z-index:1;padding-top:8px}
   .nearby-item{min-height:46px}
 }
-@media(hover:none) and (pointer:coarse){.map-touch-control{display:flex}}
 @media(max-width:390px){.map-toolbar{flex-wrap:wrap}.map-toolbar span{flex-basis:100%}.map-toolbar button{flex:1}}
