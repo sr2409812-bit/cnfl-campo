@@ -56,6 +56,7 @@ window.cnflFocusWorkFromMap=loc=>{
   }
 };
 window.addEventListener('storage',event=>{if(event.key==='cnfl_manual_route_v1')applyReadingMapRoute();});
+window.addEventListener('pageshow',event=>{if(event.persisted)applyReadingMapRoute();});
 
 function loadJson(key, fallback) {
   try {

@@ -26,9 +26,6 @@ function cnflRefreshOrdersFromStorage(){
 function openCutsMap(){
   window.cnflOpenSharedMap?.('cortes');
 }
-function closeCutsMap(){
-  window.cnflCloseSharedMap?.();
-}
 function cnflOpenCutFromMap(loc){
   if(!/^\d{1,20}$/.test(String(loc)))return;
   cnflRefreshOrdersFromStorage();
@@ -45,6 +42,7 @@ window.cnflFocusWorkFromMap=cnflOpenCutFromMap;
 addEventListener('storage',event=>{
   if(event.key==='cnfl_manual_route_v1'||event.key==='cnfl_work_orders')cnflRefreshOrdersFromStorage();
 });
+addEventListener('pageshow',event=>{if(event.persisted)cnflRefreshOrdersFromStorage();});
 
 const CNFL_HISTORY_KEY = 'cnfl_order_history_v1';
 const CNFL_HISTORY_DAYS = 14;
