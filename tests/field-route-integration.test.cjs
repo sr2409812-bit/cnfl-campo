@@ -43,3 +43,21 @@ test('notificaciones sigue el orden elegido y conserva las gestiones',()=>{
   assert.deepEqual(Array.from(state.order),['02','04','06']);
   assert.equal(state.done['04'],true);
 });
+
+for(const unchanged of [true,false]){
+  test('notificaciones abre la orden del mapa con ruta '+(unchanged?'ya sincronizada':'nueva'),()=>{
+    const code=section('notificaciones.html','function applyNotificationMapRoute','function render(){');
+    const keys=unchanged?[]:['notificaciones:06'];
+    const state={order:['02','04','06'],index:0,done:{'04':true},meta:null};
+    if(unchanged)state.manualRouteSignature='[]';
+    let rendered=0;
+    const ctx={state,linkedLoc:'04',localStorage:storage(keys),
+      window:{CNFLFieldRoute:route,addEventListener(){}},
+      currentStops:()=>state.order.map(loc=>[loc,0,0]),save(){},render(){rendered++},scrollTo(){}};
+    vm.createContext(ctx);vm.runInContext(code,ctx);
+    vm.runInContext('initializeNotificationView()',ctx);
+    assert.equal(state.order[state.index],'04');
+    assert.equal(state.done['04'],true);
+    assert.ok(rendered>0);
+  });
+}

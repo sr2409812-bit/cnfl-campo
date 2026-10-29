@@ -98,7 +98,6 @@ for(const stop of DEFAULT_STOPS){
 }
 if(!state.done||typeof state.done!=="object") state.done={};
 const linkedLoc=new URLSearchParams(location.search).get('loc');
-if(linkedLoc && state.order.includes(linkedLoc)) state.index=state.order.indexOf(linkedLoc);
 
 function byLoc(loc){return DEFAULT_STOPS.find(s=>s[0]===loc)}
 function currentStops(){
@@ -126,6 +125,12 @@ function applyNotificationMapRoute(){
   }
   state.manualRouteSignature=signature;
   state.index=plan&&plan.chosen?Math.max(0,state.order.findIndex(loc=>!state.done[loc])):Math.max(0,state.order.indexOf(current));
+  save();render();
+}
+function initializeNotificationView(){
+  applyNotificationMapRoute();
+  // La orden elegida en el mapa prevalece sobre el inicio de la ruta.
+  if(linkedLoc && state.order.includes(linkedLoc)) state.index=state.order.indexOf(linkedLoc);
   save();render();
 }
 window.cnflApplyFieldRoute=applyNotificationMapRoute;
@@ -361,7 +366,7 @@ async function optimizeFromHere(){
     btn.disabled=false;btn.textContent=old;
   }
 }
-applyNotificationMapRoute();
+initializeNotificationView();
 </script>
   <script src="campo-shell.js?v=20261029-pan1"></script>
 </body>
