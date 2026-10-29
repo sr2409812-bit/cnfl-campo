@@ -20,6 +20,43 @@ let readingSearch = '';
 let readingRouteMeta = null;
 let readingRouteInfo = {...DEFAULT_ROUTE_INFO};
 
+function applyReadingMapRoute(render=true){
+  if(!window.CNFLFieldRoute||!readingRouteInfo||!readingOrders.length)return;
+  const keys=window.CNFLFieldRoute.read(localStorage).filter(key=>key.startsWith(READING_MODE+':'));
+  const signature=JSON.stringify(keys);
+  const routeId=String(readingRouteInfo.routeId||'');
+  if(readingRouteInfo.manualRouteSignature===signature&&readingRouteInfo.manualRouteId===routeId)return;
+  const plan=keys.length?window.CNFLFieldRoute.arrange(readingOrders,keys,READING_MODE,o=>o.status!=='read'):null;
+  if(plan&&plan.chosen){
+    if(!readingRouteInfo.manualChosen)readingRouteInfo.preManualOrder=readingOrders.map(o=>String(o.localizacion));
+    readingOrders=plan.orders;
+    readingRouteInfo.manualChosen=plan.chosen;
+    readingRouteMeta=null;
+  }else if(readingRouteInfo.manualChosen){
+    const prior=new Map((readingRouteInfo.preManualOrder||[]).map((loc,index)=>[loc,index]));
+    readingOrders=readingOrders.slice().sort((a,b)=>(prior.get(String(a.localizacion))??Infinity)-(prior.get(String(b.localizacion))??Infinity));
+    readingRouteInfo.manualChosen=0;
+    delete readingRouteInfo.preManualOrder;
+    readingRouteMeta=null;
+  }
+  readingRouteInfo.manualRouteSignature=signature;
+  readingRouteInfo.manualRouteId=routeId;
+  if(render){saveReadingState();renderAll();}
+}
+window.cnflApplyFieldRoute=()=>applyReadingMapRoute();
+window.cnflFocusWorkFromMap=loc=>{
+  const target=readingOrders.find(o=>String(o.localizacion)===String(loc));
+  if(!target)return;
+  if(target.status!=='read'&&typeof window.setNextReading==='function')window.setNextReading(loc);
+  else{
+    readingSearch=String(loc);
+    const input=document.getElementById('readingSearch');if(input)input.value=readingSearch;
+    switchReadingTab('list',document.getElementById('tabList'));
+    renderList();
+  }
+};
+window.addEventListener('storage',event=>{if(event.key==='cnfl_manual_route_v1')applyReadingMapRoute();});
+
 function loadJson(key, fallback) {
   try {
     const v = JSON.parse(localStorage.getItem(key) || 'null');
@@ -371,7 +408,10 @@ function renderSummary() {
 function renderRouteMeta() {
   const title = document.getElementById('routeEngineLabel');
   const sub = document.getElementById('routeEngineSub');
-  if (readingRouteMeta && readingRouteMeta.engine === 'osrm-road-network') {
+  if (readingRouteInfo.manualChosen) {
+    title.textContent = 'Mi ruta del mapa';
+    sub.textContent = `${readingRouteInfo.manualChosen} paradas elegidas · el recorrido sigue tu orden.`;
+  } else if (readingRouteMeta && readingRouteMeta.engine === 'osrm-road-network') {
     const km = Number.isFinite(Number(readingRouteMeta.totalMeters))
       ? ` · ~${(Number(readingRouteMeta.totalMeters)/1000).toFixed(1)} km`
       : '';
@@ -381,7 +421,7 @@ function renderRouteMeta() {
     sub.textContent = `Desde tu ubicación${km} · ${crossings} cruces · +${delta.toFixed(1)}% vs mínima distancia`;
   } else {
     title.textContent = 'Secuencia del listado';
-    sub.textContent = 'Tocá “Desde aquí” para buscar una ruta continua y sin devolverse.';
+    sub.textContent = 'Tocá “Armar en el mapa” para elegir el orden de tus paradas.';
   }
 }
 
@@ -1474,6 +1514,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadReadingState();
+  applyReadingMapRoute(false);
   hydrateReadingGps();
   saveReadingState();
   renderAll();

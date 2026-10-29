@@ -24,20 +24,14 @@ function cnflRefreshOrdersFromStorage(){
 }
 
 function openCutsMap(){
-  const overlay=document.getElementById('cutsMapOverlay'),frame=document.getElementById('cutsMapFrame');
-  if(!overlay||!frame)return;
-  overlay.hidden=false;document.body.classList.add('map-overlay-open');
-  if(!frame.getAttribute('src'))frame.src='mapa.html?tipo=cortes&embedded=1';
-  document.getElementById('closeCutsMap').focus();
+  window.cnflOpenSharedMap?.('cortes');
 }
 function closeCutsMap(){
-  const overlay=document.getElementById('cutsMapOverlay');if(!overlay)return;
-  overlay.hidden=true;document.body.classList.remove('map-overlay-open');
-  cnflRefreshOrdersFromStorage();
+  window.cnflCloseSharedMap?.();
 }
 function cnflOpenCutFromMap(loc){
   if(!/^\d{1,20}$/.test(String(loc)))return;
-  closeCutsMap();
+  cnflRefreshOrdersFromStorage();
   const order=workOrders.find(o=>String(o.localizacion||'').replace(/\D/g,'')===loc);
   switchTab('ruta',document.querySelector('.bottom-nav .nav-tab-btn'));
   setRouteFilter(order&&order.status!=='pending'?'all':'pending',document.getElementById(order&&order.status!=='pending'?'btnFilterAll':'btnFilterPending'));
@@ -46,11 +40,8 @@ function cnflOpenCutFromMap(loc){
   renderOrders();
   document.getElementById('ordersListContainer')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
-addEventListener('message',event=>{
-  const frame=document.getElementById('cutsMapFrame');
-  if(event.origin!==location.origin||event.source!==frame?.contentWindow||event.data?.kind!=='cnfl:open-cut')return;
-  cnflOpenCutFromMap(String(event.data.loc||''));
-});
+window.cnflApplyFieldRoute=cnflRefreshOrdersFromStorage;
+window.cnflFocusWorkFromMap=cnflOpenCutFromMap;
 addEventListener('storage',event=>{
   if(event.key==='cnfl_manual_route_v1'||event.key==='cnfl_work_orders')cnflRefreshOrdersFromStorage();
 });
