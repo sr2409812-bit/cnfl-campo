@@ -94,3 +94,6 @@ button:disabled{opacity:.48}
   .nearby-item{min-height:46px}
 }
 @media(max-width:390px){.map-toolbar{flex-wrap:wrap}.map-toolbar span{flex-basis:100%}.map-toolbar button{flex:1}}
+
+.filters[hidden],.route-bar[hidden],.preview-panel[hidden],.list-head button[hidden]{display:none}
+.selected-actions{flex-wrap:wrap}

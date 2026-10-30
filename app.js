@@ -662,9 +662,7 @@ function renderOrders() {
         </div>
 
         <button class="payment-share-action" type="button" onclick="openPaymentShare(${workOrders.indexOf(ord)})">
-          <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
-          <span><strong>COMPARTIR DATOS PARA PAGO</strong><small>Imagen con NIS, orden y monto para enviar al dueño</small></span>
-          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          <i class="fa-solid fa-camera" aria-hidden="true"></i> Mostrar al cliente
         </button>
 
         <details class="order-status-details">
@@ -2068,13 +2066,9 @@ async function shareWhatsAppLiquidation() {
   window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(report)}`, '_blank');
 }
 
-let paymentShareData=null, paymentShareFile=null, paymentShareUrl=null, paymentShareToken=0, paymentShareForceDownload=false;
 function closePaymentShare(){
-  paymentShareToken++;
   document.getElementById('paymentShareOverlay').hidden=true;
   document.body.classList.remove('payment-share-open');
-  if(paymentShareUrl)URL.revokeObjectURL(paymentShareUrl);
-  paymentShareUrl=null;paymentShareFile=null;paymentShareData=null;paymentShareForceDownload=false;
   document.getElementById('paymentSharePreview').removeAttribute('src');
 }
 function openPaymentShare(index){
@@ -2082,66 +2076,19 @@ function openPaymentShare(index){
   if(!order)return;
   const amount=!cnflPdfBatchStale&&/[0-9]/.test(String(order.monto||''))&&cnflAmountNumber(order.monto)>0
     ?cnflFormatAmount(order.monto):null;
-  paymentShareData=window.CNFLOrderShare.build(order,amount);
-  document.getElementById('paymentShareDetails').textContent=
-    'NIS '+paymentShareData.nis+' · Orden '+paymentShareData.orden+'\n'+
-    'Localización '+paymentShareData.localizacion+' · '+paymentShareData.monto;
-  const token=++paymentShareToken;
+  const data=window.CNFLOrderShare.build(order,amount);
   const overlay=document.getElementById('paymentShareOverlay');
-  const status=document.getElementById('paymentShareStatus');
   const image=document.getElementById('paymentSharePreview');
-  const button=document.getElementById('paymentShareImage');
-  if(paymentShareUrl)URL.revokeObjectURL(paymentShareUrl);
-  paymentShareUrl=null;paymentShareFile=null;paymentShareForceDownload=false;
-  image.hidden=true;image.removeAttribute('src');button.disabled=true;
-  status.textContent='Preparando la imagen de la orden…';
+  const status=document.getElementById('paymentShareStatus');
+  image.hidden=true;image.removeAttribute('src');
   overlay.hidden=false;document.body.classList.add('payment-share-open');
   overlay.querySelector('.payment-share-head button').focus();
   try{
-    const canvas=window.CNFLOrderShare.draw(document.createElement('canvas'),paymentShareData);
-    canvas.toBlob(blob=>{
-      if(token!==paymentShareToken)return;
-      if(!blob){status.textContent='No se pudo crear la imagen. Podés copiar los datos.';return;}
-      try{
-        const name=String(paymentShareData.orden).replace(/[^0-9a-z]/gi,'').slice(0,24)||'sin-numero';
-        paymentShareFile=new File([blob],`datos-orden-${name}.png`,{type:'image/png'});
-        paymentShareUrl=URL.createObjectURL(blob);
-        image.src=paymentShareUrl;image.hidden=false;
-        let canShare=false;
-        try{canShare=Boolean(navigator.share&&navigator.canShare?.({files:[paymentShareFile]}));}catch(_){}
-        button.textContent=canShare?'COMPARTIR IMAGEN':'DESCARGAR IMAGEN';
-        button.disabled=false;
-        status.textContent=paymentShareData.listed?'Lista para compartir. Verificá el monto antes de enviarla.':'Imagen lista, sin monto validado. Consultá el monto vigente.';
-      }catch(error){status.textContent='No se pudo preparar la imagen. Podés copiar los datos.';}
-    },'image/png');
-  }catch(error){status.textContent=error.message||'No se pudo crear la imagen. Podés copiar los datos.';}
-}
-async function sendPaymentShare(){
-  if(!paymentShareFile||!paymentShareData)return;
-  const status=document.getElementById('paymentShareStatus');
-  const payload={files:[paymentShareFile],title:'Datos de la orden',text:window.CNFLOrderShare.text(paymentShareData)};
-  let canShare=false;
-  try{canShare=Boolean(navigator.share&&navigator.canShare?.({files:payload.files}));}catch(_){}
-  if(!paymentShareForceDownload&&canShare){
-    try{await navigator.share(payload);return;}
-    catch(error){
-      if(error.name==='AbortError')return;
-      paymentShareForceDownload=true;
-      document.getElementById('paymentShareImage').textContent='DESCARGAR IMAGEN';
-      status.textContent='No se abrió el menú para compartir. Tocá DESCARGAR IMAGEN o copiá los datos.';
-      return;
-    }
-  }
-  const link=document.createElement('a');link.href=paymentShareUrl;link.download=paymentShareFile.name;
-  document.body.appendChild(link);link.click();link.remove();
-  status.textContent='Imagen descargada. Podés enviarla desde Descargas o copiar los datos.';
-}
-async function copyPaymentShare(){
-  if(!paymentShareData)return;
-  try{
-    await navigator.clipboard.writeText(window.CNFLOrderShare.text(paymentShareData));
-    document.getElementById('paymentShareStatus').textContent='Datos copiados. Pegalos en el mensaje al dueño.';
-  }catch(_){document.getElementById('paymentShareStatus').textContent='No se pudieron copiar los datos en este navegador. Podés compartir o descargar la imagen.';}
+    const canvas=window.CNFLOrderShare.draw(document.createElement('canvas'),data);
+    image.src=canvas.toDataURL('image/png');image.hidden=false;
+    image.alt='NISE '+data.nis+'. Monto: '+data.monto+'. Orden '+data.orden;
+    status.textContent='El cliente puede tomarle una foto a esta pantalla.';
+  }catch(error){status.textContent='No se pudo crear la imagen. Cerrá y volvé a intentarlo.';}
 }
 document.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&!document.getElementById('paymentShareOverlay')?.hidden)closePaymentShare();

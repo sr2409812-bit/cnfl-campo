@@ -1,6 +1,6 @@
 (function(){
-  const names={cortes:'Cortes',demanda:'Demanda',residencial:'Residencial',notificaciones:'Notificaciones'};
-  const colors={cortes:'#F26C21',demanda:'#2257B8',residencial:'#8754C9',notificaciones:'#C43867'};
+  const names={cortes:'Cortes',demanda:'Demanda',residencial:'Residencial',notificaciones:'Notificaciones',ubicaciones:'GPS guardado'};
+  const colors={cortes:'#F26C21',demanda:'#2257B8',residencial:'#8754C9',notificaciones:'#C43867',ubicaciones:'#087855'};
   const params=new URLSearchParams(location.search);
   // Una pantalla antigua puede seguir abriendo el mapa en un iframe cacheado.
   // Sacarla a página completa evita quedar atrapado aunque el módulo aún no se haya actualizado.
@@ -17,7 +17,21 @@
     back.textContent='VOLVER A '+names[returnType].toUpperCase();
     back.hidden=false;
   }
-  let type=Object.hasOwn(names,params.get('tipo')) ? params.get('tipo') : 'todos';
+  const scope=Object.hasOwn(returnPages,returnType)?returnType:Object.hasOwn(returnPages,params.get('tipo'))?params.get('tipo'):null;
+  const inventory=!scope;
+  let type=scope||'todos';
+  document.getElementById('mapFilters').hidden=Boolean(scope);
+  document.querySelector('.intro h1').textContent=scope?'Mapa de '+names[scope].toLowerCase():'Todas tus localizaciones';
+  document.querySelector('.intro p').textContent=scope?'Órdenes de este módulo. Armá aquí tu ruta.':'GPS guardados y localizaciones de tus jornadas, sin duplicar puntos.';
+  document.querySelector('.topbar small').textContent=scope?'MAPA · '+names[scope].toUpperCase():'MAPA GENERAL';
+  document.title=scope?'CNFL Campo · Mapa de '+names[scope]:'CNFL Campo · Localizaciones';
+  if(inventory){
+    document.querySelector('.route-bar').hidden=true;
+    document.querySelector('.preview-panel').hidden=true;
+    document.getElementById('pendingOnly').hidden=true;
+    document.querySelector('.list-head h2').textContent='Localizaciones guardadas';
+  }
+
   let pendingOnly=false, map=null, layer=null, myLayer=null, routeLayer=null, shown=[];
   let preview=null, generation=0, reviewChoice='', retryDraft=null;
   let manualKeys=[];try{const saved=JSON.parse(localStorage.getItem('cnfl_manual_route_v1')||'[]');if(Array.isArray(saved))manualKeys=saved.filter(k=>typeof k==='string').slice(0,120);}catch(_){}
@@ -38,11 +52,12 @@
   const routeOverview=document.getElementById('routeOverview');
   function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function key(o){return o.type+':'+o.loc;}
-  function manualStops(){const rows=new Map(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(o=>[key(o),o]));return manualKeys.map(k=>rows.get(k)).filter(Boolean);}
+  function routeKeys(){return inventory?[]:manualKeys.filter(k=>k.startsWith(scope+':'));}
+  function manualStops(){const rows=new Map(window.CNFLFieldMapData.collect().filter(o=>o.type===scope&&!o.done&&o.lat!==null).map(o=>[key(o),o]));return routeKeys().map(k=>rows.get(k)).filter(Boolean);}
   function persistManual(){try{localStorage.setItem('cnfl_manual_route_v1',JSON.stringify(manualKeys));}catch(_){manualStatus.textContent='No se pudo guardar la ruta en este teléfono.';}}
-  function syncManual(){const rows=new Set(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(key));const clean=[...new Set(manualKeys)].filter(k=>rows.has(k)).slice(0,120);if(clean.length!==manualKeys.length){manualKeys=clean;manualTrace=null;persistManual();}}
-  function changeManual(next){manualKeys=next;manualTrace=null;manualDraft=false;manualToken++;document.getElementById('manualUnfiltered').hidden=true;persistManual();if(preview) clearPreview();else render();}
-  function addManual(o){if(o.done||manualKeys.includes(key(o)))return;if(manualKeys.length>=120){manualStatus.textContent='La ruta admite hasta 120 paradas.';return;}changeManual([...manualKeys,key(o)]);}
+  function syncManual(){if(inventory)return;const rows=new Set(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(key));const clean=[...new Set(manualKeys)].filter(k=>!k.startsWith(scope+':')||rows.has(k)).slice(0,120);if(clean.length!==manualKeys.length){manualKeys=clean;manualTrace=null;persistManual();}}
+  function changeManual(next){if(inventory)return;manualKeys=[...manualKeys.filter(k=>!k.startsWith(scope+':')),...next];manualTrace=null;manualDraft=false;manualToken++;document.getElementById('manualUnfiltered').hidden=true;persistManual();if(preview) clearPreview();else render();}
+  function addManual(o){if(inventory||o.type!==scope||o.done||manualKeys.includes(key(o)))return;if(manualKeys.length>=120){manualStatus.textContent='La ruta admite hasta 120 paradas.';return;}changeManual([...routeKeys(),key(o)]);}
   function focusJob(o){clusterKeys=null;selectedKey=key(o);renderSelection();if(map&&o.lat!==null)map.setView([o.lat,o.lon],Math.max(map.getZoom(),16));}
   function renderCluster(){
     const rows=visibleRows().filter(o=>clusterKeys.includes(key(o)));
@@ -53,8 +68,8 @@
     const choices=document.getElementById('clusterChoices');
     rows.forEach(o=>{
       const b=document.createElement('button');b.type='button';b.className='cluster-choice';
-      const position=manualKeys.indexOf(key(o));
-      b.textContent=(position>=0?'#'+(position+1)+' · ':'')+o.label+' · '+o.loc+(o.done?' · HECHO':position>=0?' · EN RUTA':' · PENDIENTE');
+      const position=routeKeys().indexOf(key(o));
+      b.textContent=(position>=0?'#'+(position+1)+' · ':'')+o.label+' · '+o.loc+(o.inventory?' · GPS GUARDADO':o.done?' · HECHO':position>=0?' · EN RUTA':' · PENDIENTE');
       b.onclick=()=>{
         if(routeMode&&!o.done&&position<0){addManual(o);return;}
         focusJob(o);
@@ -71,25 +86,26 @@
     const near=window.CNFLFieldMapData.nearby(all,o,250).filter(available);
     const choices=near.length?near.slice(0,8):window.CNFLFieldMapData.nearby(all,o,Infinity).filter(available).slice(0,3);
     const coords=encodeURIComponent(o.lat+','+o.lon);
-    selectedPanel.innerHTML='<div class="sheet-header"><div><h2>'+safe(o.label)+'</h2><p>'+safe(names[o.type])+' · Localización '+safe(o.loc)+' · '+(o.done?'GESTIONADO':'PENDIENTE')+'</p></div><button id="closeSelected" type="button" aria-label="Cerrar ficha">×</button></div>'+
-      '<div class="selected-actions"><button id="addSelected" type="button" '+(o.done||manualKeys.includes(key(o))?'disabled':'')+'>'+(manualKeys.includes(key(o))?'EN MI RUTA':'AÑADIR A MI RUTA')+'</button><a href="'+safe(o.href)+'">ABRIR FICHA</a></div>'+
-      '<h3>'+(near.length?'Pendientes a 250 m ('+near.length+')':'Sin pendientes a 250 m · los más cercanos')+'</h3><div id="nearbyList"></div>'+
-      '<div class="sheet-links"><a target="_blank" rel="noopener" href="https://www.waze.com/ul?ll='+coords+'&navigate=yes">WAZE</a><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+coords+'">MAPS</a></div>'+
+    selectedPanel.innerHTML='<div class="sheet-header"><div><h2>'+safe(o.label)+'</h2><p>'+safe(names[o.type])+' · Localización '+safe(o.loc)+' · '+(o.inventory?'GPS GUARDADO':o.done?'GESTIONADO':'PENDIENTE')+'</p></div><button id="closeSelected" type="button" aria-label="Cerrar ficha">×</button></div>'+
+      (o.inventory?'<div class="selected-actions">'+(o.orders.length?o.orders.map(job=>'<a href="'+safe(job.href)+'">'+safe(names[job.type])+' · '+safe(job.label)+'</a>').join(''):'<p>Sin orden activa. Localización guardada para consulta.</p>')+'</div>':'<div class="selected-actions"><button id="addSelected" type="button" '+(o.done||manualKeys.includes(key(o))?'disabled':'')+'>'+(manualKeys.includes(key(o))?'EN MI RUTA':'AÑADIR A MI RUTA')+'</button><a href="'+safe(o.href)+'">ABRIR FICHA</a></div>')+
+      '<h3>'+(o.inventory?'Localizaciones cercanas':near.length?'Pendientes a 250 m ('+near.length+')':'Sin pendientes a 250 m · los más cercanos')+'</h3><div id="nearbyList"></div>'+
+      (o.lat===null?'<p>GPS no disponible o en conflicto.</p>':'<div class="sheet-links"><a target="_blank" rel="noopener" href="https://www.waze.com/ul?ll='+coords+'&navigate=yes">WAZE</a><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+coords+'">MAPS</a></div>')+
       (o.type==='cortes'?'<details class="quick-status"><summary>CAMBIAR ESTADO DE ESTA ORDEN</summary><div class="quick-grid">'+[['cortado','Cortado'],['avisado','Avisado'],['reconectado','Reconectado'],['pago','Pagó sitio'],['no_acceso','Sin acceso'],['pending','Devolver a pendiente']].map(([value,label])=>'<button type="button" data-status="'+value+'" '+((o.done?value==='pending':value!=='pending')?'':'disabled')+'>'+label+'</button>').join('')+'</div></details>':'');
     document.getElementById('closeSelected').onclick=()=>{selectedKey=null;selectedPanel.hidden=true;};
-    document.getElementById('addSelected').onclick=()=>addManual(o);
+    if(!o.inventory)document.getElementById('addSelected').onclick=()=>addManual(o);
     selectedPanel.querySelectorAll('[data-status]').forEach(button=>button.onclick=()=>{
       if(!window.CNFLFieldMapData.setCutStatus(o.loc,o.orderId,button.dataset.status)){manualStatus.textContent='No pude actualizar la orden. Revisá el almacenamiento del teléfono.';return;}
       if(preview)clearPreview();else render();
     });
     const nearList=document.getElementById('nearbyList');
-    if(!choices.length){nearList.innerHTML='<p>No hay más trabajos pendientes con GPS en este filtro.</p>';return;}
+    if(!choices.length){nearList.innerHTML=inventory?'<p>No hay más localizaciones con GPS en este filtro.</p>':'<p>No hay más trabajos pendientes con GPS en este filtro.</p>';return;}
     choices.forEach(({row,meters})=>{const b=document.createElement('button');b.type='button';b.className='nearby-item';b.textContent=(routeMode?'+ ':'')+row.label+' · '+Math.round(meters)+' m';b.onclick=()=>{if(routeMode)addManual(row);focusJob(row);};nearList.append(b);});
   }
   function renderManual(){
+    if(inventory){manualPanel.hidden=true;return;}
     syncManual();const stops=manualStops();manualList.replaceChildren();
     stops.forEach((o,index)=>{const item=document.createElement('li');const label=document.createElement('span');label.textContent=o.label+' · '+names[o.type];const controls=document.createElement('span');controls.className='manual-controls';
-      for(const [title,delta] of [['↑',-1],['↓',1],['×',null]]){const b=document.createElement('button');b.type='button';b.textContent=title;b.setAttribute('aria-label',delta===null?'Quitar '+o.label:'Mover '+o.label+(delta<0?' arriba':' abajo'));b.disabled=delta!==null&&(index+delta<0||index+delta>=stops.length);b.onclick=()=>{const next=[...manualKeys];if(delta===null)next.splice(index,1);else [next[index],next[index+delta]]=[next[index+delta],next[index]];changeManual(next);};controls.append(b);}
+      for(const [title,delta] of [['↑',-1],['↓',1],['×',null]]){const b=document.createElement('button');b.type='button';b.textContent=title;b.setAttribute('aria-label',delta===null?'Quitar '+o.label:'Mover '+o.label+(delta<0?' arriba':' abajo'));b.disabled=delta!==null&&(index+delta<0||index+delta>=stops.length);b.onclick=()=>{const next=routeKeys();if(delta===null)next.splice(index,1);else [next[index],next[index+delta]]=[next[index+delta],next[index]];changeManual(next);};controls.append(b);}
       item.append(label,controls);manualList.append(item);
     });
     manualPanel.hidden=!stops.length;
@@ -106,13 +122,13 @@
     else if(manualTrace)manualStatus.textContent=stops.length+(stops.length===1?' parada':' paradas')+' en tu orden · '+(manualTrace.meters/1000).toFixed(1)+' km · '+Math.round(manualTrace.seconds/60)+' min estimados'+(manualTrace.unfiltered?' · BORRADOR SIN FILTRO VIAL':'')+'.';
     else manualStatus.textContent=stops.length+(stops.length===1?' parada':' paradas')+' en tu orden. Línea visual entre puntos; tocá «Ver por calles» para revisar el trayecto.';
   }
-  function visibleRows(){return window.CNFLFieldMapData.collect().filter(o=>(type==='todos'||o.type===type)&&(!pendingOnly||!o.done));}
+  function visibleRows(){return inventory?window.CNFLFieldMapData.collectLocations().filter(o=>type==='todos'||o.types.includes(type)):window.CNFLFieldMapData.collect().filter(o=>o.type===scope&&(!pendingOnly||!o.done));}
   function fit(){
     if(!map||!shown.length)return;
     const bounds=L.latLngBounds(shown.map(o=>[o.lat,o.lon]));
-    if(manualKeys.length&&!preview)manualStops().forEach(o=>bounds.extend([o.lat,o.lon]));
+    if(routeKeys().length&&!preview)manualStops().forEach(o=>bounds.extend([o.lat,o.lon]));
     if(preview) bounds.extend([preview.start.lat,preview.start.lon]);
-    if(shown.length===1&&!preview&&!manualKeys.length) map.setView(bounds.getCenter(),17);
+    if(shown.length===1&&!preview&&!routeKeys().length) map.setView(bounds.getCenter(),17);
     else map.fitBounds(bounds,{padding:[24,24],maxZoom:17});
   }
   function render(){
@@ -141,7 +157,7 @@
         }
         const first=group[0],color=colors[first.type];
         const number=order.get(key(first));
-        const compact=(preview?preview.ordered.length:manualKeys.length)>40, diameter=compact?24:30;
+        const compact=(preview?preview.ordered.length:routeKeys().length)>40, diameter=compact?24:30;
         const marker=number ? L.marker([first.lat,first.lon],{bubblingMouseEvents:false,icon:L.divIcon({className:'route-stop-icon'+(compact?' dense':''),html:'<span>'+number+'</span>',iconSize:[diameter,diameter],iconAnchor:[diameter/2,diameter/2]})}) :
           L.circleMarker([first.lat,first.lon],{bubblingMouseEvents:false,radius:9,color:'#fff',weight:2,fillColor:color,fillOpacity:first.done?.55:.95});
         marker.on('click',()=>{clusterKeys=null;selectedKey=key(first);if(routeMode)addManual(first);renderSelection();}).addTo(layer);
@@ -154,7 +170,7 @@
         L.circleMarker([preview.start.lat,preview.start.lon],{radius:9,color:'#fff',weight:2,fillColor:'#0A9F6C',fillOpacity:1})
           .bindPopup('Salida de la ruta sugerida').addTo(routeLayer);
         routeLayer.eachLayer(item=>{if(item.bringToBack)item.bringToBack();});
-      }else if(manualKeys.length){
+      }else if(routeKeys().length){
         routeLayer=L.layerGroup().addTo(map);
         const stops=manualStops();
         if(manualTrace){manualTrace.segments.forEach(segment=>L.polyline(segment,{color:manualTrace.unfiltered?'#B45309':'#087855',weight:5,opacity:.85,dashArray:manualTrace.unfiltered?'9 7':null}).addTo(routeLayer));}
@@ -173,11 +189,11 @@
       const title=document.createElement('strong');title.textContent=(order.has(key(o))?order.get(key(o))+'. ':'')+o.label;
       const sub=document.createElement('small');sub.textContent=names[o.type]+' · Localización '+o.loc;
       main.append(title,sub);
-      const state=document.createElement('span');state.className='state';state.textContent=o.lat===null?(o.conflict?'GPS EN CONFLICTO':'SIN GPS'):(o.done?'HECHO':'PENDIENTE');
+      const state=document.createElement('span');state.className='state';state.textContent=o.lat===null?(o.conflict?'GPS EN CONFLICTO':'SIN GPS'):(o.inventory?'GPS GUARDADO':o.done?'HECHO':'PENDIENTE');
       button.append(main,state);
       button.onclick=()=>{
         if(map&&o.lat!==null){if(routeMode)addManual(o);focusJob(o);box.scrollIntoView({behavior:'smooth',block:'center'});}
-        else location.href=o.href;
+        else if(o.href)location.href=o.href;else focusJob(o);
       };
       list.append(button);
     });
@@ -278,7 +294,7 @@
     map.on('click',()=>{selectedKey=null;clusterKeys=null;selectedPanel.hidden=true;});
     map.on('zoomend',()=>render());
   }
-  document.getElementById('mapFilters').onclick=e=>{const b=e.target.closest('button[data-type]');if(b){type=b.dataset.type;clearPreview();fit();}};
+  document.getElementById('mapFilters').onclick=e=>{const b=e.target.closest('button[data-type]');if(b&&!scope){type=b.dataset.type;clearPreview();fit();}};
   document.getElementById('pendingOnly').onclick=()=>{pendingOnly=!pendingOnly;clearPreview();fit();};
   document.getElementById('fitPoints').onclick=fit;
   document.getElementById('goList').onclick=()=>document.getElementById('mapList').scrollIntoView({behavior:'smooth',block:'start'});
@@ -287,8 +303,8 @@
   document.getElementById('traceManual').onclick=()=>traceManual(false);
   document.getElementById('manualUnfiltered').onclick=()=>{if(manualDraft)traceManual(true);};
   document.getElementById('showManual').onclick=()=>{if(preview)clearPreview();};
-  document.getElementById('undoManual').onclick=()=>{if(manualKeys.length)changeManual(manualKeys.slice(0,-1));};
-  document.getElementById('clearManual').onclick=()=>{if(manualKeys.length)changeManual([]);};
+  document.getElementById('undoManual').onclick=()=>{if(routeKeys().length)changeManual(routeKeys().slice(0,-1));};
+  document.getElementById('clearManual').onclick=()=>{if(routeKeys().length)changeManual([]);};
   document.getElementById('previewFromMe').onclick=()=>calculatePreview(true);
   document.getElementById('previewFromBase').onclick=()=>calculatePreview(false);
   fallbackButton.onclick=()=>{if(retryDraft) calculatePreview(false,retryDraft,true);};

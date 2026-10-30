@@ -34,8 +34,6 @@
         '<div><div class="drawer-title">CNFL CAMPO</div><div class="drawer-sub">TRABAJO EN CAMPO</div></div>'+
       '</div>'+
       '<div class="drawer-label">TIPO DE TRABAJO</div>'+
-      '<a href="campo.html" data-module="inicio"><i class="fa-solid fa-house"></i><span>Inicio</span></a>'+
-      '<a href="hoy.html" data-module="hoy"><i class="fa-solid fa-list-check"></i><span>Hoy · pendientes</span></a>'+
       '<a href="index.html" data-module="cortes"><i class="fa-solid fa-bolt"></i><span>Cortes</span></a>'+
       '<a href="lectura.html" data-module="demanda"><i class="fa-solid fa-gauge-high"></i><span>Lectura de demanda</span></a>'+
       '<a href="lectura-residencial.html" data-module="residencial"><i class="fa-solid fa-house-signal"></i><span>Lectura residencial</span></a>'+
@@ -81,7 +79,7 @@
       moduleName==='demanda'?'LECTURA DE DEMANDA':
       moduleName==='residencial'?'LECTURA RESIDENCIAL':
       moduleName==='notificaciones'?'NOTIFICACIONES':
-      moduleName==='mapa'?'MAPA GENERAL':
+      moduleName==='mapa'?(new URLSearchParams(location.search).get('volver')?'MAPA DEL MÓDULO':'MAPA GENERAL'):
       moduleName==='hoy'?'HOY · PENDIENTES':
       moduleName==='respaldo'?'RESPALDO':'CNFL CAMPO';
     const firstMain=document.querySelector('main');
@@ -96,9 +94,10 @@
 
   const fieldModules={cortes:'CORTES',demanda:'DEMANDA',residencial:'RESIDENCIAL',notificaciones:'NOTIFICACIONES'};
   if(Object.hasOwn(fieldModules,moduleName)){
+    try{localStorage.setItem('cnfl_last_module',moduleName);}catch(_){}
     window.cnflOpenSharedMap=function(kind=moduleName){
       const selected=Object.hasOwn(fieldModules,kind)?kind:moduleName;
-      location.assign('mapa.html?tipo='+encodeURIComponent(selected)+'&volver='+encodeURIComponent(moduleName)+'&v=20261029-pan1');
+      location.assign('mapa.html?tipo='+encodeURIComponent(selected)+'&volver='+encodeURIComponent(moduleName)+'&v=20261030-simple1');
     };
   }
 })();

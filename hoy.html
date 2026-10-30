@@ -1,46 +1,9 @@
 <!doctype html>
-<html lang="es">
-<head>
-  <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#00264D">
-  <title>CNFL Campo · Hoy</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="hoy.css?v=20261026-1">
-  <link rel="stylesheet" href="campo-shell.css?v=20261028-design1">
-  <script src="data-store.js?v=20261028-memory1"></script>
-  <script src="notification-stops.js?v=20261026-map1"></script>
-  <script src="mapa-data.js?v=20261028-memory1"></script>
-</head>
-<body>
-  <header class="topbar"><button id="cnflGlobalMenu" class="cnfl-global-menu" type="button" aria-label="Abrir menú">☰</button><div><strong>CNFL CAMPO</strong><small>JORNADA EN EL TELÉFONO</small></div></header>
-  <main>
-    <h1>Hoy</h1>
-    <p class="lead">Tus trabajos activos en este teléfono. Elegís cuál atender; cada gestión se registra en su módulo.</p>
-    <section class="summary" aria-label="Resumen de trabajo">
-      <div><strong id="pendingCount">0</strong><span>PENDIENTES</span></div>
-      <div><strong id="doneCount">0</strong><span>GESTIONADOS</span></div>
-      <div><strong id="gpsCount">0</strong><span>SIN GPS FIABLE</span></div>
-    </section>
-    <div class="controls">
-      <label class="search-label" for="search">Buscar orden, medidor o localización</label>
-      <input id="search" type="search" inputmode="search" placeholder="Buscar en esta jornada…" autocomplete="off">
-      <div id="typeFilters" class="filters" role="group" aria-label="Filtrar tipo de trabajo">
-        <button type="button" class="active" data-type="todos">TODOS</button>
-        <button type="button" data-type="cortes">CORTES</button>
-        <button type="button" data-type="demanda">DEMANDA</button>
-        <button type="button" data-type="residencial">RESIDENCIAL</button>
-        <button type="button" data-type="notificaciones">NOTIFICACIONES</button>
-      </div>
-      <div class="tools"><button id="showDone" type="button" aria-pressed="false">VER GESTIONADOS</button><button id="nearby" type="button">PENDIENTES CERCA DE MÍ</button></div>
-      <p id="locationStatus" class="hint" role="status">La cercanía se calcula solo al pedirla y no cambia el orden de las rutas.</p>
-    </div>
-    <div class="list-heading"><h2 id="listTitle">Pendientes</h2><a href="mapa.html">VER MAPA GENERAL</a></div>
-    <div id="todayList" class="today-list" aria-live="polite"></div>
-    <p class="footnote">Las distancias son en línea recta. Si falta GPS o hay conflicto, revisá el punto antes de navegar.</p>
-  </main>
-  <script src="hoy.js?v=20261026-1"></script>
-  <script src="campo-shell.js?v=20261028-design1"></script>
-</body>
-</html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>CNFL Campo</title>
+<script>
+(function(){
+ const pages={cortes:'index.html',demanda:'lectura.html',residencial:'lectura-residencial.html',notificaciones:'notificaciones.html'};
+ let last='cortes';try{last=localStorage.getItem('cnfl_last_module')||last;}catch(_){}
+ location.replace(Object.hasOwn(pages,last)?pages[last]:pages.cortes);
+})();
+</script></head><body><p><a href="index.html">Abrir Cortes</a> · <a href="lectura.html">Demanda</a> · <a href="lectura-residencial.html">Residencial</a> · <a href="notificaciones.html">Notificaciones</a></p></body></html>
