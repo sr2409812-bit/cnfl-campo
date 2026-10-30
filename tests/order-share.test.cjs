@@ -33,14 +33,14 @@ test('la tarjeta se dibuja sin enviar datos fuera del teléfono',()=>{
   assert.ok(calls.some(call=>call[0]==='text'&&call[1]==='₡10 000'));
 });
 
-test('la ficha abre la vista previa y permite descargar una imagen cuando no hay menú para compartir',()=>{
+test('la ficha muestra una imagen para fotografiar sin compartir ni descargar',()=>{
   const nodes=new Map();
   const element=id=>{
     if(!nodes.has(id))nodes.set(id,{hidden:true,disabled:true,textContent:'',src:'',classList:{add(){},remove(){}},removeAttribute(){},focus(){},querySelector(){return {focus(){}}}});
     return nodes.get(id);
   };
   const ctx={fillRect(){},fillText(){}};
-  const canvas={getContext:()=>ctx,toBlob:cb=>cb(new Blob(['imagen'],{type:'image/png'}))};
+  const canvas={getContext:()=>ctx,toDataURL:()=> 'data:image/png;base64,ejemplo'};
   const context=vm.createContext({
     document:{addEventListener(){},getElementById:element,createElement:()=>canvas,body:{classList:{add(){},remove(){}}}},
     localStorage:{getItem:()=>null},addEventListener(){},navigator:{},File,Blob,
@@ -52,10 +52,9 @@ test('la ficha abre la vista previa y permite descargar una imagen cuando no hay
   vm.runInContext("workOrders=[{orden:'74600154',nis:'28061686',localizacion:'1604900270',monto:'8150'}]",context);
   context.openPaymentShare(0);
   assert.equal(element('paymentShareOverlay').hidden,false);
-  assert.match(element('paymentShareDetails').textContent,/NIS 28061686 · Orden 74600154/);
-  assert.equal(element('paymentSharePreview').src,'blob:ejemplo');
-  assert.equal(element('paymentShareImage').disabled,false);
-  assert.equal(element('paymentShareImage').textContent,'DESCARGAR IMAGEN');
+  assert.match(element('paymentSharePreview').alt,/NISE 28061686/);
+  assert.equal(element('paymentSharePreview').src,'data:image/png;base64,ejemplo');
+  assert.match(element('paymentShareStatus').textContent,/tomarle una foto/);
   context.closePaymentShare();
   assert.equal(element('paymentShareOverlay').hidden,true);
 });

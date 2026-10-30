@@ -33,6 +33,7 @@ function setup({type='cortes',numbered=false,cluster=false,routeMode=false}={}){
     renderSelection(){ctx.selectedPanel.hidden=!(ctx.selectedKey||ctx.clusterKeys)},
     addManual(o){ctx.manualKeys.push(ctx.key(o));ctx.render()},
     window:{CNFLMapClusters:{group:()=>cluster?[rows]:rows.map(o=>[o])}}};
+  ctx.routeKeys=()=>ctx.manualKeys;
   vm.createContext(ctx);
   vm.runInContext(source.slice(source.indexOf('  function render(){'),source.indexOf('  function clearPreview(){')),ctx);
   // Run the actual background click handler from the application as well.
