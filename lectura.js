@@ -120,6 +120,7 @@ function saveReadingState() {
   ) {
     archiveCurrentRoute();
   }
+  window.dispatchEvent?.(new Event('cnfl-progress'));
 }
 
 function migrateOldReadingState() {
@@ -570,6 +571,7 @@ function loadNewReadingRoute() {
       `Ruta cargada: ${readingOrders.length} medidores · ${sets.reusable.length} GPS en memoria · ${sets.missing.length} faltan`
     );
     switchReadingTab('route', document.getElementById('tabRoute'));
+    window.cnflJourneyLoaded?.();
   } catch (err) {
     alert('No cargué la ruta. ' + err.message);
   }

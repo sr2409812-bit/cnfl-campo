@@ -406,6 +406,7 @@ function confirmResidentialPdfImport() {
   renderAll();
   switchReadingTab('route', document.getElementById('tabRoute'));
   showReadingToast(staged.summary);
+  if(typeof window!=='undefined')window.cnflJourneyLoaded?.();
 }
 
 async function handleReadingPdfUpload(event) {
