@@ -157,7 +157,7 @@ function render(){
 
   const rs=document.getElementById("routeStatus");
   if(state.manualChosen){
-    rs.textContent='Mi ruta del mapa · '+state.manualChosen+' paradas elegidas. Siguiente sigue el orden que armaste.';
+    rs.textContent='Mi ruta del mapa · '+state.manualChosen+(state.manualChosen===1?' parada elegida.':' paradas elegidas.')+' Siguiente sigue el orden que armaste.';
   } else if(state.meta&&state.meta.optimizedAt){
     const when=new Date(state.meta.optimizedAt).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
     const km=Number.isFinite(state.meta.meters)?(" · "+(state.meta.meters/1000).toFixed(1)+" km aprox."):"";
@@ -370,6 +370,6 @@ async function optimizeFromHere(){
 initializeNotificationView();
 </script>
   <script src="journey.js?v=20261031-journey1"></script>
-  <script src="campo-shell.js?v=20261031-journey1"></script>
+  <script src="campo-shell.js?v=20261031-journey2"></script>
 </body>
 </html>
