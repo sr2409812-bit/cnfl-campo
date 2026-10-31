@@ -897,7 +897,10 @@ function switchTab(tabId, btn) {
   if (target) target.classList.add('active');
   if (btn) btn.classList.add('active');
 
-  if (tabId === 'resumen') updateLiquidation();
+  if (tabId === 'resumen') {
+    updateLiquidation();
+    if (typeof window !== 'undefined') window.cnflJourneyReview?.();
+  }
   if (tabId === 'cargar') updateTgCommandsCount();
   if (tabId === 'historial') renderOrderHistory(document.getElementById('historySearchInput')?.value || '');
 }

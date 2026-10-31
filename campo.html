@@ -1,18 +1,20 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#00264D"><title>CNFL Campo · Mi jornada</title>
-<link rel="stylesheet" href="journey.css?v=20261031-journey1"><script src="journey.js?v=20261031-journey1"></script></head>
+<link rel="stylesheet" href="journey.css?v=20261031-simple3"><script src="journey.js?v=20261031-journey1"></script></head>
 <body class="cnfl-day-home"><header><strong>CNFL CAMPO</strong><small>MI JORNADA</small></header><main>
-<h1 id="greeting">Iniciar jornada</h1><p id="intro">Elegí tu trabajo de hoy. Las órdenes anteriores y el GPS quedan guardados.</p>
-<section id="resume" class="card" hidden><h2>Jornada pendiente</h2><p id="resumeText"></p><button id="continue" class="primary">CONTINUAR</button></section>
-<section id="chooser" class="card"><h2>¿Qué trabajo tenés hoy?</h2><p>Seleccioná uno para entrar a su espacio de trabajo.</p><div id="types" class="types"></div></section>
-<section id="closed" class="card" hidden><h2>Última jornada finalizada</h2><p id="closedText"></p></section>
+<h1 id="greeting">Mi jornada</h1><p id="intro">Elegí el trabajo de hoy.</p>
+<section id="resume" class="card" hidden><h2>Jornada en curso</h2><p id="resumeText"></p><button id="continue" class="primary">CONTINUAR TRABAJO</button></section>
+<details id="chooser" class="card"><summary id="chooseTitle">Iniciar jornada</summary><div id="types" class="types"></div></details>
 <details id="past" class="card" hidden><summary>Jornadas guardadas</summary><div id="pastList"></div></details>
-<a class="secondary" href="mapa.html">Consultar mapa general</a><a class="secondary" href="backup.html">Respaldo</a>
+<details id="more" class="card"><summary>Otras opciones</summary><a class="secondary" href="mapa.html">Mapa general</a><a class="secondary" href="backup.html">Respaldo</a></details>
 </main><script>
 (function(){
  const j=window.CNFLJourney,s=j.read(localStorage),a=s.active;
  const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Costa_Rica',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
- document.getElementById('greeting').textContent=hour>=6&&hour<12?'Buenos días. Iniciá tu jornada':'Tu jornada de trabajo';
+ document.getElementById('greeting').textContent=hour>=6&&hour<12?'Buenos días':'Mi jornada';
+ const chooser=document.getElementById('chooser');
+ chooser.open=!a||!!a.finishedAt||a.date!==j.stamp();
+ document.getElementById('chooseTitle').textContent=a&&!a.finishedAt&&a.date===j.stamp()?'Cambiar trabajo':'¿Qué trabajo tenés hoy?';
  const types=document.getElementById('types');
  Object.entries(j.MODULES).forEach(([type,title])=>{const b=document.createElement('button');b.textContent=title;b.onclick=()=>{
    const previous=j.read(localStorage).active,day=j.stamp();
@@ -21,9 +23,7 @@
      j.begin(localStorage,type);if(type==='notificaciones')j.step(localStorage,'map');location.assign(j.pages[type]+'?jornada=1');
    }catch(_){alert('No se pudo guardar la jornada en este teléfono. Revisá el almacenamiento disponible.');}
  };types.append(b)});
- if(a&&!a.finishedAt){document.getElementById('resume').hidden=false;document.getElementById('resumeText').textContent=j.MODULES[a.module]+' · '+a.date+' · '+({load:'Cargar',map:'Armar ruta',work:'Trabajar',report:'Revisar reporte'}[a.step]||'Continuar');document.getElementById('continue').onclick=()=>location.assign(j.pages[a.module]+'?jornada=1');}
- const last=a?.finishedAt?a:s.history.find(x=>x.finishedAt);
- if(last){document.getElementById('closed').hidden=false;document.getElementById('closedText').textContent=j.MODULES[last.module]+' · '+last.date+' · '+last.summary?.done+' gestiones';}
+ if(a&&!a.finishedAt){document.getElementById('resume').hidden=false;document.getElementById('resumeText').textContent=j.MODULES[a.module]+' · '+a.date+' · '+({load:'Cargar órdenes',map:'Armar ruta',work:'Visitar órdenes',report:'Revisar cierre'}[a.step]||'Continuar');document.getElementById('continue').onclick=()=>location.assign(j.pages[a.module]+'?jornada=1');}
  const closed=[a,...s.history].filter(x=>x?.finishedAt).slice(0,10);
  if(closed.length){document.getElementById('past').hidden=false;const list=document.getElementById('pastList');closed.forEach(x=>{
    const row=document.createElement('details'),title=document.createElement('summary');title.textContent=(j.MODULES[x.module]||x.module)+' · '+x.date+' · '+(x.summary?.done||0)+' gestiones';row.append(title);
