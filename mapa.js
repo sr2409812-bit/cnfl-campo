@@ -77,6 +77,7 @@
   function addManual(o){if(inventory||o.type!==scope||o.done||manualKeys.includes(key(o)))return;if(manualKeys.length>=120){manualStatus.textContent='La ruta admite hasta 120 paradas.';return;}changeManual([...routeKeys(),key(o)]);}
   function focusJob(o){clusterKeys=null;selectedKey=key(o);renderSelection();if(map&&o.lat!==null)map.setView([o.lat,o.lon],Math.max(map.getZoom(),16));}
   function renderCluster(){
+    const scrollTop=selectedPanel.scrollTop;
     const rows=visibleRows().filter(o=>clusterKeys.includes(key(o)));
     if(!rows.length){clusterKeys=null;selectedPanel.hidden=true;return;}
     selectedPanel.hidden=false;
@@ -93,6 +94,8 @@
       };
       choices.append(b);
     });
+    // Agregar una parada redibuja la lista; conservar el lugar del técnico.
+    selectedPanel.scrollTop=scrollTop;
   }
   function renderSelection(){
     if(clusterKeys){renderCluster();return;}
@@ -169,7 +172,7 @@
           const lat=group.reduce((sum,o)=>sum+o.lat,0)/group.length;
           const lon=group.reduce((sum,o)=>sum+o.lon,0)/group.length;
           L.marker([lat,lon],{bubblingMouseEvents:false,icon:L.divIcon({className:'cluster-icon',html:'<span>'+group.length+'</span>',iconSize:[36,36],iconAnchor:[18,18]})})
-            .on('click',()=>{clusterKeys=group.map(key);selectedKey=null;renderSelection();}).addTo(layer);
+            .on('click',()=>{clusterKeys=group.map(key);selectedKey=null;selectedPanel.scrollTop=0;renderSelection();}).addTo(layer);
           return;
         }
         const first=group[0],color=colors[first.type];
