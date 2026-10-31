@@ -42,3 +42,4 @@ body.cnfl-guided-map #routeHint,body.cnfl-guided-map #routeOverview{grid-column:
 body.cnfl-guided.cnfl-report-step main{padding-bottom:235px!important}
 body.cnfl-guided .cnfl-global-drawer a[data-module]:not([data-module="jornada"]):not([data-module="respaldo"]):not(.active){display:none}
 body.cnfl-guided.cnfl-module-mapa .cnfl-global-drawer a[data-module="mapa"]{display:none}
+body.cnfl-guided.cnfl-load-empty .route-head,body.cnfl-guided.cnfl-load-empty #readingGpsCard{display:none}
