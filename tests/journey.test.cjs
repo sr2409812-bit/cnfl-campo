@@ -21,6 +21,8 @@ test('continuar jornada, cerrar reporte y separar módulos',()=>{
   const first=journey.begin(store,'demanda',now);
   assert.equal(journey.begin(store,'demanda',now).id,first.id);
   journey.step(store,'map',now);journey.step(store,'work',now);journey.step(store,'report',now);
+  journey.confirmReport(store,true);
+  assert.equal(journey.read(store).active.reportConfirmed,true);
   journey.finish(store,{total:3,done:2,pending:1,report:'Control'},now);
   assert.equal(journey.read(store).active.report,'Control');
   assert.equal(journey.begin(store,'cortes',now).module,'cortes');

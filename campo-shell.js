@@ -80,6 +80,15 @@
   }
 
   const journey=window.CNFLJourney;
+  const currentJourney=journey?.read(localStorage).active;
+  const currentScope=moduleName==='mapa'?new URLSearchParams(location.search).get('volver'):moduleName;
+  function checkNewDay(){
+    if(currentJourney&&!currentJourney.finishedAt&&currentJourney.module===currentScope&&
+      currentJourney.date!==journey.stamp()&&!new URLSearchParams(location.search).has('continuar_anterior')&&
+      document.visibilityState==='visible')location.replace('campo.html');
+  }
+  checkNewDay();
+  addEventListener('pageshow',checkNewDay);document.addEventListener('visibilitychange',checkNewDay);
   if(journey && Object.hasOwn(journey.MODULES,moduleName)){
     const active=journey.read(localStorage).active;
     if(active&&active.module===moduleName&&!active.finishedAt){
@@ -102,43 +111,59 @@
       }
       function refresh(){
         const state=journey.read(localStorage).active;if(!state||state.id!==active.id||state.finishedAt)return;
+        document.body.classList.toggle('cnfl-report-step',state.step==='report');
         const rows=workRows(),done=rows.filter(o=>o.done).length,remaining=rows.length-done;
-        const titles={load:'Cargar órdenes',map:'Armar ruta',work:'Trabajar',report:'Cerrar jornada'};
+        const titles={load:'Cargar órdenes',map:'Armar ruta',work:'Visitar órdenes',report:'Entregar reporte'};
         const number={load:1,map:2,work:3,report:4}[state.step]||1;
         bar.replaceChildren();
         const heading=document.createElement('strong');heading.textContent=number+' / 4 · '+titles[state.step];
         const info=document.createElement('p');
-        info.textContent=state.step==='load'?'Seleccioná el PDF de '+journey.MODULES[moduleName]+'.':
-          state.step==='map'?'Elegí el orden de visita en el mapa.':
-          state.step==='work'?done+' gestionadas · '+remaining+' pendientes':
-          done+' gestionadas · '+remaining+' pendientes';
+        info.textContent=state.step==='load'?'Seleccioná y confirmá el PDF de '+journey.MODULES[moduleName]+'.':
+          state.step==='map'?'Tocá los puntos en el orden que querés visitar.':
+          state.step==='work'?done+' gestionadas · '+remaining+' pendientes. Tocá la orden que vas a visitar.':
+          done+' gestionadas · '+remaining+' pendientes. Compartí el control y cerrá la jornada.';
         const actions=document.createElement('div');actions.className='actions';
-        function action(label,callback,secondary=false){const button=document.createElement('button');button.type='button';button.textContent=label;if(secondary)button.className='secondary';button.onclick=callback;actions.append(button);}
+        function action(label,callback,secondary=false){const button=document.createElement('button');button.type='button';button.textContent=label;if(secondary)button.className='secondary';button.onclick=callback;actions.append(button);return button;}
         if(state.step==='load'&&rows.length&&moduleName!=='notificaciones'){
           action('Usar '+rows.length+' órdenes guardadas',()=>{journey.step(localStorage,'map');window.cnflOpenSharedMap?.(moduleName);},true);
         }
-        if(state.step==='map')action('ABRIR MAPA',()=>window.cnflOpenSharedMap?.(moduleName));
-        if(state.step==='work'&&moduleName==='notificaciones')action('REVISAR CIERRE',()=>window.cnflJourneyReview?.());
-        let summary=null;
+        if(state.step==='map')action('CONTINUAR AL MAPA',()=>window.cnflOpenSharedMap?.(moduleName));
+        if(state.step==='work'){
+          if(moduleName==='demanda'||moduleName==='residencial'){
+            const listing=!!document.getElementById('view-list')?.classList.contains('active');
+            action(listing?'VER ORDEN ACTUAL':'VER TODAS',()=>{section(listing?'route':'list');refresh();},true);
+          }
+          action('REVISAR CIERRE',()=>window.cnflJourneyReview?.());
+        }
+        let summary=null,confirmation=null;
         if(state.step==='report'){
           if(moduleName==='notificaciones'){summary=document.createElement('p');summary.className='cnfl-journey-summary';summary.textContent=reportText().replaceAll('\n',' · ');}
           if(moduleName==='notificaciones'){
-            action('COPIAR REPORTE',async()=>{try{await navigator.clipboard.writeText(reportText());const copy=actions.querySelector('button');copy.textContent='REPORTE COPIADO';}catch(_){alert('No se pudo copiar el reporte.');}},true);
+            action('COMPARTIR REPORTE',async()=>{try{
+              if(navigator.share)await navigator.share({title:'Control de notificaciones',text:reportText()});
+              else{await navigator.clipboard.writeText(reportText());alert('Reporte copiado. Pegalo donde vayas a entregarlo.');}
+            }catch(error){if(error?.name!=='AbortError')alert('No se pudo compartir el reporte.');}},true);
           }
-          action('FINALIZAR JORNADA',()=>{
+          confirmation=document.createElement('label');confirmation.className='cnfl-report-confirm';
+          const checked=document.createElement('input');checked.type='checkbox';checked.checked=!!state.reportConfirmed;
+          checked.onchange=()=>{journey.confirmReport(localStorage,checked.checked);refresh();};
+          confirmation.append(checked,document.createTextNode('Ya compartí o guardé el reporte'));
+          const finish=action('FINALIZAR JORNADA',()=>{
             if(!confirm(remaining?'Quedan '+remaining+' pendientes. ¿Cerrar esta jornada y guardar el reporte?':'¿Ya revisaste el reporte? Se guardará el cierre de esta jornada.'))return;
             const report=moduleName==='cortes'&&typeof window.generateLiquidationText==='function'?window.generateLiquidationText():reportText();
             journey.finish(localStorage,{total:rows.length,done,pending:remaining,report});location.assign('campo.html');
           });
+          finish.disabled=!state.reportConfirmed;
         }
-        const lead=document.createElement('div');lead.append(heading,info);bar.append(lead);if(summary)bar.append(summary);if(actions.children.length)bar.append(actions);
+        const lead=document.createElement('div');lead.append(heading,info);bar.append(lead);if(summary)bar.append(summary);if(confirmation)bar.append(confirmation);if(actions.children.length)bar.append(actions);
       }
       window.cnflJourneyRefresh=refresh;
-      window.cnflJourneyReview=()=>{const current=journey.read(localStorage).active;if(current?.id!==active.id||current.step!=='work')return;journey.step(localStorage,'report');refresh();};
+      window.cnflJourneyReview=()=>{const current=journey.read(localStorage).active;if(current?.id!==active.id||current.step!=='work')return;journey.step(localStorage,'report');section(moduleName==='cortes'?'resumen':'summary');refresh();};
       function reportText(){const rows=workRows(),done=rows.filter(o=>o.done).length;return 'CNFL Campo · '+journey.MODULES[moduleName]+'\nJornada: '+active.date+'\nTotal: '+rows.length+'\nGestionadas: '+done+'\nPendientes: '+(rows.length-done);}
       window.cnflJourneyLoaded=()=>{const current=journey.read(localStorage).active;if(current?.id!==active.id||current.step!=='load')return;journey.step(localStorage,'map');window.cnflOpenSharedMap?.(moduleName);};
       refresh();
       if(active.step==='load'&&location.search.includes('jornada=1')&&moduleName!=='notificaciones')section(moduleName==='cortes'?'cargar':'load');
+      if(active.step==='work'&&location.search.includes('jornada=1')&&moduleName!=='notificaciones')section(moduleName==='cortes'?'ruta':'route');
       if(active.step==='report'&&location.search.includes('jornada=1')&&moduleName!=='notificaciones')section(moduleName==='cortes'?'resumen':'summary');
       addEventListener('pageshow',refresh);addEventListener('focus',refresh);addEventListener('cnfl-progress',refresh);
     }
@@ -149,7 +174,8 @@
     try{localStorage.setItem('cnfl_last_module',moduleName);}catch(_){}
     window.cnflOpenSharedMap=function(kind=moduleName){
       const selected=Object.hasOwn(fieldModules,kind)?kind:moduleName;
-      location.assign('mapa.html?tipo='+encodeURIComponent(selected)+'&volver='+encodeURIComponent(moduleName)+'&v=20261030-simple1');
+      const olderFlag=new URLSearchParams(location.search).has('continuar_anterior')?'&continuar_anterior=1':'';
+      location.assign('mapa.html?tipo='+encodeURIComponent(selected)+'&volver='+encodeURIComponent(moduleName)+'&v=20261030-simple1'+olderFlag);
     };
   }
 })();

@@ -12,8 +12,9 @@
   const returnPages={cortes:'index.html',demanda:'lectura.html',residencial:'lectura-residencial.html',notificaciones:'notificaciones.html'};
   const back=document.getElementById('backToWork');
   const returnType=params.get('volver');
+  const olderFlag=params.has('continuar_anterior')?'&continuar_anterior=1':'';
   if(Object.hasOwn(returnPages,returnType)){
-    back.href=returnPages[returnType];
+    back.href=returnPages[returnType]+'?jornada=1'+olderFlag;
     back.textContent='VOLVER A '+names[returnType].toUpperCase();
     back.hidden=false;
   }
@@ -48,14 +49,17 @@
   const manualStatus=document.getElementById('manualStatus');
   const manualPanel=document.getElementById('manualPanel');
   const journey=window.CNFLJourney,journeyActive=journey?.read(localStorage).active;
+  if(scope&&journeyActive?.module===scope&&!journeyActive.finishedAt)document.body.classList.add('cnfl-guided');
   if(scope&&journeyActive?.module===scope&&!journeyActive.finishedAt&&journeyActive.step==='map'){
+    document.body.classList.add('cnfl-guided-map');
+    routeMode=true;
     const guide=document.createElement('section');guide.className='cnfl-journey-bar';guide.setAttribute('aria-label','Continuar jornada');
     const title=document.createElement('strong');title.textContent='2 / 4 · Armar ruta';
     const hint=document.createElement('p');hint.textContent='Tocá los puntos en el orden de visita.';
     const actions=document.createElement('div');actions.className='actions';
     const use=document.createElement('button');use.type='button';use.textContent='LISTO, EMPEZAR';
     const skip=document.createElement('button');skip.type='button';skip.textContent='SEGUIR SIN RUTA';skip.className='secondary';
-    function beginWork(){journey.step(localStorage,'work');location.assign(returnPages[scope]+'?jornada=1');}
+    function beginWork(){journey.step(localStorage,'work');location.assign(returnPages[scope]+'?jornada=1'+olderFlag);}
     use.onclick=()=>{if(!routeKeys().length){manualStatus.textContent='Primero elegí una parada. También podés seguir sin ruta.';document.getElementById('routeMode').focus();return;}beginWork();};
     skip.onclick=beginWork;actions.append(use,skip);guide.append(title,hint,actions);box.before(guide);
   }

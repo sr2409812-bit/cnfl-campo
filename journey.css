@@ -31,3 +31,14 @@ body.cnfl-day-home #pastList pre{white-space:pre-wrap;overflow-wrap:anywhere;fon
 .reading-extra[open]>summary::before{content:'▾'}
 .reading-extra[open]>summary{margin-bottom:12px}
 body.cnfl-guided .summary-actions .btn-danger-ghost{display:none}
+body.cnfl-guided .bottom-nav{display:none!important}
+body.cnfl-guided .cnfl-journey-bar,body.cnfl-guided-map .cnfl-journey-bar{position:fixed;left:0;right:0;bottom:0;z-index:100;margin:0;padding:10px 14px max(10px,env(safe-area-inset-bottom));border-top:3px solid #ff6a13;box-shadow:0 -5px 16px #00264d24}
+body.cnfl-guided main,body.cnfl-guided-map main{padding-bottom:190px!important}
+body.cnfl-guided-map #routeMode{display:none}
+body.cnfl-guided-map .route-bar{display:flex;align-items:center;justify-content:space-between;min-height:48px}
+body.cnfl-guided-map #routeHint,body.cnfl-guided-map #routeOverview{grid-column:auto;grid-row:auto}
+.cnfl-journey-bar .cnfl-report-confirm{display:flex;align-items:center;gap:9px;flex-basis:100%;font-size:12px;font-weight:800;color:#00264d;min-height:36px}
+.cnfl-report-confirm input{width:20px;height:20px;accent-color:#0033a0;flex:none}
+body.cnfl-guided.cnfl-report-step main{padding-bottom:235px!important}
+body.cnfl-guided .cnfl-global-drawer a[data-module]:not([data-module="jornada"]):not([data-module="respaldo"]):not(.active){display:none}
+body.cnfl-guided.cnfl-module-mapa .cnfl-global-drawer a[data-module="mapa"]{display:none}
