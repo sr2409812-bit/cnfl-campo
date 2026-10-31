@@ -50,13 +50,13 @@
   const journey=window.CNFLJourney,journeyActive=journey?.read(localStorage).active;
   if(scope&&journeyActive?.module===scope&&!journeyActive.finishedAt&&journeyActive.step==='map'){
     const guide=document.createElement('section');guide.className='cnfl-journey-bar';guide.setAttribute('aria-label','Continuar jornada');
-    const title=document.createElement('strong');title.textContent='2 · Elegí tu ruta';
-    const hint=document.createElement('p');hint.textContent='Tocá los puntos en el orden que querés visitarlos. Después, usá esta ruta.';
+    const title=document.createElement('strong');title.textContent='2 / 4 · Armar ruta';
+    const hint=document.createElement('p');hint.textContent='Tocá los puntos en el orden de visita.';
     const actions=document.createElement('div');actions.className='actions';
-    const use=document.createElement('button');use.type='button';use.textContent='USAR ESTA RUTA Y EMPEZAR';
-    const skip=document.createElement('button');skip.type='button';skip.textContent='CONTINUAR SIN RUTA';skip.className='secondary';
+    const use=document.createElement('button');use.type='button';use.textContent='LISTO, EMPEZAR';
+    const skip=document.createElement('button');skip.type='button';skip.textContent='SEGUIR SIN RUTA';skip.className='secondary';
     function beginWork(){journey.step(localStorage,'work');location.assign(returnPages[scope]+'?jornada=1');}
-    use.onclick=()=>{if(!routeKeys().length){manualStatus.textContent='Elegí al menos una parada o continuá sin ruta.';document.getElementById('routeMode').focus();return;}beginWork();};
+    use.onclick=()=>{if(!routeKeys().length){manualStatus.textContent='Primero elegí una parada. También podés seguir sin ruta.';document.getElementById('routeMode').focus();return;}beginWork();};
     skip.onclick=beginWork;actions.append(use,skip);guide.append(title,hint,actions);box.before(guide);
   }
 

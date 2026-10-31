@@ -938,7 +938,10 @@ function switchReadingTab(tab, btn) {
   document.getElementById(`view-${tab}`).classList.add('active');
   if (btn) btn.classList.add('active');
   if (tab === 'list') renderList();
-  if (tab === 'summary') renderSummary();
+  if (tab === 'summary') {
+    renderSummary();
+    if (typeof window !== 'undefined') window.cnflJourneyReview?.();
+  }
   if (tab === 'load') renderLoadView();
 }
 
