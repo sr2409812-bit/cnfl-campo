@@ -130,13 +130,14 @@
           else if(next==='report'){journey.step(localStorage,'report');section(moduleName==='cortes'?'resumen':'summary');refresh();}
           else if(moduleName==='notificaciones')bar.scrollIntoView({behavior:'smooth'});
           else section(moduleName==='cortes'?'resumen':'summary');
-        };actions.append(button);
+        };if(!(state.step==='report'&&moduleName==='notificaciones'))actions.append(button);
         if(state.step==='load'&&rows.length&&moduleName!=='notificaciones'){
           const existing=document.createElement('button');existing.type='button';existing.className='secondary';existing.textContent='USAR '+rows.length+' ÓRDENES GUARDADAS';existing.onclick=()=>{journey.step(localStorage,'map');window.cnflOpenSharedMap?.(moduleName);};actions.append(existing);
         }
         if(state.step==='work'&&remaining){const extra=document.createElement('button');extra.textContent='REVISAR CIERRE';extra.onclick=()=>{journey.step(localStorage,'report');section(moduleName==='cortes'?'resumen':'summary');refresh()};actions.append(extra);}
+        let summary=null;
         if(state.step==='report'){
-          if(moduleName==='notificaciones'){const summary=document.createElement('p');summary.className='cnfl-journey-summary';summary.textContent=reportText().replaceAll('\n',' · ');bar.append(summary);}
+          if(moduleName==='notificaciones'){summary=document.createElement('p');summary.className='cnfl-journey-summary';summary.textContent=reportText().replaceAll('\n',' · ');}
           if(moduleName==='notificaciones'){
             const copy=document.createElement('button');copy.type='button';copy.textContent='COPIAR REPORTE';copy.onclick=async()=>{try{await navigator.clipboard.writeText(reportText());copy.textContent='REPORTE COPIADO';}catch(_){copy.textContent='NO SE PUDO COPIAR';}};actions.append(copy);
           }
@@ -147,7 +148,7 @@
           };actions.append(finish);
         }
         const home=document.createElement('a');home.href='campo.html';home.className='secondary';home.textContent='CAMBIAR TRABAJO';actions.append(home);
-        bar.append(heading,info,actions);
+        bar.append(heading,info);if(summary)bar.append(summary);bar.append(actions);
       }
       window.cnflJourneyRefresh=refresh;
       function reportText(){const rows=workRows(),done=rows.filter(o=>o.done).length;return 'CNFL Campo · '+journey.MODULES[moduleName]+'\nJornada: '+active.date+'\nTotal: '+rows.length+'\nGestionadas: '+done+'\nPendientes: '+(rows.length-done);}
