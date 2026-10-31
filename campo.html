@@ -1,10 +1,11 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#00264D"><title>CNFL Campo · Mi jornada</title>
-<link rel="stylesheet" href="journey.css?v=20261031-simple3"><script src="journey.js?v=20261031-journey1"></script></head>
+<link rel="stylesheet" href="journey.css?v=20261031-guided4"><script src="journey.js?v=20261031-guided4"></script></head>
 <body class="cnfl-day-home"><header><strong>CNFL CAMPO</strong><small>MI JORNADA</small></header><main>
-<h1 id="greeting">Mi jornada</h1><p id="intro">Elegí el trabajo de hoy.</p>
+<h1 id="greeting">Mi jornada</h1><p id="intro">Seguimos paso a paso hasta el cierre.</p>
+<section id="start" class="card"><h2>¿Listo para trabajar?</h2><p>Primero elegí el tipo de orden de hoy.</p><button id="startButton" class="primary">INICIAR JORNADA</button></section>
 <section id="resume" class="card" hidden><h2>Jornada en curso</h2><p id="resumeText"></p><button id="continue" class="primary">CONTINUAR TRABAJO</button></section>
-<details id="chooser" class="card"><summary id="chooseTitle">Iniciar jornada</summary><div id="types" class="types"></div></details>
+<details id="chooser" class="card"><summary id="chooseTitle">Elegir trabajo</summary><div id="types" class="types"></div></details>
 <details id="past" class="card" hidden><summary>Jornadas guardadas</summary><div id="pastList"></div></details>
 <details id="more" class="card"><summary>Otras opciones</summary><a class="secondary" href="mapa.html">Mapa general</a><a class="secondary" href="backup.html">Respaldo</a></details>
 </main><script>
@@ -13,21 +14,28 @@
  const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Costa_Rica',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
  document.getElementById('greeting').textContent=hour>=6&&hour<12?'Buenos días':'Mi jornada';
  const chooser=document.getElementById('chooser');
- chooser.open=!a||!!a.finishedAt||a.date!==j.stamp();
+ chooser.open=false;
+ const newDay=!a||!!a.finishedAt||a.date!==j.stamp();
+ document.getElementById('start').hidden=!newDay;
+ document.getElementById('startButton').onclick=()=>{chooser.open=true;chooser.scrollIntoView({behavior:'smooth',block:'start'});};
  document.getElementById('chooseTitle').textContent=a&&!a.finishedAt&&a.date===j.stamp()?'Cambiar trabajo':'¿Qué trabajo tenés hoy?';
+ function destination(active){const older=active.date!==j.stamp()?'&continuar_anterior=1':'';return active.step==='map'?'mapa.html?tipo='+encodeURIComponent(active.module)+'&volver='+encodeURIComponent(active.module)+'&jornada=1'+older:j.pages[active.module]+'?jornada=1'+older;}
  const types=document.getElementById('types');
  Object.entries(j.MODULES).forEach(([type,title])=>{const b=document.createElement('button');b.textContent=title;b.onclick=()=>{
    const previous=j.read(localStorage).active,day=j.stamp();
    if(previous&&!previous.finishedAt&&(previous.module!==type||previous.date!==day)&&!confirm('Hay una jornada de '+j.MODULES[previous.module]+' sin cerrar. Quedará guardada en el historial. ¿Abrir '+title+'?'))return;
    try{if(type==='notificaciones'&&!(previous?.module===type&&previous.date===day&&!previous.finishedAt))j.prepareNotifications(localStorage,day);
-     j.begin(localStorage,type);if(type==='notificaciones')j.step(localStorage,'map');location.assign(j.pages[type]+'?jornada=1');
+     j.begin(localStorage,type);if(type==='notificaciones')j.step(localStorage,'map');location.assign(destination(j.read(localStorage).active));
    }catch(_){alert('No se pudo guardar la jornada en este teléfono. Revisá el almacenamiento disponible.');}
  };types.append(b)});
- if(a&&!a.finishedAt){document.getElementById('resume').hidden=false;document.getElementById('resumeText').textContent=j.MODULES[a.module]+' · '+a.date+' · '+({load:'Cargar órdenes',map:'Armar ruta',work:'Visitar órdenes',report:'Revisar cierre'}[a.step]||'Continuar');document.getElementById('continue').onclick=()=>location.assign(j.pages[a.module]+'?jornada=1');}
+ if(a&&!a.finishedAt){document.getElementById('resume').hidden=false;document.getElementById('resumeText').textContent=j.MODULES[a.module]+' · '+a.date+' · '+({load:'Cargar órdenes',map:'Armar ruta',work:'Visitar órdenes',report:'Revisar cierre'}[a.step]||'Continuar');document.getElementById('continue').textContent=newDay?'CONTINUAR JORNADA ANTERIOR':'CONTINUAR TRABAJO';document.getElementById('continue').onclick=()=>location.assign(destination(a));}
  const closed=[a,...s.history].filter(x=>x?.finishedAt).slice(0,10);
  if(closed.length){document.getElementById('past').hidden=false;const list=document.getElementById('pastList');closed.forEach(x=>{
    const row=document.createElement('details'),title=document.createElement('summary');title.textContent=(j.MODULES[x.module]||x.module)+' · '+x.date+' · '+(x.summary?.done||0)+' gestiones';row.append(title);
    if(x.report){const report=document.createElement('pre');report.textContent=x.report;row.append(report);}
    list.append(row);
  });}
+ const openDate=j.stamp();
+ function checkNewDay(){if(document.visibilityState==='visible'&&j.stamp()!==openDate)location.reload();}
+ addEventListener('pageshow',checkNewDay);document.addEventListener('visibilitychange',checkNewDay);
 })();</script></body></html>

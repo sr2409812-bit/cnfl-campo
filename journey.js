@@ -34,6 +34,11 @@
     if(typeof summary.report==='string')a.report=summary.report.slice(0,60000);
     write(storage,s);return a;
   }
+  function confirmReport(storage,confirmed){
+    const s=read(storage),a=s.active;
+    if(!a||a.finishedAt||a.step!=='report')return null;
+    a.reportConfirmed=!!confirmed;write(storage,s);return a;
+  }
   function prepareNotifications(storage,date){
     const key='cnfl_notificaciones_20261019_v2',historyKey='cnfl_notification_daily_history_v1';
     const current=JSON.parse(storage.getItem(key)||'null');
@@ -45,6 +50,6 @@
     }
     storage.setItem(key,JSON.stringify({...current,done:{},lastAction:null,index:0,journeyDate:date}));
   }
-  root.CNFLJourney={KEY,MODULES,pages,stamp,read,begin,step,finish,prepareNotifications};
+  root.CNFLJourney={KEY,MODULES,pages,stamp,read,begin,step,finish,confirmReport,prepareNotifications};
   if(typeof module!=='undefined'&&module.exports)module.exports=root.CNFLJourney;
 })(typeof window==='undefined'?globalThis:window);
