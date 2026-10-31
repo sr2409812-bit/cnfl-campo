@@ -89,7 +89,9 @@ details[open]>.summary-arrow,details[open]>summary .summary-arrow{transform:rota
 .manual-panel .manual-note{font-size:11px;color:#664519;background:#FFF5E6;border-left:3px solid #CA7922;padding:8px;margin:9px 0 0}
 button:disabled{opacity:.48}
 @media(max-width:760px){
-  .selected-panel:not([hidden]){position:fixed;z-index:60;bottom:0;left:0;right:0;max-height:58dvh;overflow-y:auto;overscroll-behavior:auto;touch-action:pan-y;margin:0;border-radius:16px 16px 0 0;box-shadow:0 -8px 32px #00264d44;padding:14px 14px max(16px,env(safe-area-inset-bottom))}
+  .selected-panel:not([hidden]){position:fixed;z-index:120;bottom:0;left:0;right:0;max-height:58dvh;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;margin:0;border-radius:16px 16px 0 0;box-shadow:0 -8px 32px #00264d44;padding:14px 14px max(16px,env(safe-area-inset-bottom))}
+  /* La selección ocupa temporalmente el lugar del paso de jornada. */
+  body:has(#selectedPanel:not([hidden])) .cnfl-journey-bar{display:none}
   .selected-panel .sheet-header{position:sticky;top:-14px;background:#fff;z-index:1;padding-top:8px}
   .nearby-item{min-height:46px}
 }

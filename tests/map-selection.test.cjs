@@ -68,3 +68,24 @@ test('armar ruta agrega una vez y mantiene la ficha tras redibujar los puntos',(
   assert.deepEqual(ctx.manualKeys,['cortes:test-1']);
   assert.equal(ctx.selectedPanel.hidden,false);
 });
+
+test('agregar desde un grupo largo conserva el desplazamiento y todas las opciones',()=>{
+  const rows=Array.from({length:25},(_,i)=>({loc:String(i),label:'Orden '+i,done:false}));
+  const panel={scrollTop:420,hidden:false,set innerHTML(value){this.scrollTop=0;choices.children=[];}};
+  const choices={children:[],append(b){this.children.push(b)}};
+  const close={};
+  const ctx={selectedPanel:panel,clusterKeys:rows.map(o=>o.loc),routeMode:true,
+    visibleRows:()=>rows,key:o=>o.loc,routeKeys:()=>ctx.saved,
+    saved:[],focusJob(){throw Error('No debe salir del grupo al agregar');},
+    addManual(o){ctx.saved.push(o.loc);ctx.renderCluster();},
+    document:{getElementById:id=>id==='clusterChoices'?choices:close,createElement:()=>({})}};
+  vm.createContext(ctx);
+  vm.runInContext(source.slice(source.indexOf('  function renderCluster(){'),source.indexOf('  function renderSelection(){')),ctx);
+  ctx.renderCluster();
+  choices.children[20].onclick();
+  assert.equal(panel.scrollTop,420);
+  assert.equal(panel.hidden,false);
+  assert.equal(choices.children.length,25);
+  assert.deepEqual(ctx.saved,['20']);
+  assert.match(choices.children[20].textContent,/#1 .*EN RUTA/);
+});
