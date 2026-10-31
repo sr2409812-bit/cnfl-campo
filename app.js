@@ -765,6 +765,7 @@ function updateFieldRecord(cardId, field, value) {
     localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
     archiveOrdersToHistory(workOrders);
     updateLiquidation();
+    window.dispatchEvent?.(new Event('cnfl-progress'));
   }
 }
 
@@ -1403,6 +1404,7 @@ async function confirmCutsPdfImport() {
   const gpsMissing = workOrders.length - gpsReady;
   showToast(`${workOrders.length} órdenes cargadas · ${gpsReady} con GPS · ${gpsMissing} por consultar`);
   switchTab('ruta', document.querySelectorAll('.nav-tab-btn')[0]);
+  window.cnflJourneyLoaded?.();
 }
 
 async function handlePdfUpload(event) {

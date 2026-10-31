@@ -1,8 +1,10 @@
-const CACHE_NAME = 'cnfl-campo-v64';
+const CACHE_NAME = 'cnfl-campo-v66';
 
 const CORE_ASSETS = [
   './',
   './campo.html',
+  './journey.js',
+  './journey.css',
   './campo.css',
   './campo-shell.css',
   './campo-shell.js',
