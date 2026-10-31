@@ -111,8 +111,9 @@
       }
       function refresh(){
         const state=journey.read(localStorage).active;if(!state||state.id!==active.id||state.finishedAt)return;
-        document.body.classList.toggle('cnfl-report-step',state.step==='report');
         const rows=workRows(),done=rows.filter(o=>o.done).length,remaining=rows.length-done;
+        document.body.classList.toggle('cnfl-report-step',state.step==='report');
+        document.body.classList.toggle('cnfl-load-empty',state.step==='load'&&!rows.length);
         const titles={load:'Cargar órdenes',map:'Armar ruta',work:'Visitar órdenes',report:'Entregar reporte'};
         const number={load:1,map:2,work:3,report:4}[state.step]||1;
         bar.replaceChildren();
