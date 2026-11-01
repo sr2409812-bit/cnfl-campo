@@ -54,9 +54,11 @@
     const db=await ready;if(!db)return 0;
     const tx=db.transaction('kv','readwrite'),store=tx.objectStore('kv');
     let count=0;
+    const current=new Set();
     for(let i=0;i<localStorage.length;i++){
       const key=localStorage.key(i);
       if(!key||!(key.startsWith('cnfl_')||key.startsWith('CNFL_')))continue;
+      current.add(key);
       let value=localStorage.getItem(key);
       if(key==='cnfl_order_history_v1'){
         const clean=cleanHistoryValue(value);
@@ -65,6 +67,15 @@
       store.put({key,value,updatedAt:new Date().toISOString()});
       count++;
     }
+    // La base refleja las claves vigentes: una clave borrada no debe reaparecer
+    // al exportar y restaurar un respaldo posterior.
+    const cursor=store.openCursor();
+    cursor.onsuccess=()=>{
+      const item=cursor.result;
+      if(!item)return;
+      if(!current.has(item.key))item.delete();
+      item.continue();
+    };
     await done(tx);return count;
   }
   async function putRecord(namespace,id,data){

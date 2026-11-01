@@ -25,11 +25,12 @@
     const order=['load','map','work','report'];
     if(!order.includes(next))throw Error('Paso inválido');
     if(order.indexOf(next)<order.indexOf(a.step))return a;
+    if(order.indexOf(next)>order.indexOf(a.step)+1)throw Error('Paso fuera de secuencia');
     a.step=next;a.updatedAt=now.toISOString();write(storage,s);return a;
   }
   function finish(storage,summary,now=new Date()){
     const s=read(storage),a=s.active;
-    if(!a||a.finishedAt||a.step!=='report')return null;
+    if(!a||a.finishedAt||a.step!=='report'||!a.reportConfirmed)return null;
     a.finishedAt=now.toISOString();a.summary={total:Number(summary.total)||0,done:Number(summary.done)||0,pending:Number(summary.pending)||0};
     if(typeof summary.report==='string')a.report=summary.report.slice(0,60000);
     write(storage,s);return a;

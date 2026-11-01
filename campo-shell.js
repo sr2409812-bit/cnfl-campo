@@ -152,7 +152,8 @@
           const finish=action('FINALIZAR JORNADA',()=>{
             if(!confirm(remaining?'Quedan '+remaining+' pendientes. ¿Cerrar esta jornada y guardar el reporte?':'¿Ya revisaste el reporte? Se guardará el cierre de esta jornada.'))return;
             const report=moduleName==='cortes'&&typeof window.generateLiquidationText==='function'?window.generateLiquidationText():reportText();
-            journey.finish(localStorage,{total:rows.length,done,pending:remaining,report});location.assign('campo.html');
+            const closed=journey.finish(localStorage,{total:rows.length,done,pending:remaining,report});
+            if(closed)location.assign('campo.html');else refresh();
           });
           finish.disabled=!state.reportConfirmed;
         }

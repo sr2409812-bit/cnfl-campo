@@ -37,3 +37,15 @@ test('notificaciones archiva avance antes de reiniciar el día',()=>{
   journey.prepareNotifications(store,'2026-10-31');
   assert.equal(JSON.parse(store.getItem('cnfl_notification_daily_history_v1')).length,1);
 });
+
+test('no salta etapas ni cierra una jornada sin confirmar el reporte',()=>{
+  const store=memory(),now=new Date('2026-10-31T15:00:00Z');
+  journey.begin(store,'cortes',now);
+  assert.throws(()=>journey.step(store,'report',now),/fuera de secuencia/);
+  assert.equal(journey.read(store).active.step,'load');
+  journey.step(store,'map',now);journey.step(store,'work',now);journey.step(store,'report',now);
+  assert.equal(journey.finish(store,{total:1,done:1,pending:0},now),null);
+  assert.equal(journey.read(store).active.finishedAt,undefined);
+  journey.confirmReport(store,true);
+  assert.ok(journey.finish(store,{total:1,done:1,pending:0},now).finishedAt);
+});
