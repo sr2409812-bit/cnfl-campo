@@ -6,7 +6,9 @@ function backupStatus(id,message,kind){
 }
 function backupItems(data){
   const merged={};
-  const rows=Array.isArray(data.database&&data.database.kv)?data.database.kv:[];
+  // En v2, items es la fotografía autoritativa del almacenamiento actual.
+  // kv puede contener claves antiguas de una base creada por versiones previas.
+  const rows=data.format==='cnfl-campo-backup-v2'?[]:Array.isArray(data.database&&data.database.kv)?data.database.kv:[];
   rows.forEach(row=>{if(row&&isCnflKey(row.key)&&typeof row.value==='string')merged[row.key]=row.value;});
   Object.entries(data.items||{}).forEach(([key,value])=>{if(isCnflKey(key)&&typeof value==='string')merged[key]=value;});
   if(typeof merged.cnfl_order_history_v1==='string'){
@@ -20,6 +22,21 @@ function backupItems(data){
     }catch(_){}
   }
   return merged;
+}
+function validateBackupItems(items){
+  const checks={
+    cnfl_work_orders:value=>Array.isArray(value),
+    cnfl_journeys_v1:value=>value&&typeof value==='object'&&!Array.isArray(value)&&Array.isArray(value.history),
+    cnfl_reading_orders_v2:value=>value&&typeof value==='object'&&Array.isArray(value.orders),
+    cnfl_residential_reading_v1:value=>value&&typeof value==='object'&&Array.isArray(value.orders),
+    cnfl_notificaciones_20261019_v2:value=>value&&typeof value==='object'&&!Array.isArray(value)
+  };
+  for(const [key,check] of Object.entries(checks)){
+    if(!Object.hasOwn(items,key))continue;
+    let parsed;
+    try{parsed=JSON.parse(items[key]);}catch(_){throw new Error('Datos dañados en '+key);}
+    if(!check(parsed))throw new Error('Estructura inválida en '+key);
+  }
 }
 function backupSummary(items){
   let cuts=0,gps=0,demand=0,residential=0;
@@ -99,6 +116,7 @@ async function prepareRestore(ev){
     const valid=parsed && ['cnfl-campo-backup-v1','cnfl-campo-backup-v2'].includes(parsed.format) && parsed.items && typeof parsed.items==='object' && !Array.isArray(parsed.items);
     if(!valid) throw new Error('Formato no reconocido');
     const items=backupItems(parsed);
+    validateBackupItems(items);
     const historical=Array.isArray(parsed.database&&parsed.database.records)?parsed.database.records.length:0;
     if(!Object.keys(items).length&&!historical)throw new Error('El respaldo está vacío. Descargalo desde el navegador que tiene las órdenes.');
     pendingBackup=parsed;
@@ -133,6 +151,10 @@ async function restoreBackup(){
   }
   let historyWarning='';
   try{
+    if(pendingBackup.database?.records?.length){
+      if(!window.CNFLStore||typeof window.CNFLStore.importDb!=='function'||typeof window.CNFLStore.counts!=='function'||!(await window.CNFLStore.counts()).available)
+        throw new Error('IndexedDB no está disponible en este navegador');
+    }
     if(pendingBackup.database&&window.CNFLStore&&typeof window.CNFLStore.importDb==='function'){
       await window.CNFLStore.importDb(pendingBackup.database);
     }

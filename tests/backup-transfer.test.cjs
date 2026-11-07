@@ -72,3 +72,20 @@ test('al recibir una memoria antigua no vuelve a guardar monto ni estado histór
   assert.equal(row.status,undefined);
   assert.equal(row.localizacion,'1234567890');
 });
+
+test('un respaldo v2 no resucita una clave borrada que quedó en IndexedDB',async()=>{
+  const {context,values}=setup();
+  const data=backup({cnfl_work_orders:'[]'}, {database:{kv:[{key:'cnfl_geocache',value:'{"viejo":true}'}],records:[]}});
+  await context.prepareRestore({target:{files:[file(data)]}});
+  await context.restoreBackup();
+  assert.equal(values.has('cnfl_geocache'),false);
+  assert.equal(values.get('cnfl_work_orders'),'[]');
+});
+
+test('rechaza datos de órdenes dañados antes de tocar el teléfono',async()=>{
+  const {context,el,values}=setup({cnfl_work_orders:'[{"orden":"vigente"}]'});
+  await context.prepareRestore({target:{files:[file(backup({cnfl_work_orders:'{"orden":"roto"}'}))]}});
+  assert.equal(el('restoreBtn').disabled,true);
+  assert.match(el('restoreStatus').textContent,/Estructura inválida/);
+  assert.equal(values.get('cnfl_work_orders'),'[{"orden":"vigente"}]');
+});

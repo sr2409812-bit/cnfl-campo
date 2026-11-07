@@ -10,6 +10,7 @@
 <details id="more" class="card"><summary>Otras opciones</summary><a class="secondary" href="mapa.html">Mapa general</a><a class="secondary" href="backup.html">Respaldo</a></details>
 </main><script>
 (function(){
+ if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('[CNFL] Sin caché local',error));
  const j=window.CNFLJourney,s=j.read(localStorage),a=s.active;
  const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Costa_Rica',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
  document.getElementById('greeting').textContent=hour>=6&&hour<12?'Buenos días':'Mi jornada';

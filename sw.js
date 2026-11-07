@@ -1,4 +1,5 @@
-const CACHE_NAME = 'cnfl-campo-v71';
+const CACHE_PREFIX = 'cnfl-campo-v';
+const CACHE_NAME = CACHE_PREFIX + '72';
 
 const CORE_ASSETS = [
   './',
@@ -58,17 +59,13 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
 
-    // Los archivos propios son críticos: se cachean uno por uno para que
-    // una falla aislada no deje toda la app sin modo offline.
-    for (const asset of CORE_ASSETS) {
-      try { await cache.add(asset); }
-      catch (err) { console.warn('[SW v40] No se pudo precachear', asset, err); }
-    }
+    // Si falta un archivo propio, conservar el worker anterior completo.
+    await cache.addAll(CORE_ASSETS);
 
     // Dependencias externas son opcionales: no bloquean la instalación.
     for (const asset of OPTIONAL_ASSETS) {
       try { await cache.add(asset); }
-      catch (err) { console.warn('[SW v40] Dependencia externa no disponible', asset); }
+      catch (err) { console.warn('[SW] Dependencia externa no disponible', asset, err); }
     }
 
     await self.skipWaiting();
@@ -78,7 +75,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
