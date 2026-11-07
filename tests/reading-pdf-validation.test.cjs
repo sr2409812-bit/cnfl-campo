@@ -264,3 +264,20 @@ test('una localización mal extraída no se omite aunque exista otro par válido
     assert.throws(() => parse(fixture({records:[{loc:location(1),med:meters[1]},{loc:'20100000X2',med:meters[2]}]})),/integridad/);
   }
 });
+
+test('LMR0085 conserva medidores desalineados seis puntos respecto de su etiqueta', () => {
+  for(const offset of [-6,6]) {
+    const doc=labeled();
+    doc.pages[0].find(i=>i.str===meters[1]).transform[5]=700+offset;
+    assert.equal(parse(documentOf(doc.pages)).rows[0].medidor,meters[1]);
+  }
+});
+
+test('Contrato con encabezado elevado o bajo nunca sustituye a un Medidor ausente', () => {
+  for(const kind of ['missing','demand']) for(const offset of [-6,6]) {
+    const doc=table({kind,order:[kind==='missing'?'Localización':'Secuencia','Medidor','Contrato'],records:[{loc:location(1)}]});
+    for(const i of doc.pages[0]) if(i.str==='Contrato' || i.str===contract) i.transform[4]=160;
+    doc.pages[0].find(i=>i.str==='Contrato').transform[5]+=offset;
+    assert.throws(()=>parse(documentOf(doc.pages)),/integridad/);
+  }
+});

@@ -78,7 +78,9 @@ function parseLabeledReadingPdf(layoutPages,fullText,parser) {
   const expected=readingPdfExpectedCount(fullText);
   const evidence={detected:0,validated:0,unverifiedPages:0};
   const pages=(layoutPages||[]).map(rawItems=>groupReadingPdfRows(
-    (rawItems||[]).map(readingPdfItemXY),5.5
+    // LMR0085 puede desplazar los valores respecto de sus etiquetas. Mantener
+    // la tolerancia de ocho puntos del analizador de inspecciones original.
+    (rawItems||[]).map(readingPdfItemXY),8
   ).map(row=>row.items.map(i=>i.text).join(' ')).join('\n'));
   if(!pages.length) pages.push(String(fullText||''));
   if(!pages.some(page=>/\blocalizacion\b/.test(normalizeReadingPdfText(page)))) return null;
@@ -150,9 +152,14 @@ function parseReadingPdfColumns(layoutPages,fullText,locationNames,parser,requir
     }
     const locHeader=locHeaders[0],medHeader=medHeaders[0];
     const headerY=Math.min(locHeader.y,medHeader.y);
-    const headers=items.filter(i=>i.y>=headerY-2 && i.y<=Math.max(locHeader.y,medHeader.y)+2 &&
-      /[a-z]/i.test(normalizeReadingPdfText(i.text)));
     const tolerance=Math.max(28,Math.min(90,Math.abs(locHeader.x-medHeader.x)*0.62));
+    const firstDataY=items.filter(i=>i.y<headerY-2 && /^\d{9,10}$/.test(i.text) &&
+      Math.abs(i.x-locHeader.x)<=tolerance).reduce((y,i)=>Math.max(y,i.y),-Infinity);
+    // Usar la misma banda vertical que para Localización/Medidor: Contrato
+    // puede estar elevado o bajado. Excluirlo ensancha indebidamente Medidor.
+    // La primera fila de datos limita la banda para no convertir datos en títulos.
+    const headers=items.filter(i=>i.y>=headerY-35 && i.y>firstDataY+4 &&
+      i.y<=Math.max(locHeader.y,medHeader.y)+35 && /[a-z]/i.test(normalizeReadingPdfText(i.text)));
     // Los límites se calculan con TODOS los encabezados vecinos, incluido
     // Contrato, independientemente del orden de las columnas.
     function inColumn(item,header) {
