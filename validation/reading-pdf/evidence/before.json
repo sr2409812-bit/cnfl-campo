@@ -1,0 +1,1405 @@
+{
+  "pdfjsVersion": "3.11.174",
+  "pdfjsSha256": {
+    "pdf.min.js": "5b5799e6f8c680663207ac5b42ee14eed2a406fa7af48f50c154f0c0b1566946",
+    "pdf.worker.min.js": "feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b"
+  },
+  "parserSha256": "24eca3aa252fe58875631c71dc527d2ea5e55407e75f5e956b1dec25f4bd4a1a",
+  "node": "v24.19.0",
+  "total": 51,
+  "passed": 45,
+  "failed": 6,
+  "results": [
+    {
+      "file": "demanda-valido-con-total.pdf",
+      "kind": "demanda",
+      "sha256": "ef4cb2d43c0bd0b51d9e42859b51cacbea5677a739b280ec6ab6d5237bd630ed",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": 3,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        }
+      ],
+      "parser": "demand-column-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "rowsDelivered": 3,
+        "loaderCalls": 1
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-valido-sin-total.pdf",
+      "kind": "demanda",
+      "sha256": "7e4eefd23f46c22b9d33c608b56d56f83888d0d6765068795401e2062cc4780c",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        }
+      ],
+      "parser": "demand-column-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "rowsDelivered": 3,
+        "loaderCalls": 1
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-todos-los-prefijos.pdf",
+      "kind": "demanda",
+      "sha256": "83f95777cacd28b2d3fff378789193dc64ca2021935f532245cfcd0a4e891e70",
+      "expectedBlocked": false,
+      "expectedCount": 10,
+      "declaredTotal": 10,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        },
+        {
+          "localizacion": "0201000007",
+          "medidor": "1223456"
+        },
+        {
+          "localizacion": "0201000008",
+          "medidor": "1423456"
+        },
+        {
+          "localizacion": "0201000009",
+          "medidor": "1523456"
+        },
+        {
+          "localizacion": "0201000010",
+          "medidor": "2723456"
+        }
+      ],
+      "parser": "demand-column-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "rowsDelivered": 10,
+        "loaderCalls": 1
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-multipagina.pdf",
+      "kind": "demanda",
+      "sha256": "c52bd42545ceade8c3671313090525bc980937af6e54b506eb4874c1016ed959",
+      "expectedBlocked": false,
+      "expectedCount": 6,
+      "declaredTotal": 6,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        }
+      ],
+      "parser": "demand-column-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "rowsDelivered": 6,
+        "loaderCalls": 1
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-multipagina-sin-total.pdf",
+      "kind": "demanda",
+      "sha256": "3d86496c7786a25c457d78e150466305ca5695846c62404f820be6f3f42c83b7",
+      "expectedBlocked": false,
+      "expectedCount": 6,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        }
+      ],
+      "parser": "demand-column-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "rowsDelivered": 6,
+        "loaderCalls": 1
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-incompleto-sin-total.pdf",
+      "kind": "demanda",
+      "sha256": "eaf213fd9da4a724e7de4a88a252c2cae7f1a7d5676358ed22daddea510713c1",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-incompleto-sin-total.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-incompleto-total-coincide.pdf",
+      "kind": "demanda",
+      "sha256": "db270b50cd7bb5dc6202e9d2659cb5d2f70fe228e1920fff0f30f693ed7566a5",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 2,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-incompleto-total-coincide.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-total-cero.pdf",
+      "kind": "demanda",
+      "sha256": "0894fdeac2a440251fa2991d01ba8629d53881cd3d07c6bf5cd76cf162e20744",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 0,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 0 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-total-cero.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 0 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-total-menor.pdf",
+      "kind": "demanda",
+      "sha256": "855fb162bcff5cdc0ac31e69a348f4fa51aeb5e941fbb48a2c5f5a54cda56923",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 2,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 2 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-total-menor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 2 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-total-mayor.pdf",
+      "kind": "demanda",
+      "sha256": "48e7833e9fef576bee39a469c5e8f5e7b245006c6bc7201be2d4ae537addfc05",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 4,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 4 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-total-mayor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 4 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-conflicto-medidor.pdf",
+      "kind": "demanda",
+      "sha256": "815d77b07d50f212dc0a821832b46bf75807021702b23d8e1f69b7732d805db0",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "Conflicto de Medidor en Localización 0201000001: 123456 / 823456.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-conflicto-medidor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. Conflicto de Medidor en Localización 0201000001: 123456 / 823456."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-medidor-ambiguo.pdf",
+      "kind": "demanda",
+      "sha256": "a495238390f2ecbbb0d1e9834df40351898ebef0854f2e54de53977aadcd8b6d",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-medidor-ambiguo.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-pagina-no-verificable.pdf",
+      "kind": "demanda",
+      "sha256": "8aa11b9202cd32b3873f98fb2da22c073e1d82910ae78dd626cb9003faafe9de",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-pagina-no-verificable.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-columnas-reordenadas.pdf",
+      "kind": "demanda",
+      "sha256": "de3ebf3183ef870139b8e00889d9962d940712a06de17e0eb64ea6bdce98697d",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        }
+      ],
+      "parser": "demand-column-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "rowsDelivered": 3,
+        "loaderCalls": 1
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-pagina-sin-encabezado.pdf",
+      "kind": "demanda",
+      "sha256": "b35c14ca18ae63689a2a8d0fbb2b07a80662ba3821efc7b7b7d0263ccc693699",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-pagina-sin-encabezado.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-contrato-cercano.pdf",
+      "kind": "demanda",
+      "sha256": "5198a534b6e5c0d97da006455a304503b2b1423b14b9916390184c9e94f3b2db",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "demanda-valido-con-total.pdf",
+          "demanda-contrato-cercano.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "demanda-contrato-encabezado-elevado.pdf",
+      "kind": "demanda",
+      "sha256": "ff6e612263f920f6f19dbfd42de94c018e8a15fdb92e588c398d5c8dc38ec7d8",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "654321"
+        }
+      ],
+      "parser": "demand-column-strict",
+      "blockMessage": null,
+      "pass": false,
+      "failure": "Unsafe PDF was accepted"
+    },
+    {
+      "file": "demanda-contrato-encabezado-bajo.pdf",
+      "kind": "demanda",
+      "sha256": "2b24779696732da3403bbe144bb73c4c12eaafb44c6077c9bbb8c429333ee27b",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "654321"
+        }
+      ],
+      "parser": "demand-column-strict",
+      "blockMessage": null,
+      "pass": false,
+      "failure": "Unsafe PDF was accepted"
+    },
+    {
+      "file": "residencial-valido-con-total.pdf",
+      "kind": "residencial",
+      "sha256": "1dbda274f167bce5fbae47c7debe56f4f30ff9db75d7bd011b150aacc33bb1c9",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": 3,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        }
+      ],
+      "parser": "missing-reading-table-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 3,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-valido-sin-total.pdf",
+      "kind": "residencial",
+      "sha256": "f96ce314f21cf009e8f9c7e3869e5a29964163b909eaf146bc790673ddf30235",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        }
+      ],
+      "parser": "missing-reading-table-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 3,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-todos-los-prefijos.pdf",
+      "kind": "residencial",
+      "sha256": "f28f4cb341c91a36481e503c9b32f7b94e31a81091731161fc8e28dda6a9657c",
+      "expectedBlocked": false,
+      "expectedCount": 10,
+      "declaredTotal": 10,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        },
+        {
+          "localizacion": "0201000007",
+          "medidor": "1223456"
+        },
+        {
+          "localizacion": "0201000008",
+          "medidor": "1423456"
+        },
+        {
+          "localizacion": "0201000009",
+          "medidor": "1523456"
+        },
+        {
+          "localizacion": "0201000010",
+          "medidor": "2723456"
+        }
+      ],
+      "parser": "missing-reading-table-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 10,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-multipagina.pdf",
+      "kind": "residencial",
+      "sha256": "318c7fb8bdfd303753e8efe658a743ce10a083e9892192e19de90f1dd909beb8",
+      "expectedBlocked": false,
+      "expectedCount": 6,
+      "declaredTotal": 6,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        }
+      ],
+      "parser": "missing-reading-table-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 6,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-multipagina-sin-total.pdf",
+      "kind": "residencial",
+      "sha256": "77ccaf90d85f525b521e70956e693128ab16f2a4c1b172c61c359ae847a0a8b2",
+      "expectedBlocked": false,
+      "expectedCount": 6,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        }
+      ],
+      "parser": "missing-reading-table-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 6,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-incompleto-sin-total.pdf",
+      "kind": "residencial",
+      "sha256": "2b9096e966682ea5b2b0ad6ff3c6a2703b8dfad432376f889c1240cf1dc616c2",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-incompleto-sin-total.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-incompleto-total-coincide.pdf",
+      "kind": "residencial",
+      "sha256": "64a6c07ab345f4fdef1ce51cc169811b8ae853927001e064e5a5441ac7c57120",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 2,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-incompleto-total-coincide.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-total-cero.pdf",
+      "kind": "residencial",
+      "sha256": "46db937c1fc5bb3951bb403009433cdf6026e94ea3a442afb0bc488b1dae8bcd",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 0,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 0 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-total-cero.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 0 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-total-menor.pdf",
+      "kind": "residencial",
+      "sha256": "f7b797c6a394b264324a0909b8b181250208d7ea54ee356cdfffa31674bbd307",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 2,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 2 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-total-menor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 2 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-total-mayor.pdf",
+      "kind": "residencial",
+      "sha256": "8bf172ba564720d881719da464267d6e22b18c667461542ced230a6710256f01",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 4,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 4 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-total-mayor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 4 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-conflicto-medidor.pdf",
+      "kind": "residencial",
+      "sha256": "bcadd33aab0c0f597132335465c295d65fc1da2791fec4ca043f396b3ebe42b3",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "Conflicto de Medidor en Localización 0201000001: 123456 / 823456.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-conflicto-medidor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. Conflicto de Medidor en Localización 0201000001: 123456 / 823456."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-medidor-ambiguo.pdf",
+      "kind": "residencial",
+      "sha256": "32697e7375e3273b098d82be33a51aacfbc2d6925f077ba844074a1efa98545b",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-medidor-ambiguo.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-pagina-no-verificable.pdf",
+      "kind": "residencial",
+      "sha256": "faa7878c5ff8be8cb561b5655988f8ff94e36cb78a90fe60a9ebaee88794e214",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-pagina-no-verificable.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-columnas-reordenadas.pdf",
+      "kind": "residencial",
+      "sha256": "c6a45cdf648980d4944ef0ba52712a130c12a6ebbf9e8373d0a5606774e37850",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        }
+      ],
+      "parser": "missing-reading-table-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 3,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-pagina-sin-encabezado.pdf",
+      "kind": "residencial",
+      "sha256": "7e7ce82e976ca26787a19b740cdfd288d7d37b0b4a3134a13e68e0544fb86d1c",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-pagina-sin-encabezado.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-contrato-cercano.pdf",
+      "kind": "residencial",
+      "sha256": "3e15bcd93032ebf329ca0f01d21048b4fe5334f7ec28b1c6785a5d746450faf8",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "residencial-valido-con-total.pdf",
+          "residencial-contrato-cercano.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "residencial-contrato-encabezado-elevado.pdf",
+      "kind": "residencial",
+      "sha256": "dbf150ee4c95575de07cd3dd1dc7f57b78df27456c6786f05139dcb91d373840",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "654321"
+        }
+      ],
+      "parser": "missing-reading-table-strict",
+      "blockMessage": null,
+      "pass": false,
+      "failure": "Unsafe PDF was accepted"
+    },
+    {
+      "file": "residencial-contrato-encabezado-bajo.pdf",
+      "kind": "residencial",
+      "sha256": "31ff22e948a1dcf93f1c55f29c9f2dc7223e8d3d648fe5d63afdccc6543d9754",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "654321"
+        }
+      ],
+      "parser": "missing-reading-table-strict",
+      "blockMessage": null,
+      "pass": false,
+      "failure": "Unsafe PDF was accepted"
+    },
+    {
+      "file": "inspecciones-valido-con-total.pdf",
+      "kind": "inspecciones",
+      "sha256": "9d2d57fc78b60fef667fa8a38b7306304350dcd892d1c10460a2e6e397339b8b",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": 3,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        }
+      ],
+      "parser": "inspection-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 3,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-valido-sin-total.pdf",
+      "kind": "inspecciones",
+      "sha256": "a6face961c972ff6df0e81b80d50f4c360f73b1a71a21509031ec6c19691cd86",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        }
+      ],
+      "parser": "inspection-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 3,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-todos-los-prefijos.pdf",
+      "kind": "inspecciones",
+      "sha256": "0902318d3acee632dbd426b35836f97895214e47fbb268aa6426f789eafe5c6b",
+      "expectedBlocked": false,
+      "expectedCount": 10,
+      "declaredTotal": 10,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        },
+        {
+          "localizacion": "0201000007",
+          "medidor": "1223456"
+        },
+        {
+          "localizacion": "0201000008",
+          "medidor": "1423456"
+        },
+        {
+          "localizacion": "0201000009",
+          "medidor": "1523456"
+        },
+        {
+          "localizacion": "0201000010",
+          "medidor": "2723456"
+        }
+      ],
+      "parser": "inspection-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 10,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-multipagina.pdf",
+      "kind": "inspecciones",
+      "sha256": "b1c60c8493e4c5defc4fca4e5e0504a78ac28730b5a95d95862f611dfb063bec",
+      "expectedBlocked": false,
+      "expectedCount": 6,
+      "declaredTotal": 6,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        }
+      ],
+      "parser": "inspection-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 6,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-multipagina-sin-total.pdf",
+      "kind": "inspecciones",
+      "sha256": "38492ba2b2d2acf25b90f992dcb6595b80edb561e47c274047925ffbc312ab3b",
+      "expectedBlocked": false,
+      "expectedCount": 6,
+      "declaredTotal": null,
+      "actualRows": [
+        {
+          "localizacion": "0201000001",
+          "medidor": "123456"
+        },
+        {
+          "localizacion": "0201000003",
+          "medidor": "823456"
+        },
+        {
+          "localizacion": "0201000005",
+          "medidor": "1023456"
+        },
+        {
+          "localizacion": "0201000002",
+          "medidor": "723456"
+        },
+        {
+          "localizacion": "0201000004",
+          "medidor": "923456"
+        },
+        {
+          "localizacion": "0201000006",
+          "medidor": "1123456"
+        }
+      ],
+      "parser": "inspection-strict",
+      "blockMessage": null,
+      "upload": {
+        "blocked": false,
+        "added": 6,
+        "priorVisitPreserved": true,
+        "cancelPreserved": true
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-incompleto-sin-total.pdf",
+      "kind": "inspecciones",
+      "sha256": "82ed44fccc46264cbceedc7b6fb4b58e1dbce0e9bc60dc2bd4a9e02451752b79",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "inspecciones-valido-con-total.pdf",
+          "inspecciones-incompleto-sin-total.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-incompleto-total-coincide.pdf",
+      "kind": "inspecciones",
+      "sha256": "245cf2e55df25fddfeec0f5fee300b6bce84b37a4de8e8da8c90178da2958224",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 2,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "inspecciones-valido-con-total.pdf",
+          "inspecciones-incompleto-total-coincide.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-total-cero.pdf",
+      "kind": "inspecciones",
+      "sha256": "f6fefb99e7a943376e45d011aefb3c0a3fa5f8ccbb0bac656a9047eff0731730",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 0,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 0 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "inspecciones-valido-con-total.pdf",
+          "inspecciones-total-cero.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 0 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-total-menor.pdf",
+      "kind": "inspecciones",
+      "sha256": "788f3853b986619a948442690aa25a5be8e9ce0225d11efb98e173d50c191ed1",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 2,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 2 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "inspecciones-valido-con-total.pdf",
+          "inspecciones-total-menor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 2 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-total-mayor.pdf",
+      "kind": "inspecciones",
+      "sha256": "f07bbc101293046e8396a21810dd5f65b83799d899f87cb9d729403f593b9573",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": 4,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "El PDF de lectura indica 4 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "inspecciones-valido-con-total.pdf",
+          "inspecciones-total-mayor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. El PDF de lectura indica 4 registros, pero pude validar 3. No lo cargué para evitar una jornada incorrecta."
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-conflicto-medidor.pdf",
+      "kind": "inspecciones",
+      "sha256": "0a2134bbcc04f6fdb3a911667bf110aa36339100733659a74686c0c540f1e3c0",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "Conflicto de Medidor en Localización 0201000001: 123456 / 823456.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "inspecciones-valido-con-total.pdf",
+          "inspecciones-conflicto-medidor.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. Conflicto de Medidor en Localización 0201000001: 123456 / 823456."
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-medidor-ambiguo.pdf",
+      "kind": "inspecciones",
+      "sha256": "6998e86c94b0cd6b49f4d8060e3953191c5a974e0017dc25a1f7917496a0e468",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "inspecciones-valido-con-total.pdf",
+          "inspecciones-medidor-ambiguo.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-pagina-no-verificable.pdf",
+      "kind": "inspecciones",
+      "sha256": "2a0112cb74c55a498c41546f881e19dcdb177196c786869861e9a1004cb78af2",
+      "expectedBlocked": true,
+      "expectedCount": 0,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "upload": {
+        "blocked": true,
+        "filesRead": [
+          "inspecciones-valido-con-total.pdf",
+          "inspecciones-pagina-no-verificable.pdf"
+        ],
+        "before": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "after": "34af935a810d49aafbc18336c3ab8a2773e5aba6a44e702c986c46a56fc1aa1c",
+        "message": "No cargué datos del PDF. No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato."
+      },
+      "pass": true
+    },
+    {
+      "file": "inspecciones-valores-desalineados.pdf",
+      "kind": "inspecciones",
+      "sha256": "69d3cb5ed233b6959009f3dfc7f5b810d2df23f4c765f60a570ceeddd09ecfc9",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "pass": false,
+      "failure": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.\n+ actual - expected\n\n+ Error: No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.\n+     at validateReadingPdfRows (evalmachine.<anonymous>:71:11)\n+     at parseLabeledReadingPdf (evalmachine.<anonymous>:109:10)\n+     at parseInspectionReadingPdf (evalmachine.<anonymous>:118:16)\n+     at Object.parseReadingPdfLayout (evalmachine.<anonymous>:207:16)\n+     at /workspace/cnfl-campo/validation/reading-pdf/run.cjs:133:30\n- undefined\n"
+    },
+    {
+      "file": "inspecciones-valores-desalineados-abajo.pdf",
+      "kind": "inspecciones",
+      "sha256": "7441d5450b581a5d8bd56b04e320e27bc8eaba3711b75bbcfeb975dbf50f3d9c",
+      "expectedBlocked": false,
+      "expectedCount": 3,
+      "declaredTotal": null,
+      "actualRows": [],
+      "parser": null,
+      "blockMessage": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.",
+      "pass": false,
+      "failure": "No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.\n+ actual - expected\n\n+ Error: No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.\n+     at validateReadingPdfRows (evalmachine.<anonymous>:71:11)\n+     at parseLabeledReadingPdf (evalmachine.<anonymous>:109:10)\n+     at parseInspectionReadingPdf (evalmachine.<anonymous>:118:16)\n+     at Object.parseReadingPdfLayout (evalmachine.<anonymous>:207:16)\n+     at /workspace/cnfl-campo/validation/reading-pdf/run.cjs:133:30\n- undefined\n"
+    }
+  ]
+}
