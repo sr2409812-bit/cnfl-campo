@@ -40,280 +40,178 @@ function readingPdfExpectedCount(fullText='') {
 }
 
 function readingPdfAddUnique(rows,seen,conflicts,locRaw,medRaw) {
-  let loc=String(locRaw||'').replace(/\D/g,'');
-  const med=String(medRaw||'').replace(/\D/g,'');
+  let loc=String(locRaw||'').trim();
+  const med=String(medRaw||'').trim();
   if(loc.length===9) loc='0'+loc;
-  if(!/^\d{10}$/.test(loc) || !/^\d{4,8}$/.test(med)) return;
+  // La etiqueta/columna identifica el medidor, no su prefijo ni su longitud.
+  if(!/^\d{10}$/.test(loc) || !/^\d+$/.test(med)) return false;
   if(seen.has(loc)) {
     if(seen.get(loc)!==med) conflicts.push(loc+': '+seen.get(loc)+' / '+med);
-    return;
+    return true;
   }
   seen.set(loc,med);
   rows.push({localizacion:loc,medidor:med});
+  return true;
 }
 
-function validateReadingPdfRows(rows,conflicts,expected,label) {
+function validateReadingPdfRows(rows,conflicts,expected,label,evidence) {
   if(conflicts.length) {
     throw new Error('Conflicto de Medidor en Localización '+conflicts[0]+'.');
   }
-  if(expected && rows.length !== expected) {
+  if(expected !== null && rows.length !== expected) {
     throw new Error(
       label+' indica '+expected+' registros, pero pude validar '+rows.length+
       '. No lo cargué para evitar una jornada incorrecta.'
     );
   }
+  // Se cuentan las etiquetas/filas ANTES de buscar medidores. Contar solamente
+  // los pares extraídos volvería a aceptar silenciosamente una carga parcial.
+  if(!evidence || evidence.detected !== evidence.validated || evidence.unverifiedPages ||
+      (expected === null && !evidence.detected)) {
+    throw new Error('No pude comprobar la integridad del PDF: hay registros o páginas sin validar, o la asociación de Medidor es ambigua. No cargué datos; revisá las etiquetas y columnas de Localización, Medidor y Contrato.');
+  }
   return rows;
+}
+
+function parseLabeledReadingPdf(layoutPages,fullText,parser) {
+  const rows=[],seen=new Map(),conflicts=[];
+  const expected=readingPdfExpectedCount(fullText);
+  const evidence={detected:0,validated:0,unverifiedPages:0};
+  const pages=(layoutPages||[]).map(rawItems=>groupReadingPdfRows(
+    (rawItems||[]).map(readingPdfItemXY),5.5
+  ).map(row=>row.items.map(i=>i.text).join(' ')).join('\n'));
+  if(!pages.length) pages.push(String(fullText||''));
+  if(!pages.some(page=>/\blocalizacion\b/.test(normalizeReadingPdfText(page)))) return null;
+
+  for(const page of pages) {
+    const lines=page.split('\n').map(normalizeReadingPdfText);
+    // Una fila numérica suelta no desaparece por haber encontrado otras fichas
+    // etiquetadas en la misma página. Puede ser un registro parcialmente leído.
+    lines.forEach((line,index)=>{
+      if(/^\d{9,10}(?=\s|$)/.test(line) &&
+          !/^(?:localizacion|medidor|contrato)\s*:?$/.test(lines[index-1]||'')) evidence.detected++;
+    });
+    const text=normalizeReadingPdfText(page);
+    // Cada Localización abre un registro; nunca buscar Medidor en el siguiente.
+    const blocks=text.split(/\blocalizacion\s*:?\s*/);
+    if(blocks.length===1) { evidence.unverifiedPages++; continue; }
+    for(const block of blocks.slice(1)) {
+      evidence.detected++;
+      const loc=block.match(/^(\d{9,10})(?=\s|$)/);
+      const meterLabels=[...block.matchAll(/\bmedidor\b/g)];
+      const med=block.match(/\bmedidor\s*:?\s*(\d+)(?=\s|$)(?!\s+\d)/);
+      if(loc && meterLabels.length===1 && med &&
+          readingPdfAddUnique(rows,seen,conflicts,loc[1],med[1])) evidence.validated++;
+    }
+  }
+  if(!evidence.detected) return null;
+  return {
+    rows:validateReadingPdfRows(rows,conflicts,expected,'El PDF de lectura',evidence),
+    expectedCount:expected,parser
+  };
 }
 
 function parseInspectionReadingPdf(layoutPages,fullText='') {
   const textNorm=normalizeReadingPdfText(fullText);
-  const looksInspection=
-    textNorm.includes('hoja de inspeccion') ||
-    (textNorm.includes('localizacion:') && textNorm.includes('contrato:') && textNorm.includes('lec.ant'));
+  if(!textNorm.includes('hoja de inspeccion') &&
+      !(textNorm.includes('localizacion:') && textNorm.includes('contrato:') && textNorm.includes('lec.ant'))) return null;
+  const result=parseLabeledReadingPdf(layoutPages,fullText,'inspection-strict');
+  if(!result) throw new Error('Reconocí la hoja de inspecciones, pero no pude comprobar su integridad ni leer Localización + Medidor con seguridad.');
+  return result;
+}
 
-  if(!looksInspection) return null;
+function readingPdfHeaderName(text) {
+  return normalizeReadingPdfText(text).replace(/:$/, '').trim()
+    .replace(/^(?:numero|n[°º.])\s*(?:de\s+)?/, '')
+    .replace(/^secuencia(?:\s+de)?\s+visita$/, 'secuencia');
+}
+
+function parseReadingPdfColumns(layoutPages,fullText,locationNames,parser,required=false) {
+  const pages=(layoutPages||[]).map(rawItems=>(rawItems||[]).map(readingPdfItemXY).filter(i=>i.text));
+  const isLocation=i=>locationNames.includes(readingPdfHeaderName(i.text));
+  const isMeter=i=>readingPdfHeaderName(i.text)==='medidor';
+  // Las etiquetas de una ficha tienen valores a su lado, no son encabezados.
+  const locationHeaders=items=>items.filter(i=>isLocation(i) &&
+    !items.some(value=>Math.abs(value.y-i.y)<=6 && /^\d{9,10}$/.test(value.text)));
+  const recognized=pages.some(items=>locationHeaders(items).length && items.some(isMeter));
+  if(!recognized && !required) return null;
 
   const rows=[],seen=new Map(),conflicts=[];
+  const evidence={detected:0,validated:0,unverifiedPages:0};
   const expected=readingPdfExpectedCount(fullText);
-
-  for(const rawItems of layoutPages||[]) {
-    const items=(rawItems||[]).map(readingPdfItemXY).filter(i=>i.text);
-    const locLabels=items.filter(i=>{
-      const n=normalizeReadingPdfText(i.text);
-      return n==='localizacion:' || n==='localizacion';
-    });
-    const medLabels=items.filter(i=>{
-      const n=normalizeReadingPdfText(i.text);
-      return n==='medidor:' || n==='medidor';
-    });
-    const tariffLabels=items.filter(i=>normalizeReadingPdfText(i.text).startsWith('tarifa'));
-
-    for(const locLabel of locLabels) {
-      const medLabel=medLabels
-        .filter(m=>Math.abs(m.y-locLabel.y)<=8 && m.x>locLabel.x)
-        .sort((a,b)=>Math.abs(a.y-locLabel.y)-Math.abs(b.y-locLabel.y) || a.x-b.x)[0];
-      if(!medLabel) continue;
-
-      const tariffLabel=tariffLabels
-        .filter(t=>Math.abs(t.y-locLabel.y)<=8 && t.x>medLabel.x)
-        .sort((a,b)=>a.x-b.x)[0] || null;
-
-      const locCandidates=items
-        .map(i=>({...i,digits:String(i.text||'').replace(/\D/g,'')}))
-        .filter(i=>
-          (i.digits.length===9||i.digits.length===10) &&
-          Math.abs(i.y-locLabel.y)<=6 &&
-          i.x>locLabel.x &&
-          i.x<medLabel.x
-        )
-        .sort((a,b)=>Math.abs(a.y-locLabel.y)-Math.abs(b.y-locLabel.y) || a.x-b.x);
-
-      const meterRightLimit=tariffLabel ? tariffLabel.x : medLabel.x+125;
-      const medCandidates=items
-        .map(i=>({...i,digits:String(i.text||'').replace(/\D/g,'')}))
-        .filter(i=>
-          i.digits.length>=4 && i.digits.length<=8 &&
-          Math.abs(i.y-medLabel.y)<=6 &&
-          i.x>medLabel.x &&
-          i.x<meterRightLimit
-        )
-        .sort((a,b)=>Math.abs(a.y-medLabel.y)-Math.abs(b.y-medLabel.y) || a.x-b.x);
-
-      if(!locCandidates.length || !medCandidates.length) continue;
-
-      // IMPORTANTE: el Contrato está en la fila inferior. Nunca se usa como Medidor.
-      readingPdfAddUnique(rows,seen,conflicts,locCandidates[0].digits,medCandidates[0].digits);
+  for(const items of pages) {
+    const locHeaders=locationHeaders(items),medHeaders=items.filter(isMeter);
+    if(locHeaders.length!==1 || medHeaders.length!==1 ||
+        Math.abs(locHeaders[0].y-medHeaders[0].y)>35 ||
+        Math.abs(locHeaders[0].x-medHeaders[0].x)<20) {
+      // Una página sin encabezado no se puede omitir aunque otra sí sea válida.
+      evidence.unverifiedPages++;
+      continue;
+    }
+    const locHeader=locHeaders[0],medHeader=medHeaders[0];
+    const headerY=Math.min(locHeader.y,medHeader.y);
+    const headers=items.filter(i=>i.y>=headerY-2 && i.y<=Math.max(locHeader.y,medHeader.y)+2 &&
+      /[a-z]/i.test(normalizeReadingPdfText(i.text)));
+    const tolerance=Math.max(28,Math.min(90,Math.abs(locHeader.x-medHeader.x)*0.62));
+    // Los límites se calculan con TODOS los encabezados vecinos, incluido
+    // Contrato, independientemente del orden de las columnas.
+    function inColumn(item,header) {
+      const left=headers.filter(h=>h.x<header.x).reduce((x,h)=>Math.max(x,h.x),-Infinity);
+      const right=headers.filter(h=>h.x>header.x).reduce((x,h)=>Math.min(x,h.x),Infinity);
+      return Math.abs(item.x-header.x)<=tolerance &&
+        item.x>(left+header.x)/2 && item.x<(right+header.x)/2;
+    }
+    for(const row of groupReadingPdfRows(items,4)) {
+      if(row.y>=headerY-2) continue;
+      const line=normalizeReadingPdfText(row.items.map(i=>i.text).join(' '));
+      if(/^(?:total\b|cantidad\b|pagina\b)/.test(line)) continue;
+      const locItems=row.items.filter(i=>inColumn(i,locHeader));
+      const medItems=row.items.filter(i=>inColumn(i,medHeader));
+      const numeric=i=>/^\d+$/.test(i.text);
+      // Inventario independiente de filas, incluso con medidor ausente o roto.
+      if(!locItems.length && !medItems.some(numeric) &&
+          !row.items.some(i=>/\b\d{9,10}\b/.test(i.text))) continue;
+      evidence.detected++;
+      if(locItems.length===1 && medItems.length===1 &&
+          readingPdfAddUnique(rows,seen,conflicts,locItems[0].text,medItems[0].text)) evidence.validated++;
     }
   }
-
+  if(!recognized || evidence.unverifiedPages) {
+    throw new Error('No pude comprobar la integridad del PDF: faltan encabezados inequívocos de Localización/Secuencia y Medidor en alguna página. No cargué datos para evitar confundir Medidor con Contrato.');
+  }
   return {
-    rows:validateReadingPdfRows(rows,conflicts,expected,'El PDF de inspecciones'),
-    expectedCount:expected,
-    parser:'inspection-strict'
+    rows:validateReadingPdfRows(rows,conflicts,expected,'El PDF de lectura',evidence),
+    expectedCount:expected,parser
   };
 }
 
 function parseMissingReadingTablePdf(layoutPages,fullText='') {
-  const textNorm=normalizeReadingPdfText(fullText);
-  const looksTable=textNorm.includes('medidores sin registro de lectura');
-  if(!looksTable) return null;
-
-  const rows=[],seen=new Map(),conflicts=[];
-  const expected=readingPdfExpectedCount(fullText);
-
-  for(const rawItems of layoutPages||[]) {
-    const items=(rawItems||[]).map(readingPdfItemXY).filter(i=>i.text);
-    const locHeader=items.find(i=>normalizeReadingPdfText(i.text)==='localizacion');
-    const medHeader=items.find(i=>normalizeReadingPdfText(i.text)==='medidor');
-    const contractHeader=items.find(i=>normalizeReadingPdfText(i.text)==='contrato');
-    if(!locHeader || !medHeader || !contractHeader) continue;
-
-    const leftMeter=(locHeader.x+medHeader.x)/2;
-    const rightMeter=(medHeader.x+contractHeader.x)/2;
-
-    const locItems=items
-      .map(i=>({...i,digits:String(i.text||'').replace(/\D/g,'')}))
-      .filter(i=>/^\d{10}$/.test(i.digits) && i.y<locHeader.y-2 && Math.abs(i.x-locHeader.x)<35)
-      .sort((a,b)=>b.y-a.y);
-
-    for(const locItem of locItems) {
-      const meters=items
-        .map(i=>({...i,digits:String(i.text||'').replace(/\D/g,'')}))
-        .filter(i=>
-          i.digits.length>=4 && i.digits.length<=8 &&
-          Math.abs(i.y-locItem.y)<=4 &&
-          i.x>leftMeter &&
-          i.x<rightMeter
-        )
-        .sort((a,b)=>Math.abs(a.y-locItem.y)-Math.abs(b.y-locItem.y) || Math.abs(a.x-medHeader.x)-Math.abs(b.x-medHeader.x));
-
-      if(!meters.length) continue;
-      readingPdfAddUnique(rows,seen,conflicts,locItem.digits,meters[0].digits);
-    }
-  }
-
-  return {
-    rows:validateReadingPdfRows(rows,conflicts,expected,'El PDF de medidores sin lectura'),
-    expectedCount:expected,
-    parser:'missing-reading-table-strict'
-  };
+  if(!normalizeReadingPdfText(fullText).includes('medidores sin registro de lectura')) return null;
+  return parseReadingPdfColumns(layoutPages,fullText,['localizacion'],'missing-reading-table-strict',true);
 }
 
 function parseDemandReadingPdf(layoutPages,fullText='') {
-  const rows=[],seen=new Map(),conflicts=[];
-  let pagesWithHeaders=0;
-
-  for(const rawItems of layoutPages||[]) {
-    const items=(rawItems||[]).map(readingPdfItemXY).filter(i=>i.text);
-
-    const seqHeaders=items.filter(i=>{
-      const n=normalizeReadingPdfText(i.text);
-      return n.includes('secuencia') || n==='visita';
-    });
-    const medHeaders=items.filter(i=>normalizeReadingPdfText(i.text).includes('medidor'));
-
-    let seqHeader=null,medHeader=null,best=Infinity;
-    for(const s of seqHeaders) {
-      for(const m of medHeaders) {
-        const yGap=Math.abs(s.y-m.y);
-        const xGap=Math.abs(s.x-m.x);
-        if(xGap<20||yGap>35) continue;
-        const score=yGap+Math.abs(xGap-90)*0.02;
-        if(score<best){best=score;seqHeader=s;medHeader=m;}
-      }
-    }
-    if(!seqHeader||!medHeader) continue;
-    pagesWithHeaders++;
-
-    const seqX=seqHeader.x,medX=medHeader.x,headerY=Math.min(seqHeader.y,medHeader.y);
-    const columnGap=Math.abs(medX-seqX);
-    const xTolerance=Math.max(28,Math.min(90,columnGap*0.62));
-
-    for(const row of groupReadingPdfRows(items)) {
-      if(row.y>=headerY-2) continue;
-      const tokens=[];
-      for(const item of row.items) {
-        for(const raw of (String(item.text).match(/\d+/g)||[])) tokens.push({digits:raw,x:item.x});
-      }
-
-      const locs=tokens
-        .filter(t=>t.digits.length===9||t.digits.length===10)
-        .map(t=>({localizacion:t.digits.length===9?'0'+t.digits:t.digits,dx:Math.abs(t.x-seqX)}))
-        .filter(t=>t.dx<=xTolerance)
-        .sort((a,b)=>a.dx-b.dx);
-      const meters=tokens
-        .filter(t=>t.digits.length>=4&&t.digits.length<=8)
-        .map(t=>({medidor:t.digits,dx:Math.abs(t.x-medX)}))
-        .filter(t=>t.dx<=xTolerance)
-        .sort((a,b)=>a.dx-b.dx);
-
-      if(locs.length&&meters.length) readingPdfAddUnique(rows,seen,conflicts,locs[0].localizacion,meters[0].medidor);
-    }
-  }
-
-  if(!pagesWithHeaders) return null;
-  const expected=readingPdfExpectedCount(fullText);
-  return {
-    rows:validateReadingPdfRows(rows,conflicts,expected,'El PDF de lectura'),
-    expectedCount:expected,
-    parser:'demand-column-strict'
-  };
+  return parseReadingPdfColumns(layoutPages,fullText,['secuencia','visita'],'demand-column-strict');
 }
 
 function parseUniversalReadingRows(layoutPages,fullText='') {
-  const rows=[],seen=new Map(),conflicts=[];
-  const expected=readingPdfExpectedCount(fullText);
-
-  function add(locRaw,medRaw){
-    let loc=String(locRaw||'').replace(/\D/g,'');
-    const med=String(medRaw||'').replace(/\D/g,'');
-    if(loc.length===9) loc='0'+loc;
-    if(!/^\d{10}$/.test(loc)||!/^\d{4,8}$/.test(med)) return;
-    if(seen.has(loc)){
-      if(seen.get(loc)!==med) conflicts.push(loc+': '+seen.get(loc)+' / '+med);
-      return;
-    }
-    seen.set(loc,med);
-    rows.push({localizacion:loc,medidor:med});
-  }
-
-  // Primer pase: cada renglón visual del PDF. Esto cubre LMR0085 y LMR0155
-  // aunque PDF.js divida etiquetas, valores y columnas en varios fragmentos.
-  for(const rawItems of layoutPages||[]){
-    const items=(rawItems||[]).map(readingPdfItemXY).filter(i=>i.text);
-    const grouped=groupReadingPdfRows(items,5.5);
-    for(const row of grouped){
-      const line=row.items.map(i=>String(i.text||'').trim()).filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
-      if(!line) continue;
-
-      let m=line.match(/Localizaci[oó]n\s*:?\s*(\d{9,10})[\s\S]{0,120}?Medidor\s*:?\s*(\d{4,8})/i);
-      if(m){add(m[1],m[2]);continue;}
-
-      m=line.match(/^\s*(\d{9,10})\s+(\d{4,8})(?=\s|$)/);
-      if(m){add(m[1],m[2]);continue;}
-    }
-  }
-
-  // Segundo pase: texto continuo. Ayuda si el motor PDF separa una misma línea
-  // en fragmentos con coordenadas ligeramente distintas.
-  const text=String(fullText||'');
-  const inspection=/Localizaci[oó]n[\s:\-]*?(\d{9,10})[\s\S]{0,120}?Medidor[\s:\-]*?(\d{4,8})/gi;
-  let m;
-  while((m=inspection.exec(text))!==null) add(m[1],m[2]);
-
-  if(conflicts.length) throw new Error('Conflicto de Medidor en Localización '+conflicts[0]+'.');
-  if(rows.length&&expected&&rows.length!==expected){
-    throw new Error('El PDF indica '+expected+' registros, pero pude validar '+rows.length+'. No lo cargué para evitar una jornada incompleta.');
-  }
-  if(!rows.length) return null;
-  return {rows,expectedCount:expected,parser:'universal-row-v4'};
+  // Una pareja de números sin etiquetas no prueba cuál es el Medidor.
+  return parseLabeledReadingPdf(layoutPages,fullText,'universal-row-v4');
 }
+
 function parseReadingPdfLayout(layoutPages,fullText='') {
   if(normalizeReadingPdfText(fullText).includes('listado de desconexiones en moviles')) {
     throw new Error('Este PDF es de desconexiones. Abrilo en Cortes; aquí se cargan lecturas. No se modificó la jornada.');
   }
-  const universal=parseUniversalReadingRows(layoutPages,fullText);
-  if(universal) return universal;
-
-  const inspection=parseInspectionReadingPdf(layoutPages,fullText);
-  if(inspection) {
-    if(!inspection.rows.length) throw new Error('Reconocí la hoja de inspecciones, pero no pude leer Localización + Medidor con seguridad.');
-    return inspection;
-  }
-
-  const table=parseMissingReadingTablePdf(layoutPages,fullText);
-  if(table) {
-    if(!table.rows.length) throw new Error('Reconocí la tabla de medidores, pero no pude separar la columna Medidor de Contrato con seguridad.');
-    return table;
-  }
-
-  const demand=parseDemandReadingPdf(layoutPages,fullText);
-  if(demand) {
-    if(!demand.rows.length) throw new Error('Reconocí el PDF de lectura, pero no pude validar Localización + Medidor.');
-    return demand;
-  }
-
-  throw new Error('Formato de PDF no reconocido. No cargué datos para evitar confundir Medidor con Contrato.');
+  // Los formatos con columnas conocidas tienen prioridad sobre el respaldo.
+  const result=parseInspectionReadingPdf(layoutPages,fullText)
+    || parseMissingReadingTablePdf(layoutPages,fullText)
+    || parseDemandReadingPdf(layoutPages,fullText)
+    || parseReadingPdfColumns(layoutPages,fullText,['localizacion'],'reading-column-strict')
+    || parseUniversalReadingRows(layoutPages,fullText);
+  if(!result) throw new Error('Formato de PDF no reconocido. No pude comprobar su integridad; no cargué datos para evitar confundir Medidor con Contrato.');
+  if(!result.rows.length) throw new Error('No se extrajo ningún medidor. No se modificó la jornada.');
+  return result;
 }
 
 function readingPdfSuggestedName(fileName, fullText) {
