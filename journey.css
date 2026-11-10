@@ -43,3 +43,15 @@ body.cnfl-guided.cnfl-report-step main{padding-bottom:235px!important}
 body.cnfl-guided .cnfl-global-drawer a[data-module]:not([data-module="jornada"]):not([data-module="respaldo"]):not(.active){display:none}
 body.cnfl-guided.cnfl-module-mapa .cnfl-global-drawer a[data-module="mapa"]{display:none}
 body.cnfl-guided.cnfl-load-empty .route-head,body.cnfl-guided.cnfl-load-empty #readingGpsCard{display:none}
+
+/* M01/M02-COR-002 (#38): en Cortes, el cierre no debe tapar las órdenes.
+   Mantener el panel dentro del flujo y recuperar la navegación inferior.
+   Solo afecta jornadas de Cortes en paso "report". */
+body.cnfl-guided.cnfl-module-cortes.cnfl-report-step .cnfl-journey-bar{
+  position:static!important;
+  left:auto!important;right:auto!important;bottom:auto!important;
+  box-shadow:none;
+}
+body.cnfl-guided.cnfl-module-cortes.cnfl-report-step .bottom-nav{
+  display:grid!important;
+}
