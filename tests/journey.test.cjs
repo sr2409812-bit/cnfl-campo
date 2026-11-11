@@ -1,5 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
 const journey=require('../journey.js');
 function memory(initial={}){
   const rows=new Map(Object.entries(initial));
@@ -36,4 +38,16 @@ test('notificaciones archiva avance antes de reiniciar el día',()=>{
   assert.deepEqual(JSON.parse(store.getItem('cnfl_notification_daily_history_v1'))[0].done,{123:true});
   journey.prepareNotifications(store,'2026-10-31');
   assert.equal(JSON.parse(store.getItem('cnfl_notification_daily_history_v1')).length,1);
+});
+
+test('Cortes: la guía no tapa controles en ninguna etapa y muestra navegación inferior',()=>{
+  const css=fs.readFileSync(path.join(__dirname,'../journey.css'),'utf8');
+  const guide=css.match(/body\\.cnfl-guided\\.cnfl-module-cortes \\.cnfl-journey-bar\\s*\\{([^}]+)\\}/);
+  const nav=css.match(/body\\.cnfl-guided\\.cnfl-module-cortes \\.bottom-nav\\s*\\{([^}]+)\\}/);
+  assert.ok(guide,'La corrección debe aplicarse a todos los pasos de Cortes');
+  assert.match(guide[1],/position:static!important/);
+  assert.ok(nav,'La navegación inferior debe estar disponible en Cortes guiado');
+  assert.match(nav[1],/display:grid!important/);
+  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+  assert.match(html,/journey\\.css\\?v=20261111-m02-allsteps2/);
 });
