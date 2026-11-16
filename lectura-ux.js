@@ -141,7 +141,7 @@
     const current = readingOrders.find(o => o.status !== 'read');
     if (!current) return false;
     const lectura = String(value ?? '').trim();
-    if (lectura && !/^\\d+(?:[.,]\\d+)?$/.test(lectura)) {
+    if (lectura && !/^\d+(?:[.,]\d+)?$/.test(lectura)) {
       showReadingToast('La lectura debe contener solo números.');
       return false;
     }
