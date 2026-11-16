@@ -85,6 +85,17 @@
             </div>
           </div>
 
+          ${READING_MODE === 'residencial' ? `
+          <div class="reading-entry reading-entry-priority">
+            <label for="cnflResidentialReadingInput">LECTURA DEL MEDIDOR</label>
+            <input id="cnflResidentialReadingInput" type="text" inputmode="decimal"
+              autocomplete="off" spellcheck="false" placeholder="Anotá la lectura"
+              value="${escapeHtml(String(current.lectura ?? ''))}"
+              onchange="saveResidentialReadingDraft(this.value)"
+              aria-describedby="cnflResidentialReadingHelp">
+            <small id="cnflResidentialReadingHelp">Se guarda al salir del campo o al marcar visitado.</small>
+          </div>` : ''}
+
           <div class="primary-action reading-save-priority">
             <button class="btn-primary" onclick="markCurrentVisit()">
               <i class="fa-solid fa-check"></i> MARCAR VISITADO · SIGUIENTE
@@ -123,9 +134,35 @@
       </div>` : '';
   };
 
+  // El dato "lectura" ya existe en el modelo: recuperar su captura
+  // únicamente en residencial, sin cambiar el flujo de Demanda.
+  window.saveResidentialReadingDraft = function (value) {
+    if (READING_MODE !== 'residencial') return false;
+    const current = readingOrders.find(o => o.status !== 'read');
+    if (!current) return false;
+    const lectura = String(value ?? '').trim();
+    if (lectura && !/^\d+(?:[.,]\d+)?$/.test(lectura)) {
+      showReadingToast('La lectura debe contener solo números.');
+      return false;
+    }
+    if (String(current.lectura ?? '') !== lectura) {
+      current.lectura = lectura;
+      saveReadingState();
+    }
+    return true;
+  };
+
   window.markCurrentVisit = function () {
     const current = readingOrders.find(o => o.status !== 'read');
     if (!current) return;
+
+    if (READING_MODE === 'residencial') {
+      const input = document.getElementById('cnflResidentialReadingInput');
+      if (input && !window.saveResidentialReadingDraft(input.value)) {
+        input.focus();
+        return;
+      }
+    }
 
     current.status = 'read';
     current.readAt = new Date().toISOString();
@@ -226,6 +263,9 @@
       const visited = o.status === 'read';
       const deferred = !visited && Number(o.deferCount || 0) > 0;
       const label = visited ? 'VISITADO' : (deferred ? 'PENDIENTE · POSPUESTO' : 'PENDIENTE');
+      const lecturaLabel = READING_MODE === 'residencial' && String(o.lectura ?? '').trim()
+        ? `<span class="list-reading-value">LECTURA: ${escapeHtml(String(o.lectura))}</span>`
+        : '';
       const click = visited
         ? `onclick="editSavedReading('${o.localizacion}')"`
         : `onclick="setNextReading('${o.localizacion}')"`;
@@ -241,6 +281,7 @@
           </div>
           <div class="list-right">
             <div class="list-status ${visited ? 'read' : 'pending'}">${label}</div>
+            ${lecturaLabel}
             ${hint}
           </div>
         </div>`;
@@ -287,7 +328,10 @@
         const timePart = o.status === 'read' && o.readAt
           ? ' · ' + new Date(o.readAt).toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit'})
           : '';
-        lines.push(`${String(i+1).padStart(2,'0')}. ${routePart}Localización ${o.localizacion} · Medidor ${o.medidor} · ${status}${timePart}`);
+        const lecturaPart = READING_MODE === 'residencial' && String(o.lectura ?? '').trim()
+          ? ' · Lectura ' + String(o.lectura).trim()
+          : '';
+        lines.push(`${String(i+1).padStart(2,'0')}. ${routePart}Localización ${o.localizacion} · Medidor ${o.medidor} · ${status}${lecturaPart}${timePart}`);
       });
 
     return lines.join('\n');
