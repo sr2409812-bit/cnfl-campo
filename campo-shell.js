@@ -92,14 +92,15 @@
   if(journey && Object.hasOwn(journey.MODULES,moduleName)){
     const active=journey.read(localStorage).active;
     if(active&&active.module===moduleName&&!active.finishedAt){
+      // Las pantallas nativas son la navegación principal: no generar la
+      // barra 1/4–4/4, que ocultaba pestañas y botones de trabajo.
       document.body.classList.add('cnfl-guided');
-      const bar=document.createElement('section');bar.className='cnfl-journey-bar';bar.setAttribute('aria-label','Guía de jornada');
-      const first=document.querySelector('main');if(first)first.parentNode.insertBefore(bar,first);
       function workRows(){
         try{
           if(moduleName==='cortes')return JSON.parse(localStorage.getItem('cnfl_work_orders')||'[]').map(o=>({done:!!o.status&&o.status!=='pending'}));
           if(moduleName==='notificaciones'){
-            const s=JSON.parse(localStorage.getItem('cnfl_notificaciones_20261019_v2')||'{}');return (window.CNFL_NOTIFICATION_STOPS||[]).map(o=>({done:!!s.done?.[o[0]]}));
+            const s=JSON.parse(localStorage.getItem('cnfl_notificaciones_20261019_v2')||'{}');
+            return (window.CNFL_NOTIFICATION_STOPS||[]).map(o=>({done:!!s.done?.[o[0]]}));
           }
           const key=moduleName==='demanda'?'cnfl_reading_orders_v2':'cnfl_residential_reading_v1';
           return (JSON.parse(localStorage.getItem(key)||'{}').orders||[]).map(o=>({done:o.status==='read'||o.status==='unread'}));
@@ -109,59 +110,86 @@
         if(moduleName==='cortes')window.switchTab?.(id,id==='cargar'?document.querySelectorAll('.nav-tab-btn')[1]:id==='resumen'?document.querySelectorAll('.nav-tab-btn')[2]:document.querySelectorAll('.nav-tab-btn')[0]);
         else if(moduleName==='demanda'||moduleName==='residencial')window.switchReadingTab?.(id,document.getElementById('tab'+id[0].toUpperCase()+id.slice(1)));
       }
+      function reportText(){
+        const rows=workRows(),done=rows.filter(o=>o.done).length;
+        return 'CNFL Campo · '+journey.MODULES[moduleName]+'\nJornada: '+active.date+'\nTotal: '+rows.length+'\nGestionadas: '+done+'\nPendientes: '+(rows.length-done);
+      }
       function refresh(){
-        const state=journey.read(localStorage).active;if(!state||state.id!==active.id||state.finishedAt)return;
-        const rows=workRows(),done=rows.filter(o=>o.done).length,remaining=rows.length-done;
+        const state=journey.read(localStorage).active;
+        if(!state||state.id!==active.id||state.finishedAt)return;
         document.body.classList.toggle('cnfl-report-step',state.step==='report');
-        document.body.classList.toggle('cnfl-load-empty',state.step==='load'&&!rows.length);
-        const titles={load:'Cargar órdenes',map:'Armar ruta',work:'Visitar órdenes',report:'Entregar reporte'};
-        const number={load:1,map:2,work:3,report:4}[state.step]||1;
-        bar.replaceChildren();
-        const heading=document.createElement('strong');heading.textContent=number+' / 4 · '+titles[state.step];
-        const info=document.createElement('p');
-        info.textContent=state.step==='load'?'Seleccioná y confirmá el PDF de '+journey.MODULES[moduleName]+'.':
-          state.step==='map'?'Tocá los puntos en el orden que querés visitar.':
-          state.step==='work'?done+' gestionadas · '+remaining+' pendientes. Tocá la orden que vas a visitar.':
-          done+' gestionadas · '+remaining+' pendientes. Compartí el control y cerrá la jornada.';
-        const actions=document.createElement('div');actions.className='actions';
-        function action(label,callback,secondary=false){const button=document.createElement('button');button.type='button';button.textContent=label;if(secondary)button.className='secondary';button.onclick=callback;actions.append(button);return button;}
-        if(state.step==='load'&&rows.length&&moduleName!=='notificaciones'){
-          action('Usar '+rows.length+' órdenes guardadas',()=>{journey.step(localStorage,'map');window.cnflOpenSharedMap?.(moduleName);},true);
-        }
-        if(state.step==='map')action('CONTINUAR AL MAPA',()=>window.cnflOpenSharedMap?.(moduleName));
-        if(state.step==='work'){
-          if(moduleName==='demanda'||moduleName==='residencial'){
-            const listing=!!document.getElementById('view-list')?.classList.contains('active');
-            action(listing?'VER ORDEN ACTUAL':'VER TODAS',()=>{section(listing?'route':'list');refresh();},true);
-          }
-          action('REVISAR CIERRE',()=>window.cnflJourneyReview?.());
-        }
-        let summary=null,confirmation=null;
-        if(state.step==='report'){
-          if(moduleName==='notificaciones'){summary=document.createElement('p');summary.className='cnfl-journey-summary';summary.textContent=reportText().replaceAll('\n',' · ');}
-          if(moduleName==='notificaciones'){
-            action('COMPARTIR REPORTE',async()=>{try{
-              if(navigator.share)await navigator.share({title:'Control de notificaciones',text:reportText()});
-              else{await navigator.clipboard.writeText(reportText());alert('Reporte copiado. Pegalo donde vayas a entregarlo.');}
-            }catch(error){if(error?.name!=='AbortError')alert('No se pudo compartir el reporte.');}},true);
-          }
-          confirmation=document.createElement('label');confirmation.className='cnfl-report-confirm';
-          const checked=document.createElement('input');checked.type='checkbox';checked.checked=!!state.reportConfirmed;
-          checked.onchange=()=>{journey.confirmReport(localStorage,checked.checked);refresh();};
-          confirmation.append(checked,document.createTextNode('Ya compartí o guardé el reporte'));
-          const finish=action('FINALIZAR JORNADA',()=>{
-            if(!confirm(remaining?'Quedan '+remaining+' pendientes. ¿Cerrar esta jornada y guardar el reporte?':'¿Ya revisaste el reporte? Se guardará el cierre de esta jornada.'))return;
-            const report=moduleName==='cortes'&&typeof window.generateLiquidationText==='function'?window.generateLiquidationText():reportText();
-            journey.finish(localStorage,{total:rows.length,done,pending:remaining,report});location.assign('campo.html');
-          });
-          finish.disabled=!state.reportConfirmed;
-        }
-        const lead=document.createElement('div');lead.append(heading,info);bar.append(lead);if(summary)bar.append(summary);if(confirmation)bar.append(confirmation);if(actions.children.length)bar.append(actions);
+        document.body.classList.toggle('cnfl-load-empty',state.step==='load'&&!workRows().length);
       }
       window.cnflJourneyRefresh=refresh;
-      window.cnflJourneyReview=()=>{const current=journey.read(localStorage).active;if(current?.id!==active.id||current.step!=='work')return;journey.step(localStorage,'report');section(moduleName==='cortes'?'resumen':'summary');refresh();};
-      function reportText(){const rows=workRows(),done=rows.filter(o=>o.done).length;return 'CNFL Campo · '+journey.MODULES[moduleName]+'\nJornada: '+active.date+'\nTotal: '+rows.length+'\nGestionadas: '+done+'\nPendientes: '+(rows.length-done);}
-      window.cnflJourneyLoaded=()=>{const current=journey.read(localStorage).active;if(current?.id!==active.id||current.step!=='load')return;journey.step(localStorage,'map');window.cnflOpenSharedMap?.(moduleName);};
+      window.cnflJourneyReview=()=>{
+        const current=journey.read(localStorage).active;
+        if(current?.id!==active.id||current.step!=='work')return;
+        journey.step(localStorage,'report');
+        section(moduleName==='cortes'?'resumen':'summary');
+        refresh();
+      };
+      window.cnflJourneyLoaded=()=>{
+        const current=journey.read(localStorage).active;
+        if(current?.id!==active.id||current.step!=='load')return;
+        journey.step(localStorage,'map');
+        window.cnflOpenSharedMap?.(moduleName);
+      };
+
+      // Conservar el cierre de jornada en su pantalla natural. No flota,
+      // no cubre medidores y requiere la misma confirmación que antes.
+      const closeHost=moduleName==='cortes'
+        ?document.getElementById('tab-resumen')
+        :(moduleName==='notificaciones'
+          ?document.querySelector('main')
+          :document.querySelector('#view-summary .summary-actions'));
+      if(closeHost){
+        const close=document.createElement('div');
+        close.className='cnfl-finish-controls';
+        const checkboxLabel=document.createElement('label');
+        const checkbox=document.createElement('input');
+        checkbox.type='checkbox';
+        checkboxLabel.append(checkbox,document.createTextNode('Ya compartí o guardé el reporte'));
+        const finish=document.createElement('button');
+        finish.type='button';finish.textContent='FINALIZAR JORNADA';finish.disabled=true;
+        const message=document.createElement('p');message.setAttribute('role','status');
+
+        if(moduleName==='notificaciones'){
+          const share=document.createElement('button');
+          share.type='button';share.className='secondary';share.textContent='COMPARTIR REPORTE';
+          share.onclick=async()=>{
+            try{
+              if(navigator.share)await navigator.share({title:'Control de notificaciones',text:reportText()});
+              else{await navigator.clipboard.writeText(reportText());alert('Reporte copiado. Pegalo donde vayas a entregarlo.');}
+            }catch(error){if(error?.name!=='AbortError')alert('No se pudo compartir el reporte.');}
+          };
+          close.append(share);
+        }
+        checkbox.onchange=()=>{finish.disabled=!checkbox.checked;};
+        finish.onclick=()=>{
+          const state=journey.read(localStorage).active;
+          if(!state||state.id!==active.id||state.finishedAt){message.textContent='Esta jornada ya no está activa.';return;}
+          const rows=workRows(),done=rows.filter(o=>o.done).length,remaining=rows.length-done;
+          if(!rows.length){message.textContent='No hay órdenes para cerrar en esta jornada.';return;}
+          if(!checkbox.checked)return;
+          if(!confirm(remaining?'Quedan '+remaining+' pendientes. ¿Cerrar esta jornada y guardar el reporte?':'¿Ya revisaste el reporte? Se guardará el cierre de esta jornada.'))return;
+          try{
+            const order=['load','map','work','report'];
+            const currentIndex=order.indexOf(state.step);
+            if(currentIndex<0)throw Error('Paso de jornada desconocido');
+            for(let i=currentIndex+1;i<order.length;i++)journey.step(localStorage,order[i]);
+            journey.confirmReport(localStorage,true);
+            const report=moduleName==='cortes'&&typeof window.generateLiquidationText==='function'
+              ?window.generateLiquidationText():reportText();
+            const saved=journey.finish(localStorage,{total:rows.length,done,pending:remaining,report});
+            if(!saved)throw Error('No se pudo confirmar el cierre');
+            location.assign('campo.html');
+          }catch(error){
+            message.textContent='No se pudo cerrar la jornada. Revisá el almacenamiento antes de intentarlo de nuevo.';
+          }
+        };
+        close.append(checkboxLabel,finish,message);
+        closeHost.append(close);
+      }
       refresh();
       if(active.step==='load'&&location.search.includes('jornada=1')&&moduleName!=='notificaciones')section(moduleName==='cortes'?'cargar':'load');
       if(active.step==='work'&&location.search.includes('jornada=1')&&moduleName!=='notificaciones')section(moduleName==='cortes'?'ruta':'route');

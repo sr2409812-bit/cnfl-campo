@@ -40,17 +40,24 @@ test('notificaciones archiva avance antes de reiniciar el día',()=>{
   assert.equal(JSON.parse(store.getItem('cnfl_notification_daily_history_v1')).length,1);
 });
 
-test('Cortes: la guía queda en flujo normal y muestra navegación inferior en todas las etapas',()=>{
+test('la barra guiada flotante desaparece y la navegación propia de cada módulo queda libre',()=>{
   const css=fs.readFileSync(path.join(__dirname,'../journey.css'),'utf8');
-  const guideSelector='body.cnfl-guided.cnfl-module-cortes .cnfl-journey-bar{';
-  const navSelector='body.cnfl-guided.cnfl-module-cortes .bottom-nav{';
-  const guideAt=css.indexOf(guideSelector),navAt=css.indexOf(navSelector);
-  assert.ok(guideAt>=0,'La regla debe abarcar todas las etapas de Cortes');
-  assert.ok(navAt>=0,'La navegación debe reaparecer durante la jornada');
-  const guideRule=css.slice(guideAt,css.indexOf('}',guideAt));
-  const navRule=css.slice(navAt,css.indexOf('}',navAt));
-  assert.ok(guideRule.includes('position:static!important'));
-  assert.ok(navRule.includes('display:grid!important'));
-  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  assert.ok(html.includes('journey.css?v=20261111-m02-allsteps2'));
+  const shell=fs.readFileSync(path.join(__dirname,'../campo-shell.js'),'utf8');
+  const map=fs.readFileSync(path.join(__dirname,'../mapa.js'),'utf8');
+  assert.ok(css.includes('.cnfl-journey-bar{display:none!important}'));
+  assert.ok(!css.includes('.bottom-nav{display:none'));
+  assert.ok(!css.includes('position:fixed'));
+  assert.ok(!shell.includes("className='cnfl-journey-bar'"));
+  assert.ok(!map.includes("className='cnfl-journey-bar'"));
+  assert.ok(shell.includes("className='cnfl-finish-controls'"));
+  assert.ok(shell.includes("journey.finish(localStorage"));
+  assert.ok(map.includes("journey.step(localStorage,'work')"));
+  for(const file of ['index.html','lectura.html','lectura-residencial.html',
+                     'notificaciones.html','mapa.html','campo.html']){
+    const html=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
+    assert.ok(html.includes('journey.css?v=20261118-no-guide1'),file+' sin CSS nuevo');
+    if(file!=='campo.html')
+      assert.ok(html.includes('campo-shell.js?v=20261118-no-guide1'),file+' sin JS nuevo');
+  }
+  assert.ok(fs.readFileSync(path.join(__dirname,'../mapa.html'),'utf8').includes('mapa.js?v=20261118-no-guide1'));
 });

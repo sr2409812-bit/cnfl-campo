@@ -17,47 +17,60 @@ body.cnfl-day-home .types button{background:#f4f7fc;color:#00264d;border-color:#
 body.cnfl-day-home .secondary{display:block;color:#00336b;text-decoration:none;font-size:14px;font-weight:700;margin:14px 2px}
 body.cnfl-day-home #pastList details{border-top:1px solid #d9e0e7;padding:10px 0}
 body.cnfl-day-home #pastList pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.45 Arial,sans-serif;background:#f3f6f9;padding:10px;border-radius:6px;max-height:260px;overflow:auto}
-.cnfl-journey-bar{background:#fff;border-bottom:1px solid #d9e0e7;margin:0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.cnfl-journey-bar strong{display:block;font-size:13px;color:#00264d}
-.cnfl-journey-bar p{margin:3px 0 0;font-size:12px;color:#4a5b6c}
-.cnfl-journey-bar .actions{display:flex;gap:8px;flex-wrap:wrap}
-.cnfl-journey-bar button{min-height:44px;padding:8px 12px;border:1px solid #0033a0;border-radius:8px;background:#0033a0;color:#fff;font-size:12px;font-weight:800}
-.cnfl-journey-bar button.secondary{background:#fff;color:#0033a0}
-.cnfl-journey-bar .cnfl-journey-summary{flex-basis:100%;background:#f3f6f9;border-radius:6px;padding:8px;color:#00264d}
-@media(max-width:420px){.cnfl-journey-bar{align-items:flex-start}.cnfl-journey-bar .actions{width:100%}.cnfl-journey-bar button{width:100%}}
 .reading-extra{margin-top:14px}
 .reading-extra>summary{cursor:pointer;color:#00336b;font-size:14px;font-weight:800;min-height:44px;display:flex;align-items:center}
 .reading-extra>summary::before{content:'▸';margin-right:8px}
 .reading-extra[open]>summary::before{content:'▾'}
 .reading-extra[open]>summary{margin-bottom:12px}
+/* Mantener restricciones de jornada preexistentes, sin interferir
+   con los controles y pestañas de navegación visibles. */
 body.cnfl-guided .summary-actions .btn-danger-ghost{display:none}
-body.cnfl-guided .bottom-nav{display:none!important}
-body.cnfl-guided .cnfl-journey-bar,body.cnfl-guided-map .cnfl-journey-bar{position:fixed;left:0;right:0;bottom:0;z-index:100;margin:0;padding:10px 14px max(10px,env(safe-area-inset-bottom));border-top:3px solid #ff6a13;box-shadow:0 -5px 16px #00264d24}
-body.cnfl-guided main,body.cnfl-guided-map main{padding-bottom:190px!important}
-body.cnfl-guided-map #routeMode{display:none}
-body.cnfl-guided-map .route-bar{display:flex;align-items:center;justify-content:space-between;min-height:48px}
-body.cnfl-guided-map #routeHint,body.cnfl-guided-map #routeOverview{grid-column:auto;grid-row:auto}
-.cnfl-journey-bar .cnfl-report-confirm{display:flex;align-items:center;gap:9px;flex-basis:100%;font-size:12px;font-weight:800;color:#00264d;min-height:36px}
-.cnfl-report-confirm input{width:20px;height:20px;accent-color:#0033a0;flex:none}
-body.cnfl-guided.cnfl-report-step main{padding-bottom:235px!important}
 body.cnfl-guided .cnfl-global-drawer a[data-module]:not([data-module="jornada"]):not([data-module="respaldo"]):not(.active){display:none}
 body.cnfl-guided.cnfl-module-mapa .cnfl-global-drawer a[data-module="mapa"]{display:none}
-body.cnfl-guided.cnfl-load-empty .route-head,body.cnfl-guided.cnfl-load-empty #readingGpsCard{display:none}
+body.cnfl-guided.cnfl-load-empty .route-head,
+body.cnfl-guided.cnfl-load-empty #readingGpsCard{display:none}
 
-/* M02-COR-003: barra guiada de Cortes en flujo normal para TODOS los pasos.
-   Evita que Cargar/Armar ruta/Visitar/Entregar reporte tape controles de órdenes.
-   Conserva la navegación existente, sin tocar el estado ni los datos de campo. */
-body.cnfl-guided.cnfl-module-cortes .cnfl-journey-bar{
-  position:static!important;
-  left:auto!important;right:auto!important;bottom:auto!important;
-  z-index:auto!important;
-  box-shadow:none!important;
-  border-top:0!important;
-  padding:10px 14px!important;
+/* El flujo usa las pestañas nativas. No mostrar la antigua guía fija
+   aunque un script anterior siga en memoria del navegador. */
+.cnfl-journey-bar{display:none!important}
+
+/* Cierre normal dentro de Resumen/Cierre, nunca fijo sobre el trabajo. */
+.cnfl-finish-controls{
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid #d9e0e7;
+  display:grid;
+  gap:10px;
 }
-body.cnfl-guided.cnfl-module-cortes .bottom-nav{
-  display:grid!important;
+.cnfl-finish-controls label{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:13px;
+  font-weight:800;
+  color:#00264d;
+  min-height:44px;
 }
-body.cnfl-guided.cnfl-module-cortes main{
-  padding-bottom:max(110px,env(safe-area-inset-bottom))!important;
+.cnfl-finish-controls input[type=checkbox]{
+  width:22px;
+  height:22px;
+  flex:none;
+  accent-color:#0033a0;
 }
+.cnfl-finish-controls button{
+  min-height:48px;
+  width:100%;
+  border:1px solid #0033a0;
+  border-radius:9px;
+  background:#0033a0;
+  color:#fff;
+  font-size:13px;
+  font-weight:800;
+  padding:10px 12px;
+}
+.cnfl-finish-controls button.secondary{
+  color:#0033a0;
+  background:#fff;
+}
+.cnfl-finish-controls button:disabled{opacity:.5}
+.cnfl-finish-controls p{font-size:12px;color:#9b1c1c;margin:0}
