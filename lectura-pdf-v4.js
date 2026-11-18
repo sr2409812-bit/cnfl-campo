@@ -203,15 +203,13 @@ function parseMissingReadingTablePdf(layoutPages,fullText='') {
 function parseLMR0050RouteListPdf(layoutPages, fullText='') {
   const text=normalizeReadingPdfText(fullText);
   if(!text.includes('listado de medidores a visitar de la ruta') || !text.includes('lmr0050')) return null;
-  const expected=readingPdfExpectedCount(fullText);
-  if(expected===null || expected<=0) {
-    throw new Error('El listado LMR0050 no indica una cantidad total positiva y comprobable. No cargué datos.');
-  }
+  // pdf.js puede devolver el número 78 ANTES de "Cantidad Medidores:"
+  // aunque visualmente esté a su derecha. Leerlo por renglón/posición X-Y.
   if(!Array.isArray(layoutPages) || !layoutPages.length) {
     throw new Error('No hay páginas de LMR0050 disponibles para validar. No cargué datos.');
   }
 
-  const rows=[],seen=new Map(),conflicts=[];
+  const rows=[],seen=new Map(),conflicts=[],positiveTotals=[];
   const evidence={detected:0,validated:0,unverifiedPages:0};
   const candidate=/^\d{1,4}\s+\d{9,10}(?=\s|$)/;
   const record=/^\d{1,4}\s+(\d{9,10})\s+(?:\*{3,}|\d{1,8})\s+MED\s+(\d+)(?=\s|$)/i;
@@ -226,8 +224,17 @@ function parseLMR0050RouteListPdf(layoutPages, fullText='') {
     }
 
     let pageDetected=0;
-    for(const row of groupReadingPdfRows(items,4)) {
+    let pageFooter=null,footerLabels=0;
+    const visualRows=groupReadingPdfRows(items,4);
+    for(const row of visualRows) {
       const line=row.items.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+      const normalized=normalizeReadingPdfText(line);
+      if(/\bcantidad\s+(?:de\s+)?medidores?\b/.test(normalized)) {
+        footerLabels++;
+        const total=normalized.match(/\bcantidad\s+(?:de\s+)?medidores?\s*:\s*(\d+)(?=\s|$)/);
+        if(total) pageFooter=Number(total[1]);
+        else evidence.unverifiedPages++;
+      }
       if(!candidate.test(line)) continue;
       evidence.detected++;
       pageDetected++;
@@ -238,12 +245,18 @@ function parseLMR0050RouteListPdf(layoutPages, fullText='') {
         evidence.validated++;
       }
     }
-    // Únicamente una declaración explícita de cero permite una página vacía.
-    if(!pageDetected &&
-       !/\bcantidad\s+(?:de\s+)?medidores?\s*:\s*0\b/.test(pageText)) {
-      evidence.unverifiedPages++;
-    }
+    if(footerLabels>1) evidence.unverifiedPages++;
+    if(pageFooter>0) positiveTotals.push(pageFooter);
+    // Las páginas de solo encabezado requieren un cero inequívoco.
+    if(!pageDetected && pageFooter!==0) evidence.unverifiedPages++;
+    // Un pie de cero en una página con registros es inconsistente.
+    if(pageDetected && pageFooter===0) evidence.unverifiedPages++;
   }
+  const distinctPositive=[...new Set(positiveTotals)];
+  if(distinctPositive.length!==1) {
+    throw new Error('El listado LMR0050 no indica una cantidad total única, positiva y comprobable. No cargué datos.');
+  }
+  const expected=distinctPositive[0];
   return {
     rows:validateReadingPdfRows(rows,conflicts,expected,'El listado LMR0050',evidence),
     expectedCount:expected,
