@@ -25,8 +25,11 @@ function fixture({counts=[3,2,0,0],total=5,missingMeter=-1,emptyFooter=true}={})
       page.push(item('DIRECCION SINTETICA',205,y),item('CLIENTE SINTETICO',404,y));
       next++;
     }
-    if(pi===counts.findLastIndex(n=>n>0) && total!==null)page.push(item('Cantidad Medidores: '+total,40,110));
-    if(!count && emptyFooter)page.push(item('Cantidad Medidores: 0',40,610));
+    // Igual que en PDF real: PDF.js puede extraer primero el número, luego la etiqueta.
+    if(pi===counts.findLastIndex(n=>n>0) && total!==null)
+      page.push(item(String(total),132,110.5),item('Cantidad',40,110),item('Medidores:',82,110));
+    if(!count && emptyFooter)
+      page.push(item('0',132,610.5),item('Cantidad',40,610),item('Medidores:',82,610));
     return page;
   });
   return {pages,text:pages.flat().map(i=>i.str).join('\n')};
@@ -45,6 +48,22 @@ test('LMR0050: valida todas las páginas, incluidas páginas vacías declaradas'
   assert.equal(result.rows[0].localizacion,'2010000000');
   assert.equal(result.rows[0].medidor,'800000');
   assert.equal(result.rows[77].medidor,'800077');
+});
+test('LMR0050: el total aparece antes de la etiqueta en texto extraído, pero a la derecha en la página',()=>{
+  const doc=fixture({counts:[36,37,5,0,0],total:78});
+  const context=vm.createContext({console:{log(){},error(){}}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../lectura-pdf-v4.js'),'utf8'),context);
+  assert.equal(context.readingPdfExpectedCount(doc.text),null);
+  assert.equal(context.parseLMR0050RouteListPdf(doc.pages,doc.text).expectedCount,78);
+});
+test('LMR0050: sin pie positivo o solo pies de cero no admite cargar',()=>{
+  assert.throws(()=>parse(fixture({total:null})),/cantidad total única, positiva/);
+});
+test('LMR0050: no admite dos totales positivos distintos para el mismo listado',()=>{
+  const doc=fixture({counts:[3,2,0,0],total:5});
+  doc.pages[0].push(item('4',132,110.5),item('Cantidad',40,110),item('Medidores:',82,110));
+  doc.text=doc.pages.flat().map(i=>i.str).join('\n');
+  assert.throws(()=>parse(doc),/cantidad total única, positiva/);
 });
 test('LMR0050: nunca confunde Contrato con Medidor',()=>{
   const result=parse(fixture());
