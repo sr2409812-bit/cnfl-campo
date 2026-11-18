@@ -22,6 +22,14 @@ body.cnfl-day-home #pastList pre{white-space:pre-wrap;overflow-wrap:anywhere;fon
 .reading-extra>summary::before{content:'▸';margin-right:8px}
 .reading-extra[open]>summary::before{content:'▾'}
 .reading-extra[open]>summary{margin-bottom:12px}
+/* Mantener restricciones de jornada preexistentes, sin interferir
+   con los controles y pestañas de navegación visibles. */
+body.cnfl-guided .summary-actions .btn-danger-ghost{display:none}
+body.cnfl-guided .cnfl-global-drawer a[data-module]:not([data-module="jornada"]):not([data-module="respaldo"]):not(.active){display:none}
+body.cnfl-guided.cnfl-module-mapa .cnfl-global-drawer a[data-module="mapa"]{display:none}
+body.cnfl-guided.cnfl-load-empty .route-head,
+body.cnfl-guided.cnfl-load-empty #readingGpsCard{display:none}
+
 /* El flujo usa las pestañas nativas. No mostrar la antigua guía fija
    aunque un script anterior siga en memoria del navegador. */
 .cnfl-journey-bar{display:none!important}
