@@ -25,7 +25,7 @@ function fixture({counts=[3,2,0,0],total=5,missingMeter=-1,emptyFooter=true}={})
       page.push(item('DIRECCION SINTETICA',205,y),item('CLIENTE SINTETICO',404,y));
       next++;
     }
-    if(pi===1 && total!==null)page.push(item('Cantidad Medidores: '+total,40,110));
+    if(pi===counts.findLastIndex(n=>n>0) && total!==null)page.push(item('Cantidad Medidores: '+total,40,110));
     if(!count && emptyFooter)page.push(item('Cantidad Medidores: 0',40,610));
     return page;
   });
@@ -79,8 +79,10 @@ test('LMR0050: identificadores duplicados con medidores incompatibles se rechaza
   doc.text=doc.pages.flat().map(i=>i.str).join('\n');
   assert.throws(()=>parse(doc),/Conflicto de Medidor/);
 });
-test('LMR0050: firma de documento obligatoria, sin cambiar otros analizadores',()=>{
+test('LMR0050: su analizador solo se activa con firma del documento',()=>{
   const doc=fixture();
-  doc.text=doc.text.replaceAll('LMR0050','LMR0000');
-  assert.throws(()=>parse(doc),/integridad|Formato de PDF no reconocido|faltan encabezados/);
+  const context=vm.createContext({console:{log(){},error(){}}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../lectura-pdf-v4.js'),'utf8'),context);
+  assert.equal(context.parseLMR0050RouteListPdf(doc.pages,doc.text).rows.length,5);
+  assert.equal(context.parseLMR0050RouteListPdf(doc.pages,doc.text.replaceAll('LMR0050','LMR0000')),null);
 });
