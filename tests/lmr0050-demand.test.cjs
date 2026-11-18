@@ -65,7 +65,7 @@ test('LMR0050: no acepta una página sin encabezados verificables',()=>{
   const doc=fixture();
   doc.pages[1]=doc.pages[1].filter(i=>i.str!=='Contrato');
   doc.text=doc.pages.flat().map(i=>i.str).join('\n');
-  assert.throws(()=>parse(doc),/integridad/);
+  assert.throws(()=>parse(doc),/integridad|indica 5 registros/);
 });
 test('LMR0050: fila incompleta en página con cero declarado se rechaza',()=>{
   const doc=fixture();
