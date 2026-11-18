@@ -118,6 +118,7 @@
         const state=journey.read(localStorage).active;
         if(!state||state.id!==active.id||state.finishedAt)return;
         document.body.classList.toggle('cnfl-report-step',state.step==='report');
+        document.body.classList.toggle('cnfl-load-empty',state.step==='load'&&!workRows().length);
       }
       window.cnflJourneyRefresh=refresh;
       window.cnflJourneyReview=()=>{
