@@ -197,6 +197,60 @@ function parseMissingReadingTablePdf(layoutPages,fullText='') {
   return parseReadingPdfColumns(layoutPages,fullText,['localizacion'],'missing-reading-table-strict',true);
 }
 
+// LMR0050: listado de ruta con columnas Número/Quiebre, Secuencia/Visita,
+// Contrato, tipo MED y Medidor. Las páginas finales pueden declarar 0 medidores.
+// La secuencia solo se acepta junto al marcador MED y su valor, nunca Contrato.
+function parseLMR0050RouteListPdf(layoutPages, fullText='') {
+  const text=normalizeReadingPdfText(fullText);
+  if(!text.includes('listado de medidores a visitar de la ruta') || !text.includes('lmr0050')) return null;
+  const expected=readingPdfExpectedCount(fullText);
+  if(expected===null || expected<=0) {
+    throw new Error('El listado LMR0050 no indica una cantidad total positiva y comprobable. No cargué datos.');
+  }
+  if(!Array.isArray(layoutPages) || !layoutPages.length) {
+    throw new Error('No hay páginas de LMR0050 disponibles para validar. No cargué datos.');
+  }
+
+  const rows=[],seen=new Map(),conflicts=[];
+  const evidence={detected:0,validated:0,unverifiedPages:0};
+  const candidate=/^\d{1,4}\s+\d{9,10}(?=\s|$)/;
+  const record=/^\d{1,4}\s+(\d{9,10})\s+(?:\*{3,}|\d{1,8})\s+MED\s+(\d+)(?=\s|$)/i;
+  for(const rawItems of layoutPages) {
+    const items=(rawItems||[]).map(readingPdfItemXY).filter(i=>i.text);
+    const pageText=normalizeReadingPdfText(items.map(i=>i.text).join(' '));
+    // Los tres títulos deben aparecer en CADA página, incluso sin registros.
+    if(!/\bsecuencia\b/.test(pageText) || !/\bcontrato\b/.test(pageText) ||
+       !/\bmedidor\b/.test(pageText)) {
+      evidence.unverifiedPages++;
+      continue;
+    }
+
+    let pageDetected=0;
+    for(const row of groupReadingPdfRows(items,4)) {
+      const line=row.items.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+      if(!candidate.test(line)) continue;
+      evidence.detected++;
+      pageDetected++;
+      const match=line.match(record);
+      // Un segundo marcador MED haría ambigua la asociación dentro de la fila.
+      if(match && (line.match(/\bMED\b/gi)||[]).length===1 &&
+         readingPdfAddUnique(rows,seen,conflicts,match[1],match[2])) {
+        evidence.validated++;
+      }
+    }
+    // Únicamente una declaración explícita de cero permite una página vacía.
+    if(!pageDetected &&
+       !/\bcantidad\s+(?:de\s+)?medidores?\s*:\s*0\b/.test(pageText)) {
+      evidence.unverifiedPages++;
+    }
+  }
+  return {
+    rows:validateReadingPdfRows(rows,conflicts,expected,'El listado LMR0050',evidence),
+    expectedCount:expected,
+    parser:'lmr0050-route-list-strict'
+  };
+}
+
 function parseDemandReadingPdf(layoutPages,fullText='') {
   return parseReadingPdfColumns(layoutPages,fullText,['secuencia','visita'],'demand-column-strict');
 }
@@ -211,7 +265,8 @@ function parseReadingPdfLayout(layoutPages,fullText='') {
     throw new Error('Este PDF es de desconexiones. Abrilo en Cortes; aquí se cargan lecturas. No se modificó la jornada.');
   }
   // Los formatos con columnas conocidas tienen prioridad sobre el respaldo.
-  const result=parseInspectionReadingPdf(layoutPages,fullText)
+  const result=parseLMR0050RouteListPdf(layoutPages,fullText)
+    || parseInspectionReadingPdf(layoutPages,fullText)
     || parseMissingReadingTablePdf(layoutPages,fullText)
     || parseDemandReadingPdf(layoutPages,fullText)
     || parseReadingPdfColumns(layoutPages,fullText,['localizacion'],'reading-column-strict')
