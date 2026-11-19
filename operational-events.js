@@ -123,10 +123,14 @@
     });
   }
   function captureTransition(input){
+    // Capturar el instante del clic ANTES de esperar el mutex: la espera
+    // por crypto/almacenamiento no debe añadirse al intervalo entre órdenes.
+    const captured=input&&typeof input==='object'?
+      {...input,at:input.at??new Date().toISOString()}:input;
     // El llamador nunca depende del resultado de telemetría.
     // Serializar las llamadas dentro de la misma pestaña; Web Locks protege
     // la escritura entre pestañas Chrome. Sin Web Locks, fallar cerrado.
-    const promise=queue.then(()=>appendAfterPersist(input)).catch(()=>false);
+    const promise=queue.then(()=>appendAfterPersist(captured)).catch(()=>false);
     queue=promise.then(()=>undefined);
     return promise;
   }
