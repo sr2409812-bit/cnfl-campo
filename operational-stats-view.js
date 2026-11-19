@@ -95,7 +95,7 @@
       ],
       first:reliableTime?clock(summary.firstCompletedAt):noData,
       last:reliableTime?clock(summary.lastCompletedAt):noData,
-      intervals:intervals.map((ms,index)=>({label:'Intervalo '+(index+1),value:duration(ms)})),
+      intervals:intervals.map((ms,index)=>({label:'Intervalo '+(index+1),value:duration(ms),durationMs:ms})),
       issueList:countIssues(summary.issues),
       unmeasured:[
         {label:'Tiempo de traslado',value:noData},
