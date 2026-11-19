@@ -49,7 +49,7 @@ test('panel arranca en escenario normal ficticio sin leer datos del teléfono',(
   assert.equal(app.get('metricCards').children.length,6);
   assert.equal(app.get('intervalList').children.length,3);
   assert.equal(app.buttons[0].attrs['aria-pressed'],'true');
-  assert.equal(app.get('noIssues').hidden,true);
+  assert.equal(app.get('noIssues').hidden,false);
 });
 test('cambiar a muestra incompleta presenta incidencia y advertencia',()=>{
   const app=environment();
