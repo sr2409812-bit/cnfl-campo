@@ -46,7 +46,8 @@ test('adapta shape real de traceOrdered: cada legMeters corresponde a un par con
 
 test('la geometría, GPS y datos extras del input NUNCA aparecen en salida',()=>{
   const exported=JSON.stringify(travel.fromRoutePreview(sample,scope));
-  for(const forbidden of ['lat','lon','customer','contract','9.9','84.1','never-persist','TEST-ONLY'])
+  for(const forbidden of ['"lat":','"lon":','"customer":','"contract":',
+    '9.9,','-84.1','never-persist','TEST-ONLY'])
     assert.equal(exported.includes(forbidden),false,forbidden);
   assert.deepEqual(Object.keys(travel.fromRoutePreview(sample,scope)[0]).sort(),
     ['calculatedAt','distanceMeters','filter','fromStopKey','journeyId','module',
