@@ -330,7 +330,8 @@
       },
       captureCoverage:'unverifiable',
       provenance:'user_declared_timestamps',
-      quality:clockBad?'invalid_timing':issues.length?'partial':'coherent_sample',
+      quality:clockBad?'invalid_timing':issues.length?'partial':
+        (validTrips.length?'coherent_sample':'empty'),
       travelDurationMs:clockBad?null:(times.length?timeTotal:null),
       meanTravelMs:clockBad?null:(times.length?timeTotal/times.length:null),
       medianTravelMs:clockBad?null:median(times),
