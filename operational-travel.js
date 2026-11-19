@@ -309,7 +309,7 @@
         durationMs:trip.travelMs,source:start.source,roadStatus,
         roadDistanceMeters:road?road.distanceMeters:null,
         // Distancia de calle dividida por tiempo manual: NO velocidad GPS.
-        equivalentRoadSpeedKmh,routeSnapshotId:start.routeSnapshotId
+        equivalentRoadSpeedKmh:equivalentSpeedKmh,routeSnapshotId:start.routeSnapshotId
       });
     }
     const times=validTrips.map(t=>t.travelMs).sort((a,b)=>a-b);
