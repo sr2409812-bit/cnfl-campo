@@ -86,6 +86,7 @@
     if(!Array.isArray(orders)) return false;
     const order=orders.find(o=>String(o.localizacion||'').replace(/\D/g,'')===loc && String(o.orden||'')===orderId);
     if(!order) return false;
+    const previouslyDone=!!order.status&&order.status!=='pending';
     order.status=status;
     try{
       localStorage.setItem('cnfl_work_orders',JSON.stringify(orders));
@@ -101,6 +102,11 @@
         history.unshift(entry);
         localStorage.setItem('cnfl_order_history_v1',JSON.stringify(history.slice(0,1200)));
       }
+      root.CNFLOperationalEvents?.captureTransition({
+        module:'cortes',
+        identity:[order.orden||order.id||'',order.localizacion||'',order.medidor||''].join('|'),
+        previousDone:previouslyDone,done:status!=='pending',source:'cuts-map'
+      });
       return true;
     }catch(_){return false;}
   }
