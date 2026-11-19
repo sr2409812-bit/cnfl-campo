@@ -93,7 +93,7 @@ test('contrato estrictamente UTC y día operativo correcto de Costa Rica',()=>{
 
 test('sin tramos ni eventos: no fabrica tiempos, kilómetros o velocidades',()=>{
   const s=stats([],[]);
-  assert.equal(s.quality,'coherent_sample');
+  assert.equal(s.quality,'empty');
   assert.equal(s.counts.completedTravels,0);
   assert.equal(s.travelDurationMs,null);
   assert.equal(s.meanTravelMs,null);
