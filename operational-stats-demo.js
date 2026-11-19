@@ -32,19 +32,15 @@
   function renderIntervals(model){
     const list=$('intervalList');
     const durations=model.intervals;
-    const seconds=durations.map(item=>{
-      // Solo visual. La representación no modifica la estadística.
-      const match=item.value.match(/(\d+)/);
-      return match?Number(match[1]):0;
-    });
-    const max=Math.max(1,...seconds);
+    const millis=durations.map(item=>item.durationMs);
+    const max=Math.max(1,...millis);
     const rows=durations.map((item,i)=>{
       const row=node('li','interval-row');
       const header=node('div','interval-head');
       header.append(node('span','',item.label),node('strong','',item.value));
       const track=node('div','interval-track');
       const bar=node('span','interval-bar');
-      bar.style.width=Math.max(5,Math.round(seconds[i]/max*100))+'%';
+      bar.style.width=Math.max(5,Math.round(millis[i]/max*100))+'%';
       track.append(bar);
       row.append(header,track);
       return row;
