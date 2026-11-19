@@ -217,6 +217,10 @@ function markDone(){
   }
   state.index=nextPending(state.index);
   save();
+  window.CNFLOperationalEvents?.captureTransition({
+    module:'notificaciones',identity:loc,previousDone:false,
+    done:true,at,source:'notifications-ui'
+  });
   render();
 }
 function undoLastVisit(){
@@ -229,7 +233,12 @@ function undoLastVisit(){
     const at=new Date().toISOString();
     window.CNFLStore.putRecord('notification-visits',at.slice(0,10)+'|'+action.loc+'|'+at,{localizacion:action.loc,status:'deshecha',at,routeKey:KEY}).catch(()=>{});
   }
-  save();render();
+  save();
+  window.CNFLOperationalEvents?.captureTransition({
+    module:'notificaciones',identity:action.loc,previousDone:true,
+    done:false,undo:true,source:'notifications-ui'
+  });
+  render();
 }
 function nextStop(){const n=currentStops().length;state.index=(state.index+1)%n;save();render()}
 function prevStop(){const n=currentStops().length;state.index=(state.index-1+n)%n;save();render()}
@@ -370,6 +379,8 @@ async function optimizeFromHere(){
 initializeNotificationView();
 </script>
   <script src="journey.js?v=20261031-guided4"></script>
+  <script src="operational-stats.js?v=20261118-m10-003-test1"></script>
+  <script src="operational-events.js?v=20261118-m10-003-test1"></script>
   <script src="campo-shell.js?v=20261118-no-guide1"></script>
 </body>
 </html>
