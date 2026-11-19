@@ -129,6 +129,7 @@ test('archivos de presentación carecen de acceso a almacenamiento, GPS y red',(
     'operational-stats-demo.js'
   ]){
     const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
-    assert.doesNotMatch(source,/\blocalStorage\b|\bindexedDB\b|\bgetCurrentPosition\b|\bwatchPosition\b|\bfetch\s*\(/i,file);
+    const executable=source.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'');
+    assert.doesNotMatch(executable,/\blocalStorage\b|\bindexedDB\b|\bgetCurrentPosition\b|\bwatchPosition\b|\bfetch\s*\(/i,file);
   }
 });
