@@ -32,6 +32,7 @@ for(const scope of ['cortes','demanda','residencial','notificaciones']){
   const rows=['cortes','demanda','residencial','notificaciones'].flatMap(type=>[1,2].map(n=>({type,loc:String(n),lat:9.9,lon:-84.1,done:false})));
   const keys=rows.map(o=>o.type+':'+o.loc),other=keys.filter(k=>!k.startsWith(scope+':'));
   const ctx={scope,inventory:false,type:'todos',pendingOnly:false,manualKeys:keys,manualToken:0,preview:null,
+   MAX_MANUAL_STOPS_PER_MODULE:120,
    window:{CNFLFieldMapData:{collect:()=>rows}},localStorage:{setItem(){}},document:{getElementById:()=>({})},render(){}};
   vm.createContext(ctx);
   const from=source.indexOf('  function key('),to=source.indexOf('  function focusJob(');

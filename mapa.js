@@ -35,8 +35,10 @@
 
   let pendingOnly=false, map=null, layer=null, myLayer=null, routeLayer=null, shown=[];
   let preview=null, generation=0, reviewChoice='', retryDraft=null;
-  let manualKeys=[];try{const saved=JSON.parse(localStorage.getItem('cnfl_manual_route_v1')||'[]');if(Array.isArray(saved))manualKeys=saved.filter(k=>typeof k==='string').slice(0,120);}catch(_){}
-  let manualTrace=null,manualToken=0,manualDraft=false,selectedKey=null,clusterKeys=null,routeMode=false;
+  const MAX_MANUAL_STOPS_PER_MODULE=120;
+  // El almacenamiento contiene rutas de varios módulos: no recortar globalmente.
+  let manualKeys=[];try{const saved=JSON.parse(localStorage.getItem('cnfl_manual_route_v1')||'[]');if(Array.isArray(saved))manualKeys=saved.filter(k=>typeof k==='string');}catch(_){}
+  let manualTrace=null,manualToken=0,manualDraft=false,selectedKey=null,clusterKeys=null,routeMode=false,routeWarning='';
   const box=document.getElementById('fieldMap');
   const list=document.getElementById('mapList');
   const count=document.getElementById('mapCount');
@@ -71,10 +73,11 @@
   function key(o){return o.type+':'+o.loc;}
   function routeKeys(){return inventory?[]:manualKeys.filter(k=>k.startsWith(scope+':'));}
   function manualStops(){const rows=new Map(window.CNFLFieldMapData.collect().filter(o=>o.type===scope&&!o.done&&o.lat!==null).map(o=>[key(o),o]));return routeKeys().map(k=>rows.get(k)).filter(Boolean);}
-  function persistManual(){try{localStorage.setItem('cnfl_manual_route_v1',JSON.stringify(manualKeys));}catch(_){manualStatus.textContent='No se pudo guardar la ruta en este teléfono.';}}
-  function syncManual(){if(inventory)return;const rows=new Set(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(key));const clean=[...new Set(manualKeys)].filter(k=>!k.startsWith(scope+':')||rows.has(k)).slice(0,120);if(clean.length!==manualKeys.length){manualKeys=clean;manualTrace=null;persistManual();}}
-  function changeManual(next){if(inventory)return;manualKeys=[...manualKeys.filter(k=>!k.startsWith(scope+':')),...next];manualTrace=null;manualDraft=false;manualToken++;document.getElementById('manualUnfiltered').hidden=true;persistManual();if(preview) clearPreview();else render();}
-  function addManual(o){if(inventory||o.type!==scope||o.done||manualKeys.includes(key(o)))return;if(manualKeys.length>=120){manualStatus.textContent='La ruta admite hasta 120 paradas.';return;}changeManual([...routeKeys(),key(o)]);}
+  function showRouteWarning(message){routeWarning=message;manualStatus.textContent=message;routeHint.textContent=message;}
+  function persistManual(next){try{localStorage.setItem('cnfl_manual_route_v1',JSON.stringify(next));return true;}catch(_){showRouteWarning('No se pudo guardar la ruta en este teléfono. La ruta anterior se conserva.');return false;}}
+  function syncManual(){if(inventory)return;const rows=new Set(window.CNFLFieldMapData.collect().filter(o=>!o.done&&o.lat!==null).map(key));const clean=manualKeys.filter(k=>!k.startsWith(scope+':')||rows.has(k));if(clean.length!==manualKeys.length&&persistManual(clean)){manualKeys=clean;manualTrace=null;}}
+  function changeManual(next){if(inventory)return false;if(next.length>MAX_MANUAL_STOPS_PER_MODULE){showRouteWarning('La ruta de '+names[scope]+' admite hasta 120 paradas. Las otras rutas se conservan.');return false;}const proposed=[...manualKeys.filter(k=>!k.startsWith(scope+':')),...next];if(!persistManual(proposed))return false;manualKeys=proposed;routeWarning='';manualTrace=null;manualDraft=false;manualToken++;document.getElementById('manualUnfiltered').hidden=true;if(preview) clearPreview();else render();return true;}
+  function addManual(o){if(inventory||o.type!==scope||o.done||manualKeys.includes(key(o)))return false;if(routeKeys().length>=MAX_MANUAL_STOPS_PER_MODULE){showRouteWarning('La ruta de '+names[scope]+' admite hasta 120 paradas. Las otras rutas se conservan.');return false;}return changeManual([...routeKeys(),key(o)]);}
   function focusJob(o){clusterKeys=null;selectedKey=key(o);renderSelection();if(map&&o.lat!==null)map.setView([o.lat,o.lon],Math.max(map.getZoom(),16));}
   function renderCluster(){
     const scrollTop=selectedPanel.scrollTop;
@@ -132,7 +135,7 @@
     document.getElementById('manualCount').textContent=stops.length+(stops.length===1?' parada':' paradas');
     routeModeButton.setAttribute('aria-pressed',String(routeMode));
     routeModeButton.textContent=routeMode?'LISTO':'ARMAR MI RUTA';
-    routeHint.textContent=routeMode?stops.length+(stops.length===1?' parada':' paradas')+' · tocá la siguiente':stops.length?stops.length+(stops.length===1?' parada guardada':' paradas guardadas'):'Tocá “Armar mi ruta” para empezar';
+    routeHint.textContent=routeWarning||(routeMode?stops.length+(stops.length===1?' parada':' paradas')+' · tocá la siguiente':stops.length?stops.length+(stops.length===1?' parada guardada':' paradas guardadas'):'Tocá “Armar mi ruta” para empezar');
     routeOverview.hidden=!stops.length;
     document.getElementById('traceManual').disabled=stops.length<2;
     document.getElementById('showManual').disabled=!preview;
@@ -141,6 +144,7 @@
     if(!stops.length)manualStatus.textContent='Elegí tu primera parada en el mapa.';
     else if(manualTrace)manualStatus.textContent=stops.length+(stops.length===1?' parada':' paradas')+' en tu orden · '+(manualTrace.meters/1000).toFixed(1)+' km · '+Math.round(manualTrace.seconds/60)+' min estimados'+(manualTrace.unfiltered?' · BORRADOR SIN FILTRO VIAL':'')+'.';
     else manualStatus.textContent=stops.length+(stops.length===1?' parada':' paradas')+' en tu orden. Línea visual entre puntos; tocá «Ver por calles» para revisar el trayecto.';
+    if(routeWarning)manualStatus.textContent=routeWarning;
   }
   function visibleRows(){return inventory?window.CNFLFieldMapData.collectLocations().filter(o=>type==='todos'||o.types.includes(type)):window.CNFLFieldMapData.collect().filter(o=>o.type===scope&&(!pendingOnly||!o.done));}
   function fit(){
