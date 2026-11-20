@@ -40,11 +40,11 @@ El propietario autorizó continuar con la revisión de integración y preparar u
 
 ## Puertas antes de autorizar producción
 
-- CI sintética conjunta **aprobada** (anotar resultado real al verificar GitHub Actions).
+- CI sintética conjunta **aprobada**: [GitHub Actions run #44789713226](https://github.com/sr2409812-bit/cnfl-campo/actions/runs/44789713226), **285/285 pruebas, 0 fallos, 0 omitidas**, incluidas 7 pruebas cruzadas añadidas para esta integración.
 - Prueba de interfaz/retrocesos en dispositivo de pruebas sin datos de campo.
 - Estrategia explícita para habilitar/deshabilitar captura y política de privacidad/retención.
 - Tratamiento offline/precache; respuesta ante falla de Web Locks/crypto/cierre abrupto y calidad/cobertura visibles.
 - Plan de respaldo y reversión validado antes de cualquier integración de datos reales.
 - Nuevas autorizaciones independientes para cualquier fusión o despliegue; la rama de compatibilidad permanece **PR borrador/no fusionado**.
 
-**Decisión provisional:** test de compatibilidad solamente. No habilitar todavía M10 en producción ni GPS.
+**Decisión basada en pruebas:** código combinado compatible en las pruebas sintéticas (285/285); **NO aprobado para producción**, por los bloqueos anteriores. No habilitar M10 ni GPS sin nuevas decisiones documentadas.
