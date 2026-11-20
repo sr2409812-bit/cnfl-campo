@@ -176,6 +176,11 @@
     }
 
     saveReadingState();
+    window.CNFLOperationalEvents?.captureTransition({
+      module:READING_MODE,
+      identity:[readingRouteInfo.routeId||'',current.localizacion||'',current.medidor||''].join('|'),
+      previousDone:false,done:true,at:current.readAt,source:'reading-ui'
+    });
     renderAll();
     showReadingToast(`Medidor ${current.medidor} visitado · siguiente`);
   };
@@ -240,6 +245,7 @@
     const idx = readingOrders.findIndex(o => o.localizacion === String(localizacion));
     if (idx < 0) return;
     const target = readingOrders[idx];
+    const previouslyDone=target.status==='read';
     target.status = 'pending';
     target.readAt = '';
     if (readingRouteInfo && readingRouteInfo.completedAt) delete readingRouteInfo.completedAt;
@@ -248,6 +254,11 @@
     readingOrders.splice(firstPendingIndex < 0 ? 0 : firstPendingIndex,0,target);
     readingRouteMeta = null;
     saveReadingState();
+    window.CNFLOperationalEvents?.captureTransition({
+      module:READING_MODE,
+      identity:[readingRouteInfo.routeId||'',target.localizacion||'',target.medidor||''].join('|'),
+      previousDone:previouslyDone,done:false,source:'reading-ui'
+    });
     renderAll();
     switchReadingTab('route', document.getElementById('tabRoute'));
     showReadingToast(`Medidor ${target.medidor} vuelve a pendiente`);

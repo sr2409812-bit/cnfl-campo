@@ -830,9 +830,18 @@ function calculateRouteDistance() {
 function setOrderStatus(id, newStatus) {
   const ord = workOrders.find(o => (o.id === id || o.orden === id || String(o.orden) === String(id)));
   if (ord) {
+    const previouslyDone = !!ord.status && ord.status !== 'pending';
     ord.status = newStatus;
     localStorage.setItem('cnfl_work_orders', JSON.stringify(workOrders));
     archiveOrdersToHistory(workOrders);
+    // Estadísticas aisladas: la captura nunca modifica ni bloquea la gestión.
+    // El identificador real se utiliza solo en memoria para derivar una clave opaca.
+    window.CNFLOperationalEvents?.captureTransition({
+      module:'cortes',
+      identity:[ord.orden||ord.id||'',ord.localizacion||'',ord.medidor||''].join('|'),
+      previousDone:previouslyDone,done:newStatus!=='pending',
+      source:'cuts-ui'
+    });
     
     // Al finalizar una orden, si estamos en la vista de pendientes, se quita automáticamente
     renderOrders();

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es-CR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <title>CNFL Campo · Vista experimental de estadísticas M10-004</title>
+  <link rel="stylesheet" href="estadisticas-demo.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="mast-inner">
+      <div class="brand"><span class="bolt" aria-hidden="true">⚡</span><span>CNFL <b>CAMPO</b></span></div>
+      <span class="header-caption">LABORATORIO · M10-004</span>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="intro" aria-labelledby="mainTitle">
+      <p class="eyebrow">Vista experimental independiente</p>
+      <h1 id="mainTitle">Tiempos de operación</h1>
+      <p>Vista móvil de cómo se presentarían los intervalos entre gestiones y su calidad.</p>
+      <p class="demo-notice" id="demoNotice"><strong>SOLO DATOS FICTICIOS.</strong> Esta página no consulta jornadas, órdenes ni GPS del teléfono.</p>
+    </section>
+
+    <section class="panel scenarios" aria-labelledby="scenarioTitle">
+      <h2 id="scenarioTitle">Probar un escenario</h2>
+      <p>Elegí una muestra sintética para verificar cómo se expresan los datos y las incidencias.</p>
+      <div class="scenario-buttons" role="group" aria-label="Seleccionar datos ficticios">
+        <button type="button" data-scenario="normal" aria-pressed="true">Normal</button>
+        <button type="button" data-scenario="incomplete" aria-pressed="false">Incompleto</button>
+        <button type="button" data-scenario="clock" aria-pressed="false">Reloj alterado</button>
+        <button type="button" data-scenario="reopened" aria-pressed="false">Reapertura</button>
+        <button type="button" data-scenario="empty" aria-pressed="false">Sin datos</button>
+      </div>
+      <p id="scenarioDescription" class="scenario-description">4 órdenes ficticias sin anomalías detectadas.</p>
+    </section>
+
+    <section class="panel quality" id="qualityPanel" data-kind="consistent" aria-labelledby="qualityTitle">
+      <div class="section-heading"><p class="eyebrow">Calidad de la muestra</p><span class="quality-dot" aria-hidden="true"></span></div>
+      <h2 id="qualityTitle">Registros temporalmente coherentes</h2>
+      <p id="qualityDescription" role="status" aria-live="polite">No se detectaron anomalías dentro de los registros ficticios.</p>
+    </section>
+
+    <section aria-labelledby="metricsTitle" class="stats">
+      <div class="section-heading">
+        <h2 id="metricsTitle">Indicadores disponibles</h2>
+        <span class="small-tag">Calculados</span>
+      </div>
+      <div id="metricCards" class="metrics-grid">
+        <div class="metric"><p class="metric-label">Calculando muestra ficticia…</p></div>
+      </div>
+      <p class="help-text">El intervalo entre dos gestiones terminadas puede incluir traslado, atención, esperas y pausas. No representa únicamente el desplazamiento.</p>
+    </section>
+
+    <section class="panel coverage" aria-labelledby="coverageTitle">
+      <p class="eyebrow">Trazabilidad</p>
+      <h2 id="coverageTitle">Cobertura y confiabilidad</h2>
+      <div class="coverage-entry">
+        <div><span>Captura de todas las órdenes</span><strong id="coverageCapture">No verificable</strong></div>
+        <p id="coverageExplain">No hay un contador independiente que permita verificar todas las órdenes ejecutadas.</p>
+      </div>
+      <div class="coverage-entry">
+        <div><span>Intervalos utilizables del registro</span><strong id="coverageIntervals">—</strong></div>
+        <p id="coverageIntervalsExplain">Esta cifra solo compara las gestiones presentes en el registro ficticio.</p>
+      </div>
+      <div class="time-row">
+        <div><span>Primera gestión</span><strong id="firstTime">—</strong></div>
+        <div><span>Última gestión</span><strong id="lastTime">—</strong></div>
+      </div>
+      <div class="minifacts">
+        <span>Eventos de entrada: <strong id="inputEventCount">0</strong></span>
+        <span>Incidencias: <strong id="eventWarnings">0</strong></span>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="intervalsTitle">
+      <p class="eyebrow">Solo intervalos positivos</p>
+      <h2 id="intervalsTitle">Entre gestiones finalizadas</h2>
+      <ol id="intervalList" class="interval-list"></ol>
+      <p id="noIntervals" class="empty">No hay dos gestiones con tiempos válidos para calcular intervalos.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="issuesTitle">
+      <p class="eyebrow">Auditoría de la muestra</p>
+      <h2 id="issuesTitle">Incidencias identificadas</h2>
+      <ul id="qualityIssues" class="list-pairs"></ul>
+      <p id="noIssues" class="empty">Sin incidencias detectadas en los eventos ficticios disponibles.</p>
+    </section>
+
+    <section class="panel unmeasured" aria-labelledby="unmeasuredTitle">
+      <p class="eyebrow">Métricas aún no instrumentadas</p>
+      <h2 id="unmeasuredTitle">No medido</h2>
+      <ul id="unmeasuredList" class="list-pairs"></ul>
+      <p>El mapa puede estimar distancias por calles, pero esta vista no accede al mapa ni mide recorridos o velocidades reales.</p>
+    </section>
+
+    <footer>
+      <p><strong>M10-004 · Demostración técnica.</strong> No incluye cronómetro activo, rastreo GPS ni cálculos sobre la jornada real. No apta para evaluaciones de desempeño.</p>
+    </footer>
+  </main>
+  <script src="operational-stats.js"></script>
+  <script src="operational-stats-view.js"></script>
+  <script src="operational-stats-fixtures.js"></script>
+  <script src="operational-stats-demo.js"></script>
+  <noscript><p>Esta demostración requiere JavaScript para mostrar los ejemplos ficticios.</p></noscript>
+</body>
+</html>
