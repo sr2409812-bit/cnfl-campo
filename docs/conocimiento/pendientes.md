@@ -6,7 +6,7 @@ Estado en `main` @ `4dcdaae` (2026-11-23). Los issues con etiqueta `auditoria` s
 - **Base:** `data-store.js` se carga con `?v=` distintos según la página (`notificaciones.html`, `lectura.html`, `backup.html`, `index.html`). Un teléfono puede mezclar código viejo y nuevo.
 - **Base:** `sw.js` precarga archivos que ninguna página usa: `lectura-pdf.js`, `-v2`, `-v3`, `-hotfix`, `lectura-residential-flow.js`, `hoy.*`.
 - **Datos:** prueba destructiva de persistencia en teléfono real.
-- **M10:** capas 0 y 1 aprobadas, en preparación.
+- **M10:** capas 0 y 1 en main (PR #58). Capa 2 (captura detrás del interruptor) en PR. Siguiente: capa 3.
 
 ## Media
 - **Lecturas:** caso de Contrato vacío en el generador de `validation/reading-pdf`.
