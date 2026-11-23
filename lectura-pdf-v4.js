@@ -212,7 +212,7 @@ function parseLMR0050RouteListPdf(layoutPages, fullText='') {
   const rows=[],seen=new Map(),conflicts=[],positiveTotals=[];
   const evidence={detected:0,validated:0,unverifiedPages:0};
   const candidate=/^\d{1,4}\s+\d{9,10}(?=\s|$)/;
-  const record=/^\d{1,4}\s+(\d{9,10})\s+(?:\*{3,}|\d{1,8})\s+MED\s+(\d+)(?=\s|$)/i;
+  const record=/^\d{1,4}\s+(\d{9,10})\s+(?:(?:\*{3,}|\d{1,8})\s+)?MED\s+(\d+)(?=\s|$)/i;
   for(const rawItems of layoutPages) {
     const items=(rawItems||[]).map(readingPdfItemXY).filter(i=>i.text);
     const pageText=normalizeReadingPdfText(items.map(i=>i.text).join(' '));

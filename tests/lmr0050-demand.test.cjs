@@ -6,7 +6,7 @@ const path=require('node:path');
 
 // Datos enteramente sintéticos: no incorporar el PDF del técnico al repositorio.
 const item=(str,x,y)=>({str,transform:[1,0,0,1,x,y]});
-function fixture({counts=[3,2,0,0],total=5,missingMeter=-1,emptyFooter=true}={}) {
+function fixture({counts=[3,2,0,0],total=5,missingMeter=-1,emptyContract=-1,emptyFooter=true}={}) {
   let next=0;
   const pages=counts.map((count,pi)=>{
     const page=[
@@ -20,7 +20,10 @@ function fixture({counts=[3,2,0,0],total=5,missingMeter=-1,emptyFooter=true}={})
       const y=614-i*12;
       const loc=String(2010000000+next);
       const meter=String(800000+next);
-      page.push(item('9',31,y),item(loc,59,y),item(next%2?'*******':'765432',106,y),item('MED',136,y));
+      page.push(item('9',31,y),item(loc,59,y));
+      // Algunos listados reales traen la columna Contrato vacía (sin asteriscos).
+      if(next!==emptyContract)page.push(item(next%2?'*******':'765432',106,y));
+      page.push(item('MED',136,y));
       if(next!==missingMeter)page.push(item(meter,172,y));
       page.push(item('DIRECCION SINTETICA',205,y),item('CLIENTE SINTETICO',404,y));
       next++;
@@ -73,6 +76,15 @@ test('LMR0050: nunca confunde Contrato con Medidor',()=>{
 });
 test('LMR0050: bloquea un medidor ausente aunque exista Contrato numérico',()=>{
   assert.throws(()=>parse(fixture({missingMeter:1})),/integridad|indica 5 registros/);
+});
+test('LMR0050: acepta una fila con Contrato vacío y conserva su Medidor',()=>{
+  const result=parse(fixture({emptyContract:2}));
+  assert.equal(result.rows.length,5);
+  assert.equal(result.rows[2].localizacion,'2010000002');
+  assert.equal(result.rows[2].medidor,'800002');
+});
+test('LMR0050: Contrato vacío y Medidor ausente en la misma fila se bloquea',()=>{
+  assert.throws(()=>parse(fixture({emptyContract:2,missingMeter:2})),/integridad|indica 5 registros/);
 });
 test('LMR0050: no acepta un total inconsistente',()=>{
   assert.throws(()=>parse(fixture({total:6})),/indica 6 registros, pero pude validar 5/);
