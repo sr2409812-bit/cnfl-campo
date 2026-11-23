@@ -255,3 +255,15 @@ test('capa 2: interruptor dañado equivale a apagado',async()=>{
   assert.equal(await h.capture('order:1',false,true),false);
   assert.equal(storage.getItem(key),null);
 });
+
+test('capa 2: apagar la medición durante el cálculo asíncrono impide escribir esa captura',async()=>{
+  const storage=memory();
+  const slowCrypto={getRandomValues:a=>crypto.getRandomValues(a),subtle:{digest:async(alg,data)=>{
+    captureSwitch.setEnabled(storage,false,new Date(B));
+    return crypto.subtle.digest(alg,data);
+  }}};
+  const h=harness({storage,safeCrypto:slowCrypto});
+  assert.equal(await h.capture('order:1',false,true),false);
+  assert.equal(captureSwitch.isEnabled(storage),false);
+  assert.equal(storage.getItem(key),null);
+});

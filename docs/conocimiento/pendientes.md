@@ -9,6 +9,7 @@ Estado en `main` @ `4dcdaae` (2026-11-23). Los issues con etiqueta `auditoria` s
 - **M10:** capas 0 y 1 en main (PR #58). Capa 2 (captura detrás del interruptor) en PR. Siguiente: capa 3.
 
 ## Media
+- **M10 (antes de la capa 5):** el motor de estadísticas (`operational-stats.js`, `summarizeJourney`) filtra por día operativo antes de resolver correcciones. Si una jornada cruza las 06:00 y se reabre o deshace una orden del día anterior, el resumen de ese día la sigue contando y el del día siguiente reporta `orphan_correction`. Hallazgo de Codex en PR #59, verificado. Solo afecta con la medición encendida.
 - **Lecturas:** caso de Contrato vacío en el generador de `validation/reading-pdf`.
 - **Lecturas:** archivar los lectores PDF sin uso.
 - **Base:** revisar `lectura-residencial.css` y `resolved_cache.json` (sin uso).

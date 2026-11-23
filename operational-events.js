@@ -128,6 +128,8 @@
       const updated={...ledger,events:[...ledger.events,event]};
       const json=JSON.stringify(updated);
       if(json.length>MAX_JSON_CHARS)return false;
+      // El hash es asíncrono: si se apagó la medición mientras tanto, no escribir.
+      if(!captureEnabled())return false;
       root.localStorage.setItem(STORE_KEY,json);
       return true;
     });

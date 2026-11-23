@@ -4,7 +4,7 @@
 
 ## Qué entra
 1. **Captura de M10-003** (PR #49), traída sobre `main` sin conflictos: `operational-events.js`, los puntos de captura en los cuatro módulos y el mapa, sus pruebas y su documento (`docs/m10-003-module-events.md`).
-2. **Puerta del interruptor:** `captureTransition()` no hace nada si el interruptor "Medir tiempos" está apagado, si su script no está cargado o si su valor está dañado. Se revisa dos veces: al llamar y otra vez dentro del bloqueo de escritura, por si se apagó mientras esperaba.
+2. **Puerta del interruptor:** `captureTransition()` no hace nada si el interruptor "Medir tiempos" está apagado, si su script no está cargado o si su valor está dañado. Se revisa tres veces: al llamar, al obtener el bloqueo de escritura y justo antes de guardar, porque el cálculo del seudónimo es asíncrono (hallazgo de Codex, corregido).
 3. **Carga en las páginas:** `index.html`, `lectura.html`, `lectura-residencial.html`, `notificaciones.html` y `mapa.html` cargan, en este orden, `operational-capture-switch.js`, `operational-stats.js` y `operational-events.js`, después de `journey.js` y antes de `campo-shell.js`.
 4. **Service worker:** los tres scripts entran en `CORE_ASSETS` y `CACHE_NAME` pasa de `cnfl-campo-v72` a `cnfl-campo-v73`. Esto resuelve el bloqueo 3 de la auditoría de compatibilidad (captura que fallaba la primera vez sin señal).
 5. **Versiones `?v=`:** los scripts modificados (`app.js`, `lectura.js`, `lectura-ux.js`, `mapa-data.js`) y los nuevos usan `20261123-m10-capa2`. Con esto `lectura-ux.js` queda con la misma versión en las dos páginas de lectura.
@@ -31,8 +31,9 @@ La captura se llama **después** de guardar el estado real y su resultado nunca 
 - **Almacenamiento:** las claves `cnfl_operation_capture_v1` y `cnfl_operation_events_v1` solo se escriben con el interruptor encendido. `backup.js` respalda todas las claves `cnfl_`, así que ambas entran en el respaldo; la prueba destructiva completa queda para la capa 6.
 
 ## Evidencia
-- `node --test`: 236/236.
-- Pruebas nuevas en `tests/operational-events.test.cjs`: apagado ⇒ sin captura ni escritura; sin script del interruptor ⇒ apagado; apagar detiene capturas siguientes; valor dañado ⇒ apagado.
+- `node --test`: 237/237.
+- Pruebas nuevas en `tests/operational-events.test.cjs`: apagado ⇒ sin captura ni escritura; sin script del interruptor ⇒ apagado; apagar detiene capturas siguientes; apagar durante el cálculo asíncrono impide escribir; valor dañado ⇒ apagado.
+- Hallazgo pendiente de Codex (motor, día operativo y correcciones): registrado en `docs/conocimiento/pendientes.md` para antes de la capa 5.
 - `tests/operational-capture-switch.test.cjs`: orden de scripts en las cinco páginas, precache de los tres scripts, ningún control de encendido todavía.
 - Prueba en navegador (Chromium, 400×800, servidor local): las cinco páginas cargan sin errores de script; `CNFLCaptureSwitch.isEnabled()` = `false`; ninguna clave `cnfl_operation*` en `localStorage`; una captura forzada en `index.html` devuelve `false` y no escribe nada.
 
