@@ -1,6 +1,9 @@
 /* M10-003 — Captura opcional de métricas, aislada de órdenes y sus históricos.
    Sin GPS, red, temporizadores ni modificaciones a estructuras de campo.
-   Solo almacena eventos seudónimos; los errores NO bloquean las gestiones. */
+   Solo almacena eventos seudónimos; los errores NO bloquean las gestiones.
+   M10 capa 2: solo captura con el interruptor "Medir tiempos" encendido
+   (operational-capture-switch.js). Sin interruptor o apagado: no lee, no
+   genera secreto y no escribe nada. */
 (function(root){
   'use strict';
   const STORE_KEY='cnfl_operation_events_v1';
@@ -52,6 +55,12 @@
     const digest=await root.crypto.subtle.digest('SHA-256',input);
     return 'ord_'+bytesHex(new Uint8Array(digest).slice(0,16));
   }
+  function captureEnabled(){
+    // Falla cerrado: sin el script del interruptor, la medición está apagada.
+    const sw=root.CNFLCaptureSwitch;
+    try{return !!(sw&&typeof sw.isEnabled==='function'&&sw.isEnabled(root.localStorage));}
+    catch(_){return false;}
+  }
   function activeJourney(module){
     const j=root.CNFLJourney;
     if(!j||!MODULES.includes(module))return null;
@@ -93,7 +102,8 @@
     const occurred=typeof input.at==='string'?input.at:new Date().toISOString();
     if(!stats.operationalDayFromIso(occurred))return false;
     return root.navigator.locks.request(LOCK_NAME,{mode:'exclusive'},async()=>{
-      // Revalidar estado de jornada al obtener el bloqueo.
+      // Revalidar interruptor y jornada al obtener el bloqueo.
+      if(!captureEnabled())return false;
       const fresh=activeJourney(module);
       if(!fresh||fresh.id!==j.id)return false;
       const ledger=readLedger()||initLedger();
@@ -123,6 +133,7 @@
     });
   }
   function captureTransition(input){
+    if(!captureEnabled())return Promise.resolve(false);
     // Capturar el instante del clic ANTES de esperar el mutex: la espera
     // por crypto/almacenamiento no debe añadirse al intervalo entre órdenes.
     const captured=input&&typeof input==='object'?

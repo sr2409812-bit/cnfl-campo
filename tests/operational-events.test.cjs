@@ -9,6 +9,7 @@ const journey=require('../journey.js');
 const stats=require('../operational-stats.js');
 
 const moduleSource=fs.readFileSync(path.join(__dirname,'../operational-events.js'),'utf8');
+const captureSwitch=require('../operational-capture-switch.js');
 const key='cnfl_operation_events_v1';
 const A='2026-01-01T15:00:00.000Z';
 const B='2026-01-01T15:15:00.000Z';
@@ -25,10 +26,14 @@ function memory(){
     values
   };
 }
-function harness({module='cortes',storage=memory(),safeCrypto=crypto,locks=true,journeyActive=true}={}){
+function harness({module='cortes',storage=memory(),safeCrypto=crypto,locks=true,journeyActive=true,switchOn=true,withSwitch=true}={}){
   const calls=[];
+  // Capa 2: la captura exige el interruptor encendido. Estas pruebas lo encienden
+  // salvo cuando verifican justamente el caso apagado.
+  if(withSwitch&&switchOn)captureSwitch.setEnabled(storage,true,new Date(A));
   const browser={
     localStorage:storage,CNFLOperationalStats:stats,CNFLJourney:journey,
+    ...(withSwitch?{CNFLCaptureSwitch:captureSwitch}:{}),
     TextEncoder,crypto:safeCrypto,
     navigator:locks?{locks:{request:async(name,options,callback)=>{
       calls.push({name,mode:options.mode});return callback();
@@ -218,4 +223,35 @@ test('los eventos de un solo módulo no afectan el cálculo de otro',async()=>{
   });
   assert.equal(onlyCuts.counts.completedOrders,1);
   assert.equal(onlyCuts.counts.outsideScopeEvents,1);
+});
+
+test('capa 2: con el interruptor apagado no se captura ni se escribe nada',async()=>{
+  const h=harness({switchOn:false});
+  const before=[...h.storage.values.keys()].sort();
+  assert.equal(await h.capture('order:1',false,true),false);
+  assert.deepEqual([...h.storage.values.keys()].sort(),before);
+  assert.equal(h.storage.getItem(key),null);
+  assert.equal(h.calls.length,0);
+});
+
+test('capa 2: sin el script del interruptor la captura queda apagada',async()=>{
+  const h=harness({withSwitch:false});
+  assert.equal(await h.capture('order:1',false,true),false);
+  assert.equal(h.storage.getItem(key),null);
+});
+
+test('capa 2: apagar el interruptor detiene las capturas siguientes',async()=>{
+  const h=harness();
+  assert.equal(await h.capture('order:1',false,true,A),true);
+  captureSwitch.setEnabled(h.storage,false,new Date(B));
+  assert.equal(await h.capture('order:2',false,true,B),false);
+  assert.equal(h.journal().events.length,1);
+});
+
+test('capa 2: interruptor dañado equivale a apagado',async()=>{
+  const storage=memory();
+  storage.setItem(captureSwitch.KEY,'{dañado');
+  const h=harness({storage,switchOn:false});
+  assert.equal(await h.capture('order:1',false,true),false);
+  assert.equal(storage.getItem(key),null);
 });
