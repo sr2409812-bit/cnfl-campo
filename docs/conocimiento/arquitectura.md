@@ -37,7 +37,7 @@ Fuente: etiquetas `<script src>` de cada HTML.
 - Cambiar nombres de claves, stores o la versión de la base requiere autorización expresa.
 
 ## Service worker
-- `sw.js`, `CACHE_NAME` = `cnfl-campo-v72` desde el PR #56.
+- `sw.js`, `CACHE_NAME` = `cnfl-campo-v73` desde la capa 2 de M10 (antes `v72`, PR #56).
 - `CORE_ASSETS`: lista de precarga.
 - Busca en caché con `ignoreSearch:true` (`sw.js:97`, `sw.js:104`): el `?v=` de las páginas **no** fuerza una descarga nueva; hay que subir `CACHE_NAME`.
 - Precarga archivos que ninguna página usa (ver `pendientes.md`).

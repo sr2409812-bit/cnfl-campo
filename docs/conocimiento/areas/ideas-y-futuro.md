@@ -15,7 +15,14 @@ Objetivo: medir el tiempo de cada orden y la jornada, y producir estudios estad�
 | Compat. | `test/m10-compatibility-hotfix-mapa` · #54 | Todo M10 sobre main: 285/285 |
 
 ### Integración por capas
-Ver la tabla de la decisión [0004](../decisiones/0004-m10-integracion-por-capas.md). Capas 0 y 1 aprobadas el 2026-11-23.
+Ver la tabla de la decisión [0004](../decisiones/0004-m10-integracion-por-capas.md).
+
+| Capa | Estado |
+|---|---|
+| 0 Interruptor | En main (PR #58) |
+| 1 Motor de estadísticas | En main (PR #58) |
+| 2 Captura detrás del interruptor | En PR (ver `docs/m10-capa-2-captura-detras-del-interruptor.md`) |
+| 3–7 | Pendientes |
 
 ### Estadísticas previstas
 Por jornada (órdenes, tiempo efectivo, pausas, órdenes por hora), por orden (media, mediana, P90, mínimo, máximo, atípicas), por módulo, por hora del día, por día de la semana, tendencia semanal y calidad de datos.

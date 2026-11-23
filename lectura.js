@@ -336,10 +336,19 @@ function renderCurrent() {
 function markCurrentReading(status) {
   const current = readingOrders.find(o => o.status === 'pending');
   if (!current) return;
+  const previouslyDone=current.status==='read'||current.status==='unread';
   current.status = status;
   current.readAt = new Date().toISOString();
   archiveReadingEvent(current);
   saveReadingState();
+  // Seudónimo derivado en memoria; no copiar localización ni medidor al log.
+  window.CNFLOperationalEvents?.captureTransition({
+    module:READING_MODE,
+    identity:[readingRouteInfo.routeId||'',current.localizacion||'',current.medidor||''].join('|'),
+    previousDone:previouslyDone,
+    done:status==='read'||status==='unread',
+    at:current.readAt,source:'reading-ui'
+  });
   renderAll();
   showReadingToast(status === 'read'
     ? `Medidor ${current.medidor} visitado · siguiente`

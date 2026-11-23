@@ -6,9 +6,10 @@ Estado en `main` @ `4dcdaae` (2026-11-23). Los issues con etiqueta `auditoria` s
 - **Base:** `data-store.js` se carga con `?v=` distintos según la página (`notificaciones.html`, `lectura.html`, `backup.html`, `index.html`). Un teléfono puede mezclar código viejo y nuevo.
 - **Base:** `sw.js` precarga archivos que ninguna página usa: `lectura-pdf.js`, `-v2`, `-v3`, `-hotfix`, `lectura-residential-flow.js`, `hoy.*`.
 - **Datos:** prueba destructiva de persistencia en teléfono real.
-- **M10:** capas 0 y 1 aprobadas, en preparación.
+- **M10:** capas 0 y 1 en main (PR #58). Capa 2 (captura detrás del interruptor) en PR. Siguiente: capa 3.
 
 ## Media
+- **M10 (antes de la capa 5):** el motor de estadísticas (`operational-stats.js`, `summarizeJourney`) filtra por día operativo antes de resolver correcciones. Si una jornada cruza las 06:00 y se reabre o deshace una orden del día anterior, el resumen de ese día la sigue contando y el del día siguiente reporta `orphan_correction`. Hallazgo de Codex en PR #59, verificado. Solo afecta con la medición encendida.
 - **Lecturas:** caso de Contrato vacío en el generador de `validation/reading-pdf`.
 - **Lecturas:** archivar los lectores PDF sin uso.
 - **Base:** revisar `lectura-residencial.css` y `resolved_cache.json` (sin uso).
