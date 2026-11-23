@@ -71,16 +71,31 @@ test('capa 0: guard ejecuta con el interruptor encendido y nunca propaga errores
   assert.equal(sw.guard(s,'no-funcion'),false);
 });
 
-test('capa 0: ninguna página ni el service worker cargan el interruptor todavía',()=>{
+const PAGES=['index.html','lectura.html','lectura-residencial.html','notificaciones.html','mapa.html'];
+
+test('capa 2: las cinco páginas de trabajo cargan interruptor, motor y captura en ese orden',()=>{
   const root=path.join(__dirname,'..');
-  const users=fs.readdirSync(root).filter(f=>/\.(html|js)$/.test(f)&&f!=='operational-capture-switch.js')
-    .filter(f=>fs.readFileSync(path.join(root,f),'utf8').includes('operational-capture-switch'));
-  assert.deepEqual(users,[]);
+  for(const page of PAGES){
+    const html=fs.readFileSync(path.join(root,page),'utf8');
+    const sw=html.indexOf('operational-capture-switch.js?v=');
+    const st=html.indexOf('operational-stats.js?v=');
+    const ev=html.indexOf('operational-events.js?v=');
+    const shell=html.indexOf('campo-shell.js?v=');
+    assert.ok(sw>0&&st>sw&&ev>st,page+': orden de scripts');
+    assert.ok(shell>ev,page+': campo-shell después de la captura');
+  }
 });
 
-test('capa 1: el motor de estadísticas tampoco está cargado por ninguna página',()=>{
+test('capa 2: el service worker precarga los tres scripts de medición',()=>{
+  const sw=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
+  const core=sw.slice(sw.indexOf('CORE_ASSETS'),sw.indexOf('OPTIONAL_ASSETS'));
+  for(const f of ['operational-capture-switch.js','operational-stats.js','operational-events.js'])
+    assert.ok(core.includes("'./"+f+"'"),f);
+});
+
+test('capa 2: ninguna página trae un control para encender la medición todavía',()=>{
   const root=path.join(__dirname,'..');
-  const users=fs.readdirSync(root).filter(f=>/\.(html)$/.test(f)||f==='sw.js')
-    .filter(f=>fs.readFileSync(path.join(root,f),'utf8').includes('operational-stats'));
+  const users=fs.readdirSync(root).filter(f=>/\.(html|js)$/.test(f)&&
+    !/^operational-/.test(f)).filter(f=>/CNFLCaptureSwitch\.setEnabled|setEnabled\(/.test(fs.readFileSync(path.join(root,f),'utf8')));
   assert.deepEqual(users,[]);
 });

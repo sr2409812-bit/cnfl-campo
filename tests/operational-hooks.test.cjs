@@ -33,7 +33,9 @@ test('los cinco puntos de entrada cargan motor y adaptador DESPUÉS de CNFLJourn
     assert.equal(html.match(/operational-events\.js\?v=/g)?.length,1);
   }
   assert.ok(!read('campo.html').includes('operational-events.js'));
-  assert.ok(!read('sw.js').includes('operational-events.js'));
+  // Capa 2: la captura se precarga para funcionar sin señal desde el primer uso
+  // (bloqueo 3 de la auditoría de compatibilidad M10). Antes se exigía lo contrario.
+  assert.ok(read('sw.js').includes("'./operational-events.js'"));
 });
 
 test('Cortes: un cambio real emite un evento tras guardar, sin reescribir el estado',()=>{
