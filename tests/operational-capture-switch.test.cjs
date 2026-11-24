@@ -93,9 +93,12 @@ test('capa 2: el service worker precarga los tres scripts de medición',()=>{
     assert.ok(core.includes("'./"+f+"'"),f);
 });
 
-test('capa 2: ninguna página trae un control para encender la medición todavía',()=>{
+test('capa 4: el único control para encender la medición es la tarjeta del cronómetro y pide confirmación',()=>{
   const root=path.join(__dirname,'..');
-  const users=fs.readdirSync(root).filter(f=>/\.(html|js)$/.test(f)&&
-    !/^operational-/.test(f)).filter(f=>/CNFLCaptureSwitch\.setEnabled|setEnabled\(/.test(fs.readFileSync(path.join(root,f),'utf8')));
-  assert.deepEqual(users,[]);
+  const users=fs.readdirSync(root).filter(f=>/\.(html|js)$/.test(f)&&f!=='operational-capture-switch.js')
+    .filter(f=>/setEnabled\(/.test(fs.readFileSync(path.join(root,f),'utf8')));
+  assert.deepEqual(users,['operational-timer-ui.js']);
+  const ui=fs.readFileSync(path.join(root,'operational-timer-ui.js'),'utf8');
+  const toggle=ui.slice(ui.indexOf('function toggle('),ui.indexOf('function refresh('));
+  assert.ok(toggle.indexOf('confirm(')>=0&&toggle.indexOf('confirm(')<toggle.indexOf('SW.setEnabled('),'confirmar antes de cambiar');
 });
