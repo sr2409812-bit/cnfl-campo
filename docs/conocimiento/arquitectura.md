@@ -32,12 +32,12 @@ Fuente: etiquetas `<script src>` de cada HTML.
 
 ## Almacenamiento en el teléfono
 - **IndexedDB** `cnfl_campo_db`, versión 1 (`data-store.js:2-3`), stores `kv` y `records`.
-- **localStorage**, prefijo `cnfl_`. Claves principales: `cnfl_work_orders`, `cnfl_geocache`, `cnfl_manual_route_v1`, `cnfl_route_review_v1`, `cnfl_last_route_meta`, `cnfl_route_config`, `cnfl_pdf_batch_stale`, `cnfl_order_history_v1`, `cnfl_notificaciones_20261019_v2`, `cnfl_last_module`, `cnfl_journeys_v1` (`journey.js:3`).
+- **localStorage**, prefijo `cnfl_`. Claves principales: `cnfl_work_orders`, `cnfl_geocache`, `cnfl_manual_route_v1`, `cnfl_route_review_v1`, `cnfl_last_route_meta`, `cnfl_route_config`, `cnfl_pdf_batch_stale`, `cnfl_order_history_v1`, `cnfl_notificaciones_20261019_v2`, `cnfl_last_module`, `cnfl_journeys_v1` (`journey.js:3`). Medición (M10, solo con el interruptor encendido): `cnfl_operation_capture_v1`, `cnfl_operation_events_v1`, `cnfl_operation_timer_v1`.
 - El "día operativo" corta a las 06:00 hora de Costa Rica (`journey.js:5-9`).
 - Cambiar nombres de claves, stores o la versión de la base requiere autorización expresa.
 
 ## Service worker
-- `sw.js`, `CACHE_NAME` = `cnfl-campo-v73` desde la capa 2 de M10 (antes `v72`, PR #56).
+- `sw.js`, `CACHE_NAME` = `cnfl-campo-v74` desde la capa 4 de M10 (v73 en la capa 2, v72 en el PR #56).
 - `CORE_ASSETS`: lista de precarga.
 - Busca en caché con `ignoreSearch:true` (`sw.js:97`, `sw.js:104`): el `?v=` de las páginas **no** fuerza una descarga nueva; hay que subir `CACHE_NAME`.
 - Precarga archivos que ninguna página usa (ver `pendientes.md`).

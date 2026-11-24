@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cnfl-campo-v73';
+const CACHE_NAME = 'cnfl-campo-v74';
 
 const CORE_ASSETS = [
   './',
@@ -46,7 +46,9 @@ const CORE_ASSETS = [
   './backup.js',
   './operational-capture-switch.js',
   './operational-stats.js',
-  './operational-events.js'
+  './operational-events.js',
+  './operational-timer.js',
+  './operational-timer-ui.js'
 ];
 
 const OPTIONAL_ASSETS = [

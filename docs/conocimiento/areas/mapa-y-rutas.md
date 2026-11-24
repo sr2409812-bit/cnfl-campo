@@ -3,7 +3,7 @@
 **Estado:** en trabajo.
 
 ## Qué hace
-`mapa.html`: reúne pendientes con GPS de cortes, demanda, residencial y notificaciones; agrupa puntos cercanos; vista previa de ruta; ruta sugerida (VRS-OS) calculada solo al tocar un botón, con km, tiempo estimado y tramos largos (≥1,5 km) marcados. Desde la decisión 0003, abrir el mapa será el inicio del cronómetro (capa 4, aún no implementada).
+`mapa.html`: reúne pendientes con GPS de cortes, demanda, residencial y notificaciones; agrupa puntos cercanos; vista previa de ruta; ruta sugerida (VRS-OS) calculada solo al tocar un botón, con km, tiempo estimado y tramos largos (≥1,5 km) marcados. Tarjeta "Cronómetro de jornada" con el interruptor "Medir tiempos" (decisiones 0003 y 0007): con la medición encendida, abrir el mapa inicia el cronómetro de la jornada activa.
 
 ## Archivos
 `mapa.html`, `mapa.js`, `mapa-data.js`, `map-clusters.js`, `route-preview.js`, `route-optimizer.js`, `mapa.css`, `VRS-OS.md`.
