@@ -213,3 +213,19 @@ test('capa 4: los elementos ocultos de la tarjeta no se muestran por estilos pro
   const ui=fs.readFileSync(path.join(ROOT,'operational-timer-ui.js'),'utf8');
   assert.ok(ui.includes('.cnfl-timer [hidden]{display:none!important}'));
 });
+
+test('etapa 1: en los módulos la tarjeta aparece con la jornada del módulo aunque la medición esté apagada',()=>{
+  const ui=fs.readFileSync(path.join(ROOT,'operational-timer-ui.js'),'utf8');
+  const render=ui.slice(ui.indexOf('function render('),ui.indexOf('function toggle('));
+  assert.ok(render.includes("const relevant=isMap||(cache.journey&&cache.journey.module===pageModule);"),'no depende del interruptor');
+  const build=ui.slice(ui.indexOf('function build('),ui.indexOf('function update('));
+  assert.ok(!/if\(isMap\)\{\s*const label/.test(build),'el interruptor también está en los módulos');
+  assert.ok(build.includes("refs.row2=el('div','tm-row','');card.append(refs.row2);"),'mediana y P90 también en los módulos');
+});
+
+test('etapa 1: en Demanda y Residencial la tarjeta va justo antes de la orden actual',()=>{
+  const ui=fs.readFileSync(path.join(ROOT,'operational-timer-ui.js'),'utf8');
+  assert.ok(ui.includes("document.getElementById('currentReadingCard')")&&ui.includes('cur.before(node)'));
+  for(const page of ['lectura.html','lectura-residencial.html'])
+    assert.ok(fs.readFileSync(path.join(ROOT,page),'utf8').includes('id="currentReadingCard"'),page);
+});

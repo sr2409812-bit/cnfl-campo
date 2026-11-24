@@ -1,7 +1,8 @@
-/* M10 · Capa 4 — Tarjeta "Cronómetro de jornada".
+/* M10 · Capa 4 + etapa 1 del rediseño — Tarjeta "Cronómetro de jornada".
    - Mapa: tarjeta completa con el interruptor "Medir tiempos" (decisión 0007).
-   - Cortes, Demanda, Residencial y Notificaciones: tarjeta compacta, solo si la
-     medición está encendida y la jornada activa es de ese módulo.
+   - Cortes, Demanda, Residencial y Notificaciones: tarjeta compacta con el mismo
+     interruptor cuando la jornada activa es de ese módulo (encendida o apagada),
+     ubicada justo antes de la orden actual cuando la página la tiene.
    Va dentro del contenido (sin barras flotantes, PR #46). El reloj en pantalla
    se recalcula cada segundo desde marcas guardadas; el segundero no es la fuente. */
 (function(){
@@ -21,15 +22,15 @@
 .cnfl-timer h2{font-size:13px;letter-spacing:.08em;margin:0 0 6px;color:#00264D;font-weight:900;text-transform:uppercase}
 .cnfl-timer .tm-main{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .cnfl-timer .tm-big{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;color:#00264D}
-.cnfl-timer .tm-label{font-size:12px;color:#687386;font-weight:700}
+.cnfl-timer .tm-label{font-size:13px;color:#5A6678;font-weight:700}
 .cnfl-timer .tm-row{font-size:13px;color:#172033;margin-top:4px;font-variant-numeric:tabular-nums}
-.cnfl-timer .tm-note{font-size:12px;color:#687386;margin:6px 0 0}
+.cnfl-timer .tm-note{font-size:13px;color:#5A6678;margin:6px 0 0;line-height:1.4}
 .cnfl-timer .tm-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.cnfl-timer button{min-height:44px;border-radius:10px;border:1px solid #0033A0;background:#0033A0;color:#fff;font-weight:900;padding:0 14px;font-size:14px}
+.cnfl-timer button{min-height:48px;border-radius:10px;border:1px solid #0033A0;background:#0033A0;color:#fff;font-weight:900;padding:0 14px;font-size:14px}
 .cnfl-timer button.tm-secondary{background:#fff;color:#0033A0}
 .cnfl-timer button:focus-visible,.cnfl-timer input:focus-visible{outline:3px solid #FF6A13;outline-offset:2px}
-.cnfl-timer .tm-switch{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;min-height:44px}
-.cnfl-timer .tm-switch input{width:24px;height:24px;accent-color:#FF6A13}
+.cnfl-timer .tm-switch{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;min-height:48px}
+.cnfl-timer .tm-switch input{width:26px;height:26px;accent-color:#FF6A13}
 .cnfl-timer .tm-badge{display:inline-block;background:#FFF1E8;color:#B54A08;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:900}
 .cnfl-timer.compact{padding:10px 12px}
 .cnfl-timer.compact .tm-big{font-size:24px}
@@ -46,6 +47,9 @@
     return document.querySelector('main');
   }
   function place(node){
+    // Demanda y Residencial: justo antes de la orden actual (donde se mira al trabajar).
+    const cur=!isMap&&document.getElementById('currentReadingCard');
+    if(cur&&cur.parentNode){cur.before(node);return true;}
     const h=host();if(!h)return false;
     if(isMap&&h.classList.contains('intro'))h.after(node);
     else h.prepend(node);
@@ -65,7 +69,7 @@
     card.replaceChildren();refs={};
     card.dataset.mode=mode;
     card.append(el('h2',null,'Cronómetro de jornada'));
-    if(isMap){
+    {
       const label=el('label','tm-switch');
       const input=el('input');input.type='checkbox';input.id='cnflMeasureSwitch';
       input.onchange=()=>toggle(input.checked,input);
@@ -73,7 +77,9 @@
       card.append(label);refs.input=input;
     }
     if(mode==='off'){
-      card.append(el('p','tm-note','Apagado. Al encenderlo, el cronómetro arranca con tu jornada al abrir el mapa y mide cuánto tardás por orden. Se guarda solo en este teléfono, sin GPS ni datos de clientes.'));
+      card.append(el('p','tm-note',isMap
+        ?'Apagado. Al encenderlo, el cronómetro arranca con tu jornada al abrir el mapa y mide cuánto tardás por orden. Se guarda solo en este teléfono, sin GPS ni datos de clientes.'
+        :'Apagado: no se anota nada y no habrá estadísticas. Encendelo para medir cuánto tardás por orden (solo en este teléfono, sin GPS).'));
       return;
     }
     if(mode==='nojourney'){
@@ -93,7 +99,7 @@
     main.append(refs.big,el('span','tm-label','orden actual'),refs.badge);
     card.append(main);
     refs.row1=el('div','tm-row','');card.append(refs.row1);
-    if(isMap){refs.row2=el('div','tm-row','');card.append(refs.row2);}
+    refs.row2=el('div','tm-row','');card.append(refs.row2);
     refs.warn=el('p','tm-note','El reloj del teléfono cambió: los tiempos no son confiables.');card.append(refs.warn);
     const actions=el('div','tm-actions');
     refs.pause=el('button',null,'');refs.pause.type='button';
@@ -123,7 +129,7 @@
 
   function render(){
     if(!cache)load();
-    const relevant=isMap||(cache.switchOn&&cache.journey&&cache.journey.module===pageModule);
+    const relevant=isMap||(cache.journey&&cache.journey.module===pageModule);
     if(!relevant){card?.remove();card=null;return;}
     if(!card){card=el('section','cnfl-timer'+(isMap?'':' compact'));card.setAttribute('aria-label','Cronómetro de jornada');if(!place(card)){card=null;return;}}
     const mode=modeOf(cache);
@@ -141,7 +147,7 @@
     const r=SW.setEnabled(localStorage,on);
     if(!r.ok){input.checked=!on;alert('No se pudo guardar el cambio en este teléfono.');return;}
     if(on){
-      const st=T.start(localStorage,{source:'map-switch'});
+      const st=T.start(localStorage,{source:isMap?'map-switch':'module-switch'});
       if(st.ok&&st.already)T.setPaused(localStorage,false);
     }
     refresh();

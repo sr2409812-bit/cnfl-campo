@@ -21,3 +21,7 @@ Estado en `main` @ `4dcdaae` (2026-11-23). Los issues con etiqueta `auditoria` s
 - **Lecturas:** partir `lectura.js`.
 - **Notificaciones:** pruebas propias.
 - **Ideas:** decidir qué hacer con `hoy.html`.
+
+## 2026-11-24
+- Correo de consulta a TI (don Arturo Sánchez Maroto, copia a don Geiner Murillo) **enviado** por el propietario: geolocalización SIGEL → GPS automático, sesiones/acceso, datos y respaldo, hospedaje. Compartir la base de referencia con el grupo queda en espera de la respuesta.
+- Rediseño aprobado por etapas conservando la estética actual. Etapa 1 en PR #61 (cronómetro junto a la orden actual). Siguientes: barra de navegación y pantalla de la orden; luego «Mis tiempos» (capa 5, antes corregir correcciones que cruzan las 06:00).
