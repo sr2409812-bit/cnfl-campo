@@ -13,7 +13,7 @@ Lo que comparten los módulos: navegación común (`campo-shell`), inicio de la 
 
 ## Reglas
 - Cambios mínimos y reversibles (`AGENTS.md`).
-- Cambiar un archivo precargado exige subir `CACHE_NAME` (hoy `cnfl-campo-v74`).
+- Cambiar un archivo precargado exige subir `CACHE_NAME` (hoy `cnfl-campo-v75`).
 - `node --test` completo debe pasar antes de cada PR.
 
 ## Pendientes
