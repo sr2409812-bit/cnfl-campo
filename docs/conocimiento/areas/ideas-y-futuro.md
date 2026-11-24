@@ -21,8 +21,10 @@ Ver la tabla de la decisión [0004](../decisiones/0004-m10-integracion-por-capas
 |---|---|
 | 0 Interruptor | En main (PR #58) |
 | 1 Motor de estadísticas | En main (PR #58) |
-| 2 Captura detrás del interruptor | En PR (ver `docs/m10-capa-2-captura-detras-del-interruptor.md`) |
-| 3–7 | Pendientes |
+| 2 Captura detrás del interruptor | En main (PR #59) |
+| 3 Motor de traslado | Diferida (decisión 0008) |
+| 4 Cronómetro visible | En PR (ver `docs/m10-capa-4-cronometro-de-jornada.md`) |
+| 5–7 | Pendientes |
 
 ### Estadísticas previstas
 Por jornada (órdenes, tiempo efectivo, pausas, órdenes por hora), por orden (media, mediana, P90, mínimo, máximo, atípicas), por módulo, por hora del día, por día de la semana, tendencia semanal y calidad de datos.
