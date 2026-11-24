@@ -32,7 +32,8 @@
   }
   function validTimer(t){
     return t&&typeof t==='object'&&isIso(t.startedAt)&&Array.isArray(t.pauses)&&
-      t.pauses.every(p=>Array.isArray(p)&&isIso(p[0])&&(p[1]===null||isIso(p[1])));
+      t.pauses.every(p=>Array.isArray(p)&&isIso(p[0])&&(p[1]===null||isIso(p[1]))&&
+        (p[2]===undefined||p[2]==='off'));
   }
   function read(storage,journeyId){
     const t=readAll(storage).timers[journeyId];
@@ -72,7 +73,8 @@
     return !!timer&&timer.pauses.length>0&&timer.pauses[timer.pauses.length-1][1]===null;
   }
 
-  function setPaused(storage,paused,{now=new Date()}={}){
+  // kind 'off': tramo con la medición apagada; cuenta como pausa (no se mide).
+  function setPaused(storage,paused,{now=new Date(),kind}={}){
     if(!switchOn(storage))return {ok:false,reason:'switch_off'};
     const j=activeJourney(storage);
     if(!j)return {ok:false,reason:'no_journey'};
@@ -83,7 +85,7 @@
     const at=now.toISOString();
     if(paused){
       if(timer.pauses.length>=MAX_PAUSES)return {ok:false,reason:'too_many_pauses'};
-      timer.pauses.push([at,null]);
+      timer.pauses.push(kind==='off'?[at,null,'off']:[at,null]);
     }else{
       const last=timer.pauses[timer.pauses.length-1];
       last[1]=ms(at)<ms(last[0])?last[0]:at;
@@ -102,20 +104,28 @@
   }
 
   // Finalizaciones efectivas (descontando reaperturas y deshacer) de la jornada.
-  function completions(events,journeyId){
+  // La bitácora es append-only: si un evento posterior tiene una hora anterior,
+  // el reloj del teléfono retrocedió y los tiempos dejan de ser confiables.
+  function completionsWithQuality(events,journeyId){
     const active=new Map();
     const list=(Array.isArray(events)?events:[])
-      .filter(e=>e&&e.journeyId===journeyId&&e.quality==='observed'&&isIso(e.at))
-      .sort((a,b)=>ms(a.at)-ms(b.at));
+      .filter(e=>e&&e.journeyId===journeyId&&e.quality==='observed'&&isIso(e.at));
+    let clockIssue=false,maxAt=-Infinity;
     for(const e of list){
+      const t=ms(e.at);
+      if(t<maxAt||(isIso(e.recordedAt)&&ms(e.recordedAt)<t))clockIssue=true;
+      maxAt=Math.max(maxAt,t);
+    }
+    for(const e of [...list].sort((a,b)=>ms(a.at)-ms(b.at))){
       if(e.eventType==='order_completed'){if(!active.has(e.orderKey))active.set(e.orderKey,e);}
       else if(e.eventType==='order_reopened'||e.eventType==='order_undo'){
         const cur=active.get(e.orderKey);
         if(cur&&cur.eventId===e.sourceEventId)active.delete(e.orderKey);
       }
     }
-    return [...active.values()].map(e=>ms(e.at)).sort((a,b)=>a-b);
+    return {times:[...active.values()].map(e=>ms(e.at)).sort((a,b)=>a-b),clockIssue};
   }
+  function completions(events,journeyId){return completionsWithQuality(events,journeyId).times;}
   function readEvents(storage){
     try{const l=JSON.parse(storage.getItem(EVENTS_KEY)||'null');return Array.isArray(l?.events)?l.events:[];}
     catch(_){return [];}
@@ -131,11 +141,14 @@
   }
 
   // Resumen puro: todo se deriva de marcas guardadas y del instante `nowMs`.
-  function summarize(timer,completionTimes,{nowMs=Date.now(),finishedAt=null}={}){
+  function summarize(timer,completionTimes,{nowMs=Date.now(),finishedAt=null,clockIssue:knownIssue=false}={}){
     if(!validTimer(timer))return null;
     const start=ms(timer.startedAt);
     const end=isIso(finishedAt)?Math.min(ms(finishedAt),nowMs):nowMs;
-    const clockIssue=end<start;
+    // Reloj alterado: inicio, pausas o finalizaciones "en el futuro" respecto de ahora.
+    const clockIssue=!!knownIssue||end<start||
+      timer.pauses.some(p=>ms(p[0])>end||(p[1]!==null&&ms(p[1])>end))||
+      (completionTimes||[]).some(t=>t>end);
     const done=(completionTimes||[]).filter(t=>t>=start&&t<=end);
     const durations=[];
     let prev=start;
@@ -144,6 +157,7 @@
       if(d>0)durations.push(d);
       prev=t;
     }
+    if(clockIssue)durations.length=0;
     const sorted=[...durations].sort((a,b)=>a-b);
     const effective=clockIssue?null:Math.max(0,(end-start)-pausedBetween(timer,start,end));
     const current=clockIssue?null:Math.max(0,(end-prev)-pausedBetween(timer,prev,end));
@@ -151,6 +165,7 @@
     return {
       startedAt:timer.startedAt,
       paused:isPaused(timer)&&!finishedAt,
+      completedKnown:!clockIssue,
       finished:!!finishedAt,
       completed:done.length,
       effectiveMs:effective,
@@ -161,7 +176,7 @@
       medianMs:median(sorted),
       p90Ms:p90(sorted),
       // Tasa solo con muestra mínima: 2+ órdenes y 15+ minutos efectivos.
-      ordersPerHour:effective>=15*60000&&done.length>=2?Math.round(done.length/(effective/3600000)*10)/10:null,
+      ordersPerHour:!clockIssue&&effective>=15*60000&&done.length>=2?Math.round(done.length/(effective/3600000)*10)/10:null,
       durationsMs:durations,
       quality:clockIssue?'invalid_timing':'observed'
     };
@@ -173,9 +188,11 @@
     const j=activeJourney(storage);
     if(!j)return {switchOn:on,journey:null,timer:null,summary:null};
     const timer=read(storage,j.id);
+    const c=timer?completionsWithQuality(readEvents(storage),j.id):{times:[],clockIssue:false};
     return {
       switchOn:on,journey:{id:j.id,module:j.module,date:j.date},timer,
-      summary:timer?summarize(timer,completions(readEvents(storage),j.id),{nowMs}):null
+      completions:c.times,clockIssue:c.clockIssue,
+      summary:timer?summarize(timer,c.times,{nowMs,clockIssue:c.clockIssue}):null
     };
   }
 
@@ -186,7 +203,7 @@
     return h?h+':'+two(m)+':'+two(r):two(m)+':'+two(r);
   }
 
-  const api=Object.freeze({KEY,VERSION,read,start,setPaused,isPaused,pausedBetween,completions,summarize,status,format});
+  const api=Object.freeze({KEY,VERSION,read,start,setPaused,isPaused,pausedBetween,completions,completionsWithQuality,summarize,status,format});
   root.CNFLOperationalTimer=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window==='undefined'?globalThis:window);

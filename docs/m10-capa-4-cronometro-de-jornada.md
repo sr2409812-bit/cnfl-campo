@@ -23,6 +23,13 @@ Modelos de referencia: cronómetro de visita de apps de servicio en campo (Jobbe
 - `operational-timer-ui.js`: tarjeta dentro del contenido (sin `position: fixed`, respeta PR #46), solo `textContent`/`createElement`, botones de 44 px, sin GPS ni red. El segundero solo redibuja; la fuente es la marca guardada.
 - Ambos scripts se cargan después de la captura y antes de `campo-shell.js`, y se precargan en `sw.js` (`CACHE_NAME` → `cnfl-campo-v74`).
 
+## Revisión de Codex (3 hallazgos P2, corregidos)
+1. Apagar y volver a encender inflaba el tiempo: el tramo apagado ahora se guarda como pausa tipo `off` y se cierra al reencender.
+2. Un reloj que retrocede entre finalizaciones fabricaba intervalos: se detecta por el orden de la bitácora (append-only), por `recordedAt` anterior a `at` y por marcas posteriores al instante actual; los tiempos pasan a "No medido" con aviso.
+3. El segundero reemplazaba los controles y se perdía el foco del teclado: la tarjeta solo se reconstruye al cambiar de modo; cada segundo actualiza textos. Verificado en navegador (foco conservado y Enter pausa/reanuda).
+
+Además: la insignia "EN PAUSA" quedaba visible por estilos propios; se fuerza `[hidden]{display:none}` dentro de la tarjeta.
+
 ## Riesgos
 - **Service worker:** caché v74. Abrir la app con señal y cerrarla y abrirla una vez.
 - **Almacenamiento:** clave nueva `cnfl_operation_timer_v1`; solo se escribe con la medición encendida; entra en el respaldo (`backup.js` respalda todas las claves `cnfl_`).
@@ -30,7 +37,7 @@ Modelos de referencia: cronómetro de visita de apps de servicio en campo (Jobbe
 - **Pendiente antes de la capa 5:** correcciones que cruzan las 06:00 en el motor de estadísticas (ver `docs/conocimiento/pendientes.md`). El cronómetro de esta capa no depende de ese cálculo: cuenta por jornada, no por día operativo.
 
 ## Evidencia
-- `node --test`: 253/253. Pruebas nuevas en `tests/operational-timer.test.cjs`: apagado sin escrituras, sin jornada, inicio idempotente, pausas, pausa abierta, tiempos por orden con pausas, finalizaciones previas al inicio, reapertura/deshacer, reloj alterado, datos dañados, almacenamiento que falla, formato, tasa con muestra mínima, orden de scripts, precache, sin elementos flotantes ni HTML dinámico ni GPS/red. `tests/operational-capture-switch.test.cjs`: el único control de encendido es la tarjeta y confirma antes de cambiar.
+- `node --test`: 258/258. Pruebas nuevas en `tests/operational-timer.test.cjs`: apagado sin escrituras, sin jornada, inicio idempotente, pausas, pausa abierta, tiempos por orden con pausas, finalizaciones previas al inicio, reapertura/deshacer, reloj alterado, datos dañados, almacenamiento que falla, formato, tasa con muestra mínima, orden de scripts, precache, sin elementos flotantes ni HTML dinámico ni GPS/red. `tests/operational-capture-switch.test.cjs`: el único control de encendido es la tarjeta y confirma antes de cambiar.
 - **Navegador real** (Chromium 390×844, servidor local, jornada ficticia de Demanda): mapa apagado sin claves de medición; encender pide confirmación y arranca el cronómetro; dos finalizaciones por la ruta real de captura suben el contador; pausa muestra "EN PAUSA"; Demanda muestra la tarjeta compacta; Notificaciones (otro módulo) no la muestra; apagar detiene la captura; sin errores de script.
 
 ## Cómo revertir

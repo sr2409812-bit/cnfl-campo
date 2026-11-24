@@ -164,3 +164,52 @@ test('capa 4: órdenes por hora solo con muestra mínima',()=>{
   assert.equal(timer.summarize(t,[T('14:01').getTime(),T('14:02').getTime()],{nowMs:T('14:05').getTime()}).ordersPerHour,null);
   assert.equal(timer.summarize(t,[T('14:10').getTime(),T('14:20').getTime()],{nowMs:T('14:30').getTime()}).ordersPerHour,4);
 });
+
+test('capa 4 · Codex: el tramo con la medición apagada no se cuenta',()=>{
+  const s=setup();
+  timer.start(s,{now:T('14:00')});
+  // Como hace la tarjeta: pausa tipo "off" antes de apagar, se cierra al reencender.
+  assert.equal(timer.setPaused(s,true,{now:T('14:10'),kind:'off'}).ok,true);
+  captureSwitch.setEnabled(s,false,T('14:10'));
+  captureSwitch.setEnabled(s,true,T('15:10'));
+  assert.equal(timer.start(s,{now:T('15:10')}).already,true);
+  assert.equal(timer.setPaused(s,false,{now:T('15:10')}).ok,true);
+  const r=timer.status(s,{nowMs:T('15:20').getTime()}).summary;
+  assert.equal(r.effectiveMs,20*60000);
+  assert.equal(r.pausedMs,60*60000);
+});
+
+test('capa 4 · Codex: reloj que retrocede entre finalizaciones invalida los tiempos',()=>{
+  const j='2026-11-24:demanda:1';
+  const ev=(id,at,key)=>({eventId:id,journeyId:j,orderKey:key,eventType:'order_completed',at,quality:'observed'});
+  // La bitácora es append-only: la segunda se guardó después pero con hora anterior.
+  const q=timer.completionsWithQuality([ev('e1','2026-11-24T14:20:00.000Z','a'),ev('e2','2026-11-24T14:15:00.000Z','b')],j);
+  assert.equal(q.clockIssue,true);
+  const t={startedAt:'2026-11-24T14:00:00.000Z',pauses:[]};
+  const r=timer.summarize(t,q.times,{nowMs:T('14:30').getTime(),clockIssue:q.clockIssue});
+  assert.equal(r.quality,'invalid_timing');
+  assert.deepEqual(r.durationsMs,[]);
+  assert.equal(r.meanMs,null);
+  assert.equal(r.ordersPerHour,null);
+  assert.equal(timer.completionsWithQuality([ev('e1','2026-11-24T14:15:00.000Z','a'),ev('e2','2026-11-24T14:20:00.000Z','b')],j).clockIssue,false);
+});
+
+test('capa 4 · Codex: finalización o pausa posterior al instante actual marca reloj alterado',()=>{
+  const t={startedAt:'2026-11-24T14:00:00.000Z',pauses:[['2026-11-24T14:50:00.000Z',null]]};
+  assert.equal(timer.summarize(t,[],{nowMs:T('14:30').getTime()}).quality,'invalid_timing');
+  const t2={startedAt:'2026-11-24T14:00:00.000Z',pauses:[]};
+  assert.equal(timer.summarize(t2,[T('14:40').getTime()],{nowMs:T('14:30').getTime()}).quality,'invalid_timing');
+});
+
+test('capa 4 · Codex: la tarjeta actualiza textos sin reemplazar sus controles en cada segundo',()=>{
+  const ui=fs.readFileSync(path.join(ROOT,'operational-timer-ui.js'),'utf8');
+  const render=ui.slice(ui.indexOf('function render('),ui.indexOf('function toggle('));
+  assert.ok(/if\(card\.dataset\.mode!==mode\)build\(mode\)/.test(render),'solo reconstruye al cambiar de modo');
+  const update=ui.slice(ui.indexOf('function update('),ui.indexOf('function render('));
+  assert.ok(!/replaceChildren|createElement|el\(/.test(update),'update solo cambia textos y estados');
+});
+
+test('capa 4: los elementos ocultos de la tarjeta no se muestran por estilos propios',()=>{
+  const ui=fs.readFileSync(path.join(ROOT,'operational-timer-ui.js'),'utf8');
+  assert.ok(ui.includes('.cnfl-timer [hidden]{display:none!important}'));
+});
