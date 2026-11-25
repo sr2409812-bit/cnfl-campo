@@ -74,3 +74,13 @@ body.cnfl-guided.cnfl-load-empty #readingGpsCard{display:none}
 }
 .cnfl-finish-controls button:disabled{opacity:.5}
 .cnfl-finish-controls p{font-size:12px;color:#9b1c1c;margin:0}
+/* Etapa 2a: jornada guiada. */
+body.cnfl-day-home button.ghost{width:100%;min-height:48px;margin-top:10px;border:2px solid #0033a0;border-radius:9px;background:#fff;color:#0033a0;font-size:15px;font-weight:800;padding:10px 14px;text-align:left}
+body.cnfl-day-home #closeMessage{color:#9b1c1c;margin:8px 0 0}
+body.cnfl-day-home #closeMessage:empty{display:none}
+body.cnfl-day-home button:focus-visible,body.cnfl-day-home a:focus-visible,body.cnfl-day-home summary:focus-visible{outline:3px solid #ff6a13;outline-offset:2px}
+body.cnfl-in-journey .cnfl-global-drawer a[data-module]:not([data-module="jornada"]):not([data-module="respaldo"]):not(.active){display:none}
+.cnfl-close-ready{background:#fff;border:1px solid #d9e0e7;border-left:5px solid #087855;border-radius:12px;padding:12px 14px;margin:10px 0 12px;display:flex;flex-direction:column;gap:4px;color:#172033}
+.cnfl-close-ready strong{font-size:16px;color:#00264d}
+.cnfl-close-ready span{font-size:13px;color:#5a6678}
+.cnfl-close-ready .cnfl-finish-controls{margin-top:8px}
