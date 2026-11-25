@@ -11,10 +11,13 @@
   }
   function read(storage){try{const d=JSON.parse(storage.getItem(KEY)||'null');return d&&typeof d==='object'?{active:d.active||null,history:Array.isArray(d.history)?d.history:[]}: {active:null,history:[]};}catch(_){return {active:null,history:[]};}}
   function write(storage,s){storage.setItem(KEY,JSON.stringify(s));return s;}
+  // Una sola jornada a la vez: con una jornada abierta (de otro módulo o de
+  // otro día) no se abre otra; primero hay que cerrarla con close().
   function begin(storage,module,now=new Date()){
     if(!Object.hasOwn(MODULES,module))throw Error('Módulo inválido');
     const s=read(storage),date=stamp(now);
     if(s.active&&!s.active.finishedAt&&s.active.date===date&&s.active.module===module)return s.active;
+    if(s.active&&!s.active.finishedAt)return null;
     if(s.active){s.history.unshift(s.active);s.history=s.history.slice(0,90);}
     s.active={id:date+':'+module+':'+now.getTime(),date,module,step:'load',startedAt:now.toISOString()};
     write(storage,s);return s.active;
@@ -34,6 +37,43 @@
     if(typeof summary.report==='string')a.report=summary.report.slice(0,60000);
     write(storage,s);return a;
   }
+  // Cierre en un paso, desde cualquier etapa (antes exigía pasar por el reporte).
+  // reason: 'user' (cierre normal) o 'next-day' (cerrada al día siguiente).
+  function close(storage,summary={},now=new Date(),reason='user'){
+    const s=read(storage),a=s.active;
+    if(!a||a.finishedAt)return null;
+    a.finishedAt=now.toISOString();a.closedFromStep=a.step;a.closeReason=reason==='next-day'?'next-day':'user';
+    a.summary={total:Number(summary.total)||0,done:Number(summary.done)||0,pending:Number(summary.pending)||0};
+    if(typeof summary.routeName==='string'&&summary.routeName)a.summary.routeName=summary.routeName.slice(0,120);
+    if(typeof summary.report==='string')a.report=summary.report.slice(0,60000);
+    write(storage,s);return a;
+  }
+  // Avance de un módulo leído de sus propias claves (sin modificarlas).
+  // stops: lista de paradas de notificaciones, solo disponible dentro del módulo.
+  function progress(storage,module,stops){
+    const out={total:0,done:0,pending:0,routeName:''};
+    try{
+      let rows=[];
+      if(module==='cortes')rows=JSON.parse(storage.getItem('cnfl_work_orders')||'[]').map(o=>!!o&&!!o.status&&o.status!=='pending');
+      else if(module==='notificaciones'){
+        const st=JSON.parse(storage.getItem('cnfl_notificaciones_20261019_v2')||'{}');
+        const done=st&&st.done&&typeof st.done==='object'?st.done:{};
+        rows=Array.isArray(stops)?stops.map(o=>!!done[o[0]]):Object.values(done).map(Boolean);
+      }else if(module==='demanda'||module==='residencial'){
+        const st=JSON.parse(storage.getItem(module==='demanda'?'cnfl_reading_orders_v2':'cnfl_residential_reading_v1')||'{}');
+        rows=(Array.isArray(st&&st.orders)?st.orders:[]).map(o=>!!o&&(o.status==='read'||o.status==='unread'));
+        const name=st&&st.routeInfo&&st.routeInfo.routeId!=='reading-empty'?st.routeInfo.name:'';
+        out.routeName=typeof name==='string'?name:'';
+      }
+      out.total=rows.length;out.done=rows.filter(Boolean).length;out.pending=out.total-out.done;
+    }catch(_){}
+    return out;
+  }
+  // Jornadas guardadas: cerradas y también las que quedaron archivadas sin cerrar.
+  function saved(storage){
+    const s=read(storage);
+    return [...(s.active&&s.active.finishedAt?[s.active]:[]),...s.history].filter(x=>x&&typeof x==='object');
+  }
   function confirmReport(storage,confirmed){
     const s=read(storage),a=s.active;
     if(!a||a.finishedAt||a.step!=='report')return null;
@@ -50,6 +90,6 @@
     }
     storage.setItem(key,JSON.stringify({...current,done:{},lastAction:null,index:0,journeyDate:date}));
   }
-  root.CNFLJourney={KEY,MODULES,pages,stamp,read,begin,step,finish,confirmReport,prepareNotifications};
+  root.CNFLJourney={KEY,MODULES,pages,stamp,read,begin,step,finish,close,progress,saved,confirmReport,prepareNotifications};
   if(typeof module!=='undefined'&&module.exports)module.exports=root.CNFLJourney;
 })(typeof window==='undefined'?globalThis:window);

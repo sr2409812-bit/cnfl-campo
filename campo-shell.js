@@ -33,7 +33,7 @@
         '<div class="drawer-logo"><i class="fa-solid fa-bolt"></i></div>'+
         '<div><div class="drawer-title">CNFL CAMPO</div><div class="drawer-sub">TRABAJO EN CAMPO</div></div>'+
       '</div>'+
-      '<a href="campo.html" data-module="jornada"><i class="fa-solid fa-calendar-day"></i><span>Mi jornada</span></a>'+
+      '<a href="campo.html?inicio=1" data-module="jornada"><i class="fa-solid fa-calendar-day"></i><span>Mi jornada</span></a>'+
       '<div class="drawer-label">TIPO DE TRABAJO</div>'+
       '<a href="index.html" data-module="cortes"><i class="fa-solid fa-bolt"></i><span>Cortes</span></a>'+
       '<a href="lectura.html" data-module="demanda"><i class="fa-solid fa-gauge-high"></i><span>Lectura de demanda</span></a>'+
@@ -89,6 +89,21 @@
   }
   checkNewDay();
   addEventListener('pageshow',checkNewDay);document.addEventListener('visibilitychange',checkNewDay);
+
+  // Modo jornada: con una jornada abierta solo se trabaja en su módulo.
+  // Entrar a otro módulo redirige al de la jornada (la de otro día, a Mi jornada
+  // para cerrarla). El Mapa general y los botones de cambio de trabajo se ocultan.
+  const openJourney=currentJourney&&!currentJourney.finishedAt&&Object.hasOwn(journey.MODULES,currentJourney.module)?currentJourney:null;
+  if(openJourney){
+    document.body.classList.add('cnfl-in-journey');
+    const olderDay=openJourney.date!==journey.stamp();
+    const foreignModule=Object.hasOwn(journey.MODULES,moduleName)&&moduleName!==openJourney.module;
+    const foreignMap=moduleName==='mapa'&&currentScope!==openJourney.module;
+    if(foreignModule||foreignMap){
+      location.replace(olderDay?'campo.html?inicio=1':journey.pages[openJourney.module]+'?jornada=1');
+      return;
+    }
+  }
   if(journey && Object.hasOwn(journey.MODULES,moduleName)){
     const active=journey.read(localStorage).active;
     if(active&&active.module===moduleName&&!active.finishedAt){
@@ -135,25 +150,27 @@
         window.cnflOpenSharedMap?.(moduleName);
       };
 
-      // Conservar el cierre de jornada en su pantalla natural. No flota,
-      // no cubre medidores y requiere la misma confirmación que antes.
-      const closeHost=moduleName==='cortes'
-        ?document.getElementById('tab-resumen')
-        :(moduleName==='notificaciones'
-          ?document.querySelector('main')
-          :document.querySelector('#view-summary .summary-actions'));
-      if(closeHost){
+      // Cerrar la jornada en un paso (confirmación incluida), desde el Resumen y,
+      // cuando ya no quedan pendientes, desde una tarjeta al inicio del trabajo.
+      function closeJourney(message){
+        const state=journey.read(localStorage).active;
+        if(!state||state.id!==active.id||state.finishedAt){if(message)message.textContent='Esta jornada ya no está activa.';return;}
+        const p=journey.progress(localStorage,moduleName,window.CNFL_NOTIFICATION_STOPS);
+        if(!confirm(p.pending?'Quedan '+p.pending+' pendientes. ¿Cerrar la jornada y guardarla?':'¿Cerrar la jornada y guardarla?'))return;
+        try{
+          const report=moduleName==='cortes'&&typeof window.generateLiquidationText==='function'
+            ?window.generateLiquidationText():reportText();
+          const saved=journey.close(localStorage,{...p,report});
+          if(!saved)throw Error('No se pudo confirmar el cierre');
+          location.assign('campo.html?inicio=1');
+        }catch(error){
+          if(message)message.textContent='No se pudo cerrar la jornada. Revisá el almacenamiento antes de intentarlo de nuevo.';
+        }
+      }
+      function closeControls(withShare){
         const close=document.createElement('div');
         close.className='cnfl-finish-controls';
-        const checkboxLabel=document.createElement('label');
-        const checkbox=document.createElement('input');
-        checkbox.type='checkbox';
-        checkboxLabel.append(checkbox,document.createTextNode('Ya compartí o guardé el reporte'));
-        const finish=document.createElement('button');
-        finish.type='button';finish.textContent='FINALIZAR JORNADA';finish.disabled=true;
-        const message=document.createElement('p');message.setAttribute('role','status');
-
-        if(moduleName==='notificaciones'){
+        if(withShare&&moduleName==='notificaciones'){
           const share=document.createElement('button');
           share.type='button';share.className='secondary';share.textContent='COMPARTIR REPORTE';
           share.onclick=async()=>{
@@ -164,33 +181,38 @@
           };
           close.append(share);
         }
-        checkbox.onchange=()=>{finish.disabled=!checkbox.checked;};
-        finish.onclick=()=>{
-          const state=journey.read(localStorage).active;
-          if(!state||state.id!==active.id||state.finishedAt){message.textContent='Esta jornada ya no está activa.';return;}
-          const rows=workRows(),done=rows.filter(o=>o.done).length,remaining=rows.length-done;
-          if(!rows.length){message.textContent='No hay órdenes para cerrar en esta jornada.';return;}
-          if(!checkbox.checked)return;
-          if(!confirm(remaining?'Quedan '+remaining+' pendientes. ¿Cerrar esta jornada y guardar el reporte?':'¿Ya revisaste el reporte? Se guardará el cierre de esta jornada.'))return;
-          try{
-            const order=['load','map','work','report'];
-            const currentIndex=order.indexOf(state.step);
-            if(currentIndex<0)throw Error('Paso de jornada desconocido');
-            for(let i=currentIndex+1;i<order.length;i++)journey.step(localStorage,order[i]);
-            journey.confirmReport(localStorage,true);
-            const report=moduleName==='cortes'&&typeof window.generateLiquidationText==='function'
-              ?window.generateLiquidationText():reportText();
-            const saved=journey.finish(localStorage,{total:rows.length,done,pending:remaining,report});
-            if(!saved)throw Error('No se pudo confirmar el cierre');
-            location.assign('campo.html');
-          }catch(error){
-            message.textContent='No se pudo cerrar la jornada. Revisá el almacenamiento antes de intentarlo de nuevo.';
-          }
-        };
-        close.append(checkboxLabel,finish,message);
-        closeHost.append(close);
+        const finish=document.createElement('button');
+        finish.type='button';finish.textContent='CERRAR JORNADA';
+        const message=document.createElement('p');message.setAttribute('role','status');
+        finish.onclick=()=>closeJourney(message);
+        close.append(finish,message);
+        return close;
       }
-      refresh();
+      const closeHost=moduleName==='cortes'
+        ?document.getElementById('tab-resumen')
+        :(moduleName==='notificaciones'
+          ?document.querySelector('main')
+          :document.querySelector('#view-summary .summary-actions'));
+      if(closeHost)closeHost.append(closeControls(true));
+
+      // Sin pendientes: aviso al inicio del trabajo para cerrar sin buscar el Resumen.
+      let doneCard=null;
+      function updateDoneCard(){
+        const p=journey.progress(localStorage,moduleName,window.CNFL_NOTIFICATION_STOPS);
+        const ready=p.total>0&&p.pending===0;
+        if(ready&&!doneCard){
+          doneCard=document.createElement('section');
+          doneCard.className='cnfl-close-ready';
+          const title=document.createElement('strong');title.textContent='Terminaste las '+p.total+' órdenes';
+          const hint=document.createElement('span');hint.textContent='Cerrá la jornada para guardarla en Mi jornada.';
+          doneCard.append(title,hint,closeControls(false));
+          const head=document.querySelector('main .route-head');
+          if(head)head.after(doneCard);else document.querySelector('main')?.prepend(doneCard);
+        }else if(!ready&&doneCard){doneCard.remove();doneCard=null;}
+        else if(ready&&doneCard){doneCard.querySelector('strong').textContent='Terminaste las '+p.total+' órdenes';}
+      }
+      refresh();updateDoneCard();
+      addEventListener('cnfl-progress',()=>setTimeout(updateDoneCard,300));
       if(active.step==='load'&&location.search.includes('jornada=1')&&moduleName!=='notificaciones')section(moduleName==='cortes'?'cargar':'load');
       if(active.step==='work'&&location.search.includes('jornada=1')&&moduleName!=='notificaciones')section(moduleName==='cortes'?'ruta':'route');
       if(active.step==='report'&&location.search.includes('jornada=1')&&moduleName!=='notificaciones')section(moduleName==='cortes'?'resumen':'summary');

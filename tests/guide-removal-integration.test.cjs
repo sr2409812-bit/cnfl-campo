@@ -18,6 +18,8 @@ function element(tag='div'){
       toggle(name,force){if(force===undefined)force=!classes.has(name);if(force)classes.add(name);else classes.delete(name);return force;}
     },
     append(...items){this.children.push(...items);},
+    prepend(...items){this.children.unshift(...items);},
+    remove(){this.removed=true;},
     appendChild(child){this.children.push(child);},
     setAttribute(name,value){attributes[name]=value;},
     querySelectorAll(){return [];},
@@ -80,25 +82,22 @@ function fixture(module){
   return {env,host,created,store,values,orders,get confirmed(){return confirmed},get nav(){return nav}};
 }
 for(const mod of ['cortes','demanda','residencial','notificaciones']){
-  test(mod+': elimina barra superpuesta, conserva cierre voluntario y datos',()=>{
+  test(mod+': cierre de jornada en un paso, desde cualquier etapa, sin tocar los datos',()=>{
     const app=fixture(mod);
     assert.equal(app.created.some(x=>x.className==='cnfl-journey-bar'),false);
     const panel=app.host.children.find(x=>x.className==='cnfl-finish-controls');
     assert.ok(panel,'cierre visible solo en pantalla del módulo');
-    const label=panel.children.find(x=>x.tag==='label');
-    const finish=panel.children.find(x=>x.tag==='button'&&x.textContent==='FINALIZAR JORNADA');
-    assert.ok(label);
+    assert.equal(panel.children.some(x=>x.tag==='label'),false,'sin casilla previa');
+    const finish=panel.children.find(x=>x.tag==='button'&&x.textContent==='CERRAR JORNADA');
     assert.ok(finish);
-    assert.equal(finish.disabled,true);
-    assert.equal(journey.read(app.store).active.finishedAt,undefined);
-    label.children[0].checked=true;
-    label.children[0].onchange();
     assert.equal(finish.disabled,false);
+    assert.equal(journey.read(app.store).active.finishedAt,undefined);
     finish.onclick();
     assert.equal(app.confirmed,1);
-    assert.equal(app.nav,'campo.html');
+    assert.equal(app.nav,'campo.html?inicio=1');
     const finished=journey.read(app.store).active;
     assert.ok(finished.finishedAt);
+    assert.equal(finished.closeReason,'user');
     assert.equal(finished.summary.total,2);
     assert.equal(finished.summary.done,1);
     assert.equal(finished.summary.pending,1);
@@ -109,11 +108,14 @@ test('cierre cancelado no altera el estado y la jornada sigue activa',()=>{
   const app=fixture('cortes');
   app.env.confirm=()=>false;
   const panel=app.host.children.find(x=>x.className==='cnfl-finish-controls');
-  const label=panel.children.find(x=>x.tag==='label');
-  const finish=panel.children.find(x=>x.tag==='button'&&x.textContent==='FINALIZAR JORNADA');
-  label.children[0].checked=true;
-  label.children[0].onchange();
+  const finish=panel.children.find(x=>x.tag==='button'&&x.textContent==='CERRAR JORNADA');
   finish.onclick();
   assert.equal(journey.read(app.store).active.finishedAt,undefined);
   assert.equal(app.nav,'');
+});
+
+test('con órdenes pendientes no aparece la tarjeta «Terminaste las órdenes»',()=>{
+  const app=fixture('demanda');
+  // El fixture tiene 1 pendiente: no hay tarjeta.
+  assert.equal(app.created.some(x=>x.className==='cnfl-close-ready'),false);
 });

@@ -132,6 +132,8 @@ test('mismo identificador en jornadas distintas nunca se mezcla',async()=>{
   const h=harness();
   await h.capture('cut-1',false,true,A);
   const first=h.journal().events[0];
+  // Una sola jornada a la vez: la anterior se cierra antes de abrir otra.
+  journey.close(h.storage,{},new Date('2026-01-02T11:59:00.000Z'));
   journey.begin(h.storage,'cortes',new Date('2026-01-02T12:00:00.000Z'));
   assert.equal(await h.capture('cut-1',false,true,'2026-01-02T15:00:00.000Z'),true);
   const second=h.journal().events[1];
@@ -212,6 +214,8 @@ test('eventos simultáneos de la misma pestaña se serializan',async()=>{
 test('los eventos de un solo módulo no afectan el cálculo de otro',async()=>{
   const h=harness();
   await h.capture('cut-1',false,true,A);
+  // Una sola jornada a la vez: la anterior se cierra antes de abrir otra.
+  journey.close(h.storage,{},new Date('2026-01-02T11:59:00.000Z'));
   journey.begin(h.storage,'demanda',new Date('2026-01-02T12:00:00.000Z'));
   await h.browser.CNFLOperationalEvents.captureTransition({
     module:'demanda',identity:'route|loc|meter',previousDone:false,done:true,

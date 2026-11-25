@@ -13,6 +13,9 @@ test('la jornada cambia a las seis de Costa Rica sin borrar las órdenes',()=>{
   assert.equal(journey.stamp(before),'2026-10-30');
   assert.equal(journey.stamp(after),'2026-10-31');
   journey.begin(store,'cortes',before);
+  // La jornada de ayer sin cerrar bloquea abrir otra hasta cerrarla.
+  assert.equal(journey.begin(store,'cortes',after),null);
+  assert.equal(journey.close(store,{total:1,done:0,pending:1},after,'next-day').closeReason,'next-day');
   const next=journey.begin(store,'cortes',after);
   assert.equal(next.step,'load');
   assert.equal(journey.read(store).history.length,1);
@@ -50,14 +53,49 @@ test('la barra guiada flotante desaparece y la navegación propia de cada módul
   assert.ok(!shell.includes("className='cnfl-journey-bar'"));
   assert.ok(!map.includes("className='cnfl-journey-bar'"));
   assert.ok(shell.includes("className='cnfl-finish-controls'"));
-  assert.ok(shell.includes("journey.finish(localStorage"));
+  assert.ok(shell.includes("journey.close(localStorage"));
   assert.ok(map.includes("journey.step(localStorage,'work')"));
   for(const file of ['index.html','lectura.html','lectura-residencial.html',
                      'notificaciones.html','mapa.html','campo.html']){
     const html=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
-    assert.ok(html.includes('journey.css?v=20261118-no-guide1'),file+' sin CSS nuevo');
+    assert.ok(html.includes('journey.css?v=20261125-etapa2a'),file+' sin CSS nuevo');
     if(file!=='campo.html')
-      assert.ok(html.includes('campo-shell.js?v=20261118-no-guide1'),file+' sin JS nuevo');
+      assert.ok(html.includes('campo-shell.js?v=20261125-etapa2a'),file+' sin JS nuevo');
   }
   assert.ok(fs.readFileSync(path.join(__dirname,'../mapa.html'),'utf8').includes('mapa.js?v=20261118-no-guide1'));
+});
+
+test('etapa 2a: una sola jornada a la vez, cierre desde cualquier paso y jornadas guardadas',()=>{
+  const now=new Date('2026-11-25T15:00:00Z');
+  const store=memory({cnfl_reading_orders_v2:JSON.stringify({routeInfo:{routeId:'reading-1',name:'Ruta ficticia'},orders:[{status:'read'},{status:'pending'},{status:'unread'}]})});
+  const a=journey.begin(store,'demanda',now);
+  assert.equal(journey.begin(store,'cortes',now),null,'otro módulo queda bloqueado');
+  assert.equal(journey.read(store).active.id,a.id);
+  assert.equal(journey.begin(store,'demanda',now).id,a.id,'el mismo trabajo continúa');
+  const p=journey.progress(store,'demanda');
+  assert.deepEqual(p,{total:3,done:2,pending:1,routeName:'Ruta ficticia'});
+  const closed=journey.close(store,{...p,report:'R'},now);
+  assert.equal(closed.closedFromStep,'load');
+  assert.equal(closed.summary.routeName,'Ruta ficticia');
+  assert.equal(journey.close(store,{},now),null,'no se cierra dos veces');
+  assert.equal(journey.saved(store).length,1);
+  assert.equal(journey.begin(store,'cortes',now).module,'cortes');
+  assert.equal(journey.saved(store)[0].module,'demanda');
+  assert.equal(store.getItem('cnfl_reading_orders_v2').includes('Ruta ficticia'),true,'cerrar no toca las órdenes');
+});
+
+test('etapa 2a: las jornadas archivadas sin cerrar (datos viejos) también aparecen guardadas',()=>{
+  const store=memory({cnfl_journeys_v1:JSON.stringify({active:null,history:[{id:'x',module:'demanda',date:'2026-11-24',step:'work'}]})});
+  assert.equal(journey.saved(store).length,1);
+  assert.equal(journey.saved(store)[0].finishedAt,undefined);
+});
+
+test('etapa 2a: Mi jornada redirige a la jornada abierta, sin elegir otra mientras dure',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'../campo.html'),'utf8');
+  assert.ok(html.includes("if(open&&!older&&!params.has('inicio')){location.replace(destination(a));return;}"));
+  assert.ok(html.includes("document.getElementById('start').hidden=!!open;"));
+  assert.ok(!html.includes('Quedará guardada en el historial'),'ya no se archiva en silencio');
+  const shell=fs.readFileSync(path.join(__dirname,'../campo-shell.js'),'utf8');
+  assert.ok(shell.includes('<a href="campo.html?inicio=1" data-module="jornada">'));
+  assert.ok(shell.includes("location.replace(olderDay?'campo.html?inicio=1':journey.pages[openJourney.module]+'?jornada=1');"));
 });
