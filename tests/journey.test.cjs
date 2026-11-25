@@ -99,3 +99,19 @@ test('etapa 2a: Mi jornada redirige a la jornada abierta, sin elegir otra mientr
   assert.ok(shell.includes('<a href="campo.html?inicio=1" data-module="jornada">'));
   assert.ok(shell.includes("location.replace(olderDay?'campo.html?inicio=1':journey.pages[openJourney.module]+'?jornada=1');"));
 });
+
+test('etapa 2a · Codex: en Mi jornada, Notificaciones cuenta todas las paradas guardadas',()=>{
+  const store=memory({cnfl_notificaciones_20261019_v2:JSON.stringify({order:['a','b','c'],done:{a:true},index:1})});
+  assert.deepEqual(journey.progress(store,'notificaciones'),{total:3,done:1,pending:2,routeName:''});
+  // Dentro del módulo manda la lista de paradas en memoria.
+  assert.deepEqual(journey.progress(store,'notificaciones',[['a'],['b']]),{total:2,done:1,pending:1,routeName:''});
+});
+
+test('etapa 2a · Codex: Cortes avisa el avance al cambiar el estado y Mi jornada no cierra otra jornada',()=>{
+  const app=fs.readFileSync(path.join(__dirname,'../app.js'),'utf8');
+  const fn=app.slice(app.indexOf('function setOrderStatus('),app.indexOf('function setRouteFilter('));
+  assert.ok(fn.includes("window.dispatchEvent?.(new Event('cnfl-progress'));"));
+  const html=fs.readFileSync(path.join(__dirname,'../campo.html'),'utf8');
+  const close=html.slice(html.indexOf('close.onclick=()=>{'),html.indexOf('j.close(localStorage'));
+  assert.ok(close.includes('current.id!==a.id'),'verifica que sigue siendo la misma jornada');
+});

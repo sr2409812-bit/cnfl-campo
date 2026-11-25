@@ -50,6 +50,8 @@
      resume.insertBefore(close,cont);
    }
    close.onclick=()=>{
+     const current=j.read(localStorage).active;
+     if(!current||current.id!==a.id||current.finishedAt){msg.textContent='La jornada cambió en otra pantalla. Actualizando…';setTimeout(()=>location.replace('campo.html?inicio=1'),800);return;}
      const now=j.progress(localStorage,a.module);
      if(!confirm(now.pending?'Quedan '+now.pending+' pendientes. ¿Cerrar la jornada de '+j.MODULES[a.module]+' y guardarla?':'¿Cerrar la jornada de '+j.MODULES[a.module]+' y guardarla?'))return;
      try{

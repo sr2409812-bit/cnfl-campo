@@ -847,6 +847,7 @@ function setOrderStatus(id, newStatus) {
     renderOrders();
     showToast(`NIS ${ord.nis}: ${getStatusLabel(newStatus)}`);
     updateLiquidation();
+    window.dispatchEvent?.(new Event('cnfl-progress'));
   }
 }
 

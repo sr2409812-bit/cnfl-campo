@@ -58,7 +58,9 @@
       else if(module==='notificaciones'){
         const st=JSON.parse(storage.getItem('cnfl_notificaciones_20261019_v2')||'{}');
         const done=st&&st.done&&typeof st.done==='object'?st.done:{};
-        rows=Array.isArray(stops)?stops.map(o=>!!done[o[0]]):Object.values(done).map(Boolean);
+        // Inventario completo: paradas del módulo o, fuera de él (Mi jornada), el orden guardado.
+        const ids=Array.isArray(stops)?stops.map(o=>o[0]):Array.isArray(st&&st.order)?st.order:Object.keys(done);
+        rows=ids.map(id=>!!done[id]);
       }else if(module==='demanda'||module==='residencial'){
         const st=JSON.parse(storage.getItem(module==='demanda'?'cnfl_reading_orders_v2':'cnfl_residential_reading_v1')||'{}');
         rows=(Array.isArray(st&&st.orders)?st.orders:[]).map(o=>!!o&&(o.status==='read'||o.status==='unread'));

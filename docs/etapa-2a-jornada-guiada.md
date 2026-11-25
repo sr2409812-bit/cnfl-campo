@@ -31,13 +31,18 @@
   - Cuando ya no quedan pendientes aparece «Terminaste las N órdenes» con el botón de cierre.
 - Versiones `?v=` unificadas en todas las páginas para `campo-shell.css`, `lectura.css`, `data-store.js`, `journey.js`, `journey.css` y `campo-shell.js` (issue #62). `CACHE_NAME` → `cnfl-campo-v76`.
 
+## Revisión de Codex (3 hallazgos P2, corregidos)
+1. Desde Mi jornada, Notificaciones contaba solo las paradas hechas, así que una jornada a medias figuraba completa. `progress()` ahora usa el orden guardado (`state.order`) como inventario completo.
+2. En Cortes, finalizar la última orden no mostraba «Terminaste las N órdenes» hasta recargar, porque `setOrderStatus()` no avisaba el avance. Ahora emite `cnfl-progress` (`app.js`).
+3. Una pestaña vieja de Mi jornada podía cerrar otra jornada distinta a la que mostraba. Ahora verifica que la jornada activa sea la misma; si cambió, avisa y actualiza la pantalla. Verificado en el navegador con dos pestañas.
+
 ## Riesgos
 - **Almacenamiento (`cnfl_journeys_v1`):** se agregan los campos `closedFromStep`, `closeReason` y `summary.routeName`. Las jornadas existentes se leen igual y no se borra nada. Las órdenes de cada módulo no se tocan. Todo entra en el respaldo (todas las claves `cnfl_`).
 - **Service worker:** v76. Abrir la app con señal, cerrarla y abrirla una vez.
 - **Cambio de comportamiento:** con una jornada abierta ya no se puede usar otro módulo sin cerrarla. Es lo pedido.
 
 ## Evidencia
-- `node --test`: 264/264. Pruebas nuevas en `tests/journey.test.cjs`: bloqueo de una segunda jornada, cierre desde cualquier paso, avance, jornadas archivadas visibles, redirección. `tests/guide-removal-integration.test.cjs`: cierre en un paso por módulo y cierre cancelado.
+- `node --test`: 266/266. Pruebas nuevas en `tests/journey.test.cjs`: bloqueo de una segunda jornada, cierre desde cualquier paso, avance, jornadas archivadas visibles, redirección. `tests/guide-removal-integration.test.cjs`: cierre en un paso por módulo y cierre cancelado.
 - Navegador, Chromium 390×844, dos días ficticios:
   - Día 1: abrir la app lleva a Demanda; Cortes y el Mapa general redirigen a Demanda; el menú muestra solo Mi jornada, Lectura de demanda y Respaldo.
   - Día 2: Demanda y Cortes llevan a Mi jornada, que ofrece «Cerrar y guardar» (Ruta ficticia A · 2 de 4). Tras cerrarla queda en «Jornadas guardadas».
